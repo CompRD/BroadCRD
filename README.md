@@ -25,4 +25,4 @@ for pointers about how to get assistance with this software.
 Assemble on!
 
 
-- The CompRD team
+-- The CompRD team
