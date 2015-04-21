@@ -1,60 +1,58 @@
 This repository begins with version 52488 of our internal subversion
 repository.  So, as it seems, there were 52,488 commits prior to
-GitHub.  To protect the innocent, we've excluded all of that history,
-but I thought some statistics and user names were in order, at the risk
-of penalizing those who commit only large, finished pieces of code:
+GitHub.  In creating this repository, we deleted the commit history, but
+here are the contributors listed in the commits:
 
-jaffe       :	20920
-sante       :	4961
-jbutler     :	3253
-evan        :	2739
-iainm       :	2419
-palvarez    :	2300
-jburton     :	1481
-tsharpe     :	1374
-ribeiro     :	1341
-grabherr    :	1245
-dariusz     :	958
-brockman    :	883
-neilw       :	836
-mgross      :	748
-asivache    :	740
-ohsumit     :	675
-kiran       :	640
-kleber      :	585
-ghall       :	518
-blau        :	502
-ilya        :	486
-shuangye    :	437
-jmaguire    :	375
-cheewhye    :	365
-ron         :	278
-serafim     :	261
-bruce       :	258
-(no author) :	179
-alecw       :	147
-bethc       :	124
-kstanley    :	113
-eyee        :	62
-aaron       :	46
-psc2        :	45
-tarjei      :	38
-kcibul      :	29
-andrewk     :	22
-depristo    :	19
-tfennell    :	19
-hanna       :	18
-dheiman     :	16
-orzuk       :	8
-bigelow     :	7
-belmonte    :	6
-wganight    :	3
-ssykes      :	3
-adb         :	2
-nnovod      :	2
-uid3478     :	1
-jpvinson    :	1
-
+jaffe       
+sante       
+jbutler     
+evan        
+iainm       
+palvarez    
+jburton     
+tsharpe     
+ribeiro    
+grabherr    
+dariusz     
+brockman    
+neilw       
+mgross      
+asivache    
+ohsumit     
+kiran       
+kleber      
+ghall       
+blau        
+ilya        
+shuangye    
+jmaguire   
+cheewhye    
+ron        
+serafim     
+bruce       
+(no author) 
+alecw       
+bethc       
+kstanley    
+eyee       
+aaron       
+psc2       
+tarjei     
+kcibul     
+andrewk     
+depristo    
+tfennell    
+hanna       
+dheiman     
+orzuk      
+bigelow     
+belmonte    
+wganight    
+ssykes      
+adb         
+nnovod      
+uid3478     
+jpvinson    
 
 Thanks to everyone who contributed and we hope to see you on GitHub!
 

@@ -1,6 +1,6 @@
 License
 
-DISCOVAR (all of the code in this repository) is distributed under
+DISCOVAR and all of the other code in this repository is distributed under
 the following BSD-style license:
 
 Copyright © 2012-2015 Broad Institute, Inc.  All rights reserved.
