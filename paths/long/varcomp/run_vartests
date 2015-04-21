@@ -1,0 +1,117 @@
+#!/bin/csh
+
+# RETIRED - do not used
+#
+# Replaced by new script:
+# dexter/scripts/discovar_vartests.sh
+
+echo "Retired - see inline documentation"
+exit 1
+
+# Run variant calling tests and mail results to the group.  This is run by a
+# chron job.  If you want to run it yourself, you need to change "top".
+# Example crontab entry:
+# 0 2 * * * /wga/scr4/dexter/src/BroadCRD_longread/paths/long/varcomp/run_vartests
+
+# Make sure the obvious dotkits are available
+
+# Use
+unset _dk_inuse
+
+use -q BuildTools
+use -q .gcc-4.7.2
+use -q Subversion-1.6
+use -q Samtools
+# Samtools includes .zlib, but also has it's own zlib that comes first.
+# The following two lines make the dotkit zlib primary
+unuse -q .zlib-1.2.6
+use -q .zlib-1.2.6
+
+
+# Create root directory.
+
+set top = /wga/scr4/vartests
+set date = `date +%D | tr '/' '-'`
+set root = $top/$date
+mkdir $root
+
+cd $top/BroadCRD
+echo "Variant calling report\n" > $root/report
+
+# Update code.
+
+svn update >& $root/update.log
+if ( $status != 0 ) echo "update failed" >> $root/report
+cat $root/update.log | grep Updated >> $root/report
+if ( $status != 0 ) echo "Using same code revision as yesterday." >> $root/report
+echo >> $root/report
+make -j50 -k CompareVars DetectMaleFunkyHet FunkyBlocksF3 XFPD RunRangeByRegion install_scripts >& $root/make.log
+if ( $status != 0 ) echo "make failed" >> $root/report
+set path = ($top/BroadCRD/bin $top/BroadCRD/paths/long/varcomp $path)
+
+# Run tests.
+
+cd $root
+
+( test_xhet 1 5 >& test_xhet1.report; echo $status > test_xhet1.status ) &
+( test_xhet 2 5 >& test_xhet2.report; echo $status > test_xhet2.status ) &
+( test_xhet 3 5 >& test_xhet3.report; echo $status > test_xhet3.status ) &
+( test_xhet 4 5 >& test_xhet4.report; echo $status > test_xhet4.status ) &
+
+test_quint >& test_quint.report
+if ( $status != 0 ) echo "test_quint failed" >> report
+
+CompareVars ROOT=$top/CompareVars FUN=ASSEMBLE ID=all > CompareVars.report
+if ( $status != 0 ) echo "CompareVars failed" >> report
+
+wait
+
+if ( `cat test_xhet1.status` != 0 ) echo "test_xhet 1 failed" >> report
+if ( `cat test_xhet2.status` != 0 ) echo "test_xhet 2 failed" >> report
+if ( `cat test_xhet3.status` != 0 ) echo "test_xhet 3 failed" >> report
+if ( `cat test_xhet4.status` != 0 ) echo "test_xhet 4 failed" >> report
+
+# Tally and report test_xhet results.
+
+echo "test_xhet results\n" >> report
+set step = 50000
+set start = 10000000
+set final = 110000000
+set total_funk = 0
+set orig = $start
+while(1)
+     set stop = `expr $start + $step`
+     set range = $start-$stop
+     if ( -f tmp.dad/aaa.$range.funky ) then
+          set funk = `cat tmp.dad/aaa.$range.funky | grep -c "\] X"`
+          set total_funk = `expr $total_funk + $funk`
+     endif
+     set start = $stop
+     if ( $start == $final ) break
+end
+set rsize = `expr $final - $orig`
+echo "region size = $rsize" >> report
+echo "total funk = $total_funk" >> report
+
+# Estimate false positive rate.  Assume $base = 553 expected hets per Mb for
+# female X.  Compute:
+#         FP rate = ( $total_funk / $rsize ) / ( 1.8 * $base / 1000000.0 )
+# in a convoluted way, as I don't know how to do this directly from a script.
+
+set base = 553
+set m1 = `echo "scale = 4; 1000000 / $rsize" | bc`
+set m2 = `echo "scale = 4; $total_funk / $base" | bc`
+set m = `echo "scale = 2; 100 * $m1 * $m2 / 1.8" | bc`
+echo "FP rate = $m% +/- `XFPD NH=True DATE=$date | grep -v stack`" >> report
+echo "\ncomparison: GATK-100 is 0.83% on NA12878's dad, and " >> report
+echo "1.11% on the average of nine males in the CEPH pedigree" >> report
+echo "GATK-250: 1.55%" >> report
+
+# Report other results.
+
+echo "\ntest_quint results:\n" >> report
+cat test_quint.report | grep "region size" >> report
+cat test_quint.report | grep "total funk" >> report
+echo "\nCompareVars results:\n" >> report
+cat CompareVars.report | grep -A100 suspicious >> report
+mail -s "Variant calling report" crdsrc@broadinstitute.org -- -F dexter < report

@@ -1,0 +1,4 @@
+How to run these from LongProto, e.g.
+
+LongProto SAMPLE=human READS=#picard TMP=tmp.xxx LOGGING=REFTRACE_VARIANTS=True \
+     OUT_INT_HEAD=ccc X=2:14M-14.01M

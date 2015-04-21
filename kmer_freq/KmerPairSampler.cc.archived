@@ -1,0 +1,702 @@
+// Copyright (c) 2004 Broad Institute of MIT and Harvard
+//
+// KmerPairSampler.cc
+
+#ifndef FORCE_DEBUG
+     #define NDEBUG
+#endif
+
+#include "math/Functions.h"
+#include "kmer_freq/KmerPairSampler.h"
+#include "random/NormalRandom.h"
+
+
+template<class T>
+inline
+int
+BinLocation( const vector<T>& v, const T& x )
+{
+  // returns the largest index  I  of the vector  v  such that
+  // for all  i < I, one has  v[i] < x
+
+  if ( v.size( ) == 0 )
+    return 0;
+
+  // loop-invariants:
+  // for all  i < first, one has  v[i] < x;
+  // for all  i >= last, one has  v[i] >= x;
+  int first = 0; 
+  int last = int(v.size( ) - 1);
+
+  while (1)
+    { 
+      if (first == last) 
+	return first;
+
+      int next = first + (last - first) / 2;
+      if ( v[next] < x )
+	first = next + 1;
+      else // v[next] >= x
+	last = next;
+    }
+}
+
+
+
+KmerPairSampler::KmerPairSampler(const int kmer_size,
+				 const int bases_to_hash,
+				 const double insert_length_mean,
+				 const double insert_length_stddev)
+  : kmer_size_(kmer_size),
+    insert_length_mean_(insert_length_mean),
+    insert_length_stddev_(insert_length_stddev),
+    num_kmers_parsed_(0)    
+{
+  ForceAssertLe(bases_to_hash, 15);
+  // 4^15 is the largest power of 4 an unsigned int can hold
+  ForceAssertLe(kmer_size - bases_to_hash, 31);
+  // 4^31 is the largest power of 4 an longlong can hold
+
+  // number of bases to be used for computing the hash value
+  bases_to_hash_ = (kmer_size <= bases_to_hash) ? kmer_size-1 : bases_to_hash;
+
+  // the weight (power of 4) for the most significant base
+  // in computing the hash value
+  most_sig_hash_weight_ = 1;
+  for (int i = 0; i < bases_to_hash_ - 1; i++)
+    most_sig_hash_weight_ *= 4;
+
+  // the weight (power of 4) for the most significant base
+  // in computing the id-value of a kmer
+  most_sig_id_weight_ = 1;
+  for (int i = bases_to_hash_; i < kmer_size_ - 1; i++)
+    most_sig_id_weight_ *= 4;
+
+  // the size of the hash table
+  const unsigned int hash_size = most_sig_hash_weight_ * 4;
+
+  hash_tbl_.resize(hash_size);
+  hash_size_ = hash_size;
+}
+
+
+longlong
+KmerPairSampler::RegisterKmerPairs(const vecbasevector& vecbv,
+				   const vec< Location >& vecloc)
+{
+  // Method to pick kmers from a given list of locations
+  // and register them for frequency-counting
+
+  NormalRandom normal_random(insert_length_mean_, insert_length_stddev_);
+
+  longlong num_accepted = 0;
+  const int num_locs = vecloc.size();
+  for (int i = 0; i < num_locs; i++)
+    {
+      const Location& loc = vecloc[i];
+      const int contig = loc.Contig();
+      const int offset = loc.Offset();
+      const basevector& bv = vecbv[contig];
+
+      if (offset + kmer_size_ > int(bv.size()))
+	continue; // because the resulting kmer will span across contigs!
+
+      const double insert_length_dbl = normal_random.value();
+      const int insert_length = (insert_length_dbl > kmer_size_ ?
+				 static_cast<int>(insert_length_dbl) :
+				 kmer_size_); // shouldn't happen
+      if (offset + insert_length > int(bv.size()))
+	continue; // because the resulting kmer-pair will span across contigs!
+
+      // extract the kmer
+      vec< unsigned char > kmer_bases(kmer_size_);
+      for (int j = 0; j < kmer_size_; j++)
+	{
+	  kmer_bases[j] =
+	    static_cast<unsigned char>(bv[offset+j]);
+	}
+
+      // compute the hash value
+      unsigned int hash_val = 0;
+      for (int j = 0; j < bases_to_hash_; j++)
+	{
+	  hash_val *= 4;
+	  hash_val += kmer_bases[j];
+	}
+
+      // compute the id value
+      longlong id_val = 0;
+      for (int j = bases_to_hash_; j < kmer_size_; j++)
+	{
+	  id_val *= 4;
+	  id_val += kmer_bases[j];
+	}
+
+
+      // extract the partner kmer
+      for (int j = 0; j < kmer_size_; j++)
+	{
+	  kmer_bases[j] =
+	    static_cast<unsigned char>(bv[offset+insert_length-kmer_size_+j]);
+	}
+
+      // compute the partner hash value
+      unsigned int partner_hash_val = 0;
+      for (int j = 0; j < bases_to_hash_; j++)
+	{
+	  partner_hash_val *= 4;
+	  partner_hash_val += kmer_bases[j];
+	}
+
+      // compute the partner id value
+      longlong partner_id_val = 0;
+      for (int j = bases_to_hash_; j < kmer_size_; j++)
+	{
+	  partner_id_val *= 4;
+	  partner_id_val += kmer_bases[j];
+	}
+
+
+      // create KmerInfo objects for this kmer and its partner
+      KmerInfo* kmer_ptr = new KmerInfo;
+      KmerInfo* partner_kmer_ptr = new KmerInfo;
+
+      kmer_ptr->partner_ptr = partner_kmer_ptr;
+      kmer_ptr->is_deputy = False;
+      partner_kmer_ptr->partner_ptr = kmer_ptr;
+      partner_kmer_ptr->is_deputy = True;
+
+      // register that kmer and its partner
+      hash_tbl_[ hash_val ].Register( id_val, kmer_ptr );
+      hash_tbl_[ partner_hash_val ].Register( partner_id_val, partner_kmer_ptr );
+
+      num_accepted++;
+
+    } //   for (int i = 0; i < num_locs; i++)
+
+  return num_accepted;
+}
+
+
+
+longlong
+KmerPairSampler::RegisterKmerPairs(const vecbasevector& vecbv,
+				   const vecbitvector& vecamb,
+				   const vec< Location >& vecloc)
+{
+  // Method to pick kmers from a given list of locations
+  // and register them for frequency-counting
+
+  NormalRandom normal_random(insert_length_mean_, insert_length_stddev_);
+
+  longlong num_accepted = 0;
+  const int num_locs = vecloc.size();
+  for (int i = 0; i < num_locs; i++)
+    {
+      const Location& loc = vecloc[i];
+      const int contig = loc.Contig();
+      const int offset = loc.Offset();
+      const basevector& bv = vecbv[contig];
+
+      if (offset + kmer_size_ > int(bv.size()))
+	continue; // because the resulting kmer will span across contigs!
+
+      const double insert_length_dbl = normal_random.value();
+      const int insert_length = (insert_length_dbl > kmer_size_ ?
+				 static_cast<int>(insert_length_dbl) :
+				 kmer_size_); // shouldn't happen
+      if (offset + insert_length > int(bv.size()))
+	continue; // because the resulting kmer-pair will span across contigs!
+
+      // determine if either of the two kmers contains any ambiguous base
+      Bool has_amb_base = False;
+      const bitvector& ambbitvector = vecamb[contig];
+      for (int j = 0; !has_amb_base && j < kmer_size_; j++)
+	{
+	  if ( ambbitvector[offset+j] ||
+	       ambbitvector[offset+insert_length-kmer_size_+j] )
+	    has_amb_base = True;
+	}
+      if (has_amb_base)
+	continue; // because the resulting kmer-pair contains ambiguous bases
+
+
+      // extract the kmer
+      vec< unsigned char > kmer_bases(kmer_size_);
+      for (int j = 0; j < kmer_size_; j++)
+	{
+	  kmer_bases[j] =
+	    static_cast<unsigned char>(bv[offset+j]);
+	}
+
+      // compute the hash value
+      unsigned int hash_val = 0;
+      for (int j = 0; j < bases_to_hash_; j++)
+	{
+	  hash_val *= 4;
+	  hash_val += kmer_bases[j];
+	}
+
+      // compute the id value
+      longlong id_val = 0;
+      for (int j = bases_to_hash_; j < kmer_size_; j++)
+	{
+	  id_val *= 4;
+	  id_val += kmer_bases[j];
+	}
+
+
+      // extract the partner kmer
+      for (int j = 0; j < kmer_size_; j++)
+	{
+	  kmer_bases[j] =
+	    static_cast<unsigned char>(bv[offset+insert_length-kmer_size_+j]);
+	}
+
+      // compute the partner hash value
+      unsigned int partner_hash_val = 0;
+      for (int j = 0; j < bases_to_hash_; j++)
+	{
+	  partner_hash_val *= 4;
+	  partner_hash_val += kmer_bases[j];
+	}
+
+      // compute the partner id value
+      longlong partner_id_val = 0;
+      for (int j = bases_to_hash_; j < kmer_size_; j++)
+	{
+	  partner_id_val *= 4;
+	  partner_id_val += kmer_bases[j];
+	}
+
+
+      // create KmerInfo objects for this kmer and its partner
+      KmerInfo* kmer_ptr = new KmerInfo;
+      KmerInfo* partner_kmer_ptr = new KmerInfo;
+
+      kmer_ptr->partner_ptr = partner_kmer_ptr;
+      kmer_ptr->is_deputy = False;
+      partner_kmer_ptr->partner_ptr = kmer_ptr;
+      partner_kmer_ptr->is_deputy = True;
+
+      // register that kmer and its partner
+      hash_tbl_[ hash_val ].Register( id_val, kmer_ptr );
+      hash_tbl_[ partner_hash_val ].Register( partner_id_val, partner_kmer_ptr );
+
+      num_accepted++;
+
+    } //   for (int i = 0; i < num_locs; i++)
+
+  return num_accepted;
+}
+
+
+
+void
+HashEntry::Register(const longlong id_val,
+		    KmerInfo* const kmer_ptr)
+{
+  // Call this method to allow a kmer belonging to this hash entry
+  // to be sampled; kmers which are not Register-ed will not be counted!
+
+  HashNode  hash_node(id_val);
+  int pos = BinPosition(list_, hash_node);
+  if (pos >= 0)
+    {
+      list_[pos].AddKmerInfo(kmer_ptr);
+    } 
+  else
+    {
+      hash_node.AddKmerInfo(kmer_ptr);
+      list_.push_back(hash_node);
+      Sort(list_);
+    }
+}
+
+
+
+void
+KmerPairSampler::ParseContig(const int contig_id,
+			     const basevector& bv)
+{
+  // Method to efficiently parse a contig (in both forward and
+  // reverse-complemented directions) and update the frequency counts
+  // of registered kmers
+
+  const int contig_len = bv.size();
+
+  if (contig_len < kmer_size_)
+    return;
+
+  contig_bases_.resize(contig_len);
+
+  // Copy the contig basevector into  contig_bases_
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = static_cast<unsigned char>(bv[i]);
+    }
+
+  // Parse contig_bases_ for kmers
+  ParseForKmers( contig_id );
+
+  // Turn  contig_bases_  to its reverse-complement
+  vec< unsigned char > tmp_bases = contig_bases_;
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = 3 - (tmp_bases[contig_len-1-i]);
+    }
+
+  // Parse contig_bases_ again for kmers
+  // NB: the  id of a contig  and the  id of its RC  are related:
+  //                0                       -1
+  //                1                       -2
+  //                n                      -n-1
+  ParseForKmers( - contig_id -1 );
+
+  // update num_kmers_parsed_
+  num_kmers_parsed_ += 2 * (contig_len - kmer_size_ + 1);
+}
+
+
+void
+KmerPairSampler::ParseContig(const int contig_id,
+			     const basevector& bv,
+			     const bitvector& amb)
+{
+  // Method to efficiently parse a contig (in both forward and
+  // reverse-complemented directions) and update the frequency counts
+  // of registered kmers
+
+  const int contig_len = bv.size();
+
+  if (contig_len < kmer_size_)
+    return;
+
+  contig_bases_.resize(contig_len);
+  amb_bases_.resize(contig_len);
+
+  // Copy the contig basevector into  contig_bases_
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = static_cast<unsigned char>(bv[i]);
+      amb_bases_[i] = amb[i];
+    }
+
+  // Parse contig_bases_ for kmers
+  ParseForKmers_withAmb( contig_id );
+
+  // Turn  contig_bases_  to its reverse-complement
+  vec< unsigned char > tmp_bases = contig_bases_;
+  vec< unsigned char > tmp_amb_bases = amb_bases_;
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = 3 - (tmp_bases[contig_len-1-i]);
+      amb_bases_[i] = tmp_amb_bases[contig_len-1-i];
+    }
+
+  // Parse contig_bases_ again for kmers
+  // NB: the  id of a contig  and the  id of its RC  are related:
+  //                0                       -1
+  //                1                       -2
+  //                n                      -n-1
+  ParseForKmers_withAmb( - contig_id -1 );
+
+  // update num_kmers_parsed_
+  num_kmers_parsed_ += 2 * (contig_len - kmer_size_ + 1);
+}
+
+
+void
+KmerPairSampler::ParseForKmers(const int contig_id)
+{
+  // Routine to efficiently parse the kmers appearing in contig_bases_
+
+  // compute  next_kmer_hash_val  and  next_kmer_id_val
+  // for the first kmer
+  unsigned int next_kmer_hash_val = 0;
+  for (int i = 0; i < bases_to_hash_; i++)
+    {
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[i];
+    }  
+  longlong next_kmer_id_val = 0;
+  for (int i = bases_to_hash_; i < kmer_size_; i++)
+    {
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[i];
+    }
+
+  const int contig_len = contig_bases_.size();
+  for (int j = 0; j < contig_len - kmer_size_; j++)
+    {
+      hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val,
+					   contig_id,
+					   j);
+
+      // compute  next_kmer_hash_val  and  next_kmer_id_val 
+      // for the next kmer
+      next_kmer_hash_val -= contig_bases_[j] * most_sig_hash_weight_;
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[j + bases_to_hash_];
+
+      next_kmer_id_val -= contig_bases_[j + bases_to_hash_] * most_sig_id_weight_;
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[j + kmer_size_];
+    }
+
+  hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val,
+				       contig_id,
+				       contig_len - kmer_size_);
+}
+
+
+void
+KmerPairSampler::ParseForKmers_withAmb(const int contig_id)
+{
+  // Routine to efficiently parse the kmers appearing in contig_bases_
+
+  // compute  next_kmer_hash_val  and  next_kmer_id_val
+  // for the first kmer
+  unsigned int next_kmer_hash_val = 0;
+  for (int i = 0; i < bases_to_hash_; i++)
+    {
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[i];
+    }  
+  longlong next_kmer_id_val = 0;
+  for (int i = bases_to_hash_; i < kmer_size_; i++)
+    {
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[i];
+    }
+
+  // compute  next_ambkmer_hash_val  and  next_ambkmer_id_val
+  // for the first kmer
+  unsigned int next_ambkmer_hash_val = 0;
+  for (int i = 0; i < bases_to_hash_; i++)
+    {
+      next_ambkmer_hash_val *= 4;
+      next_ambkmer_hash_val += amb_bases_[i];
+    }  
+  longlong next_ambkmer_id_val = 0;
+  for (int i = bases_to_hash_; i < kmer_size_; i++)
+    {
+      next_ambkmer_id_val *= 4;
+      next_ambkmer_id_val += amb_bases_[i];
+    }
+
+
+  const int contig_len = contig_bases_.size();
+  for (int j = 0; j < contig_len - kmer_size_; j++)
+    {
+      // mark the kmer only if it does not contain ambiguous bases
+      if (next_ambkmer_hash_val == 0 && next_ambkmer_id_val == 0)
+	hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val,
+					     contig_id,
+					     j);
+
+      // compute  next_kmer_hash_val  and  next_kmer_id_val 
+      // for the next kmer
+      next_kmer_hash_val -= contig_bases_[j] * most_sig_hash_weight_;
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[j + bases_to_hash_];
+
+      next_kmer_id_val -= contig_bases_[j + bases_to_hash_] * most_sig_id_weight_;
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[j + kmer_size_];
+
+      // compute  next_ambkmer_hash_val  and  next_ambkmer_id_val 
+      // for the next kmer
+      next_ambkmer_hash_val -= amb_bases_[j] * most_sig_hash_weight_;
+      next_ambkmer_hash_val *= 4;
+      next_ambkmer_hash_val += amb_bases_[j + bases_to_hash_];
+
+      next_ambkmer_id_val -= amb_bases_[j + bases_to_hash_] * most_sig_id_weight_;
+      next_ambkmer_id_val *= 4;
+      next_ambkmer_id_val += amb_bases_[j + kmer_size_];
+    }
+
+  if (next_ambkmer_hash_val == 0 && next_ambkmer_id_val == 0)
+    hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val,
+					 contig_id,
+					 contig_len - kmer_size_);
+}
+
+
+void
+HashEntry::Mark(const longlong id_val,
+		const int contig_id,
+		const int offset)
+{
+  // Call this method whenever a kmer belonging to this hash entry
+  // is seen as the contigs are parsed.
+
+  if (list_.size() != 0)
+    {
+      const HashNode  hash_node(id_val);
+      const int id = BinPosition(list_,hash_node);
+      if (id >= 0)
+	{
+	  // kmer is in list_
+	  list_[id].Mark(contig_id, offset);
+	}
+    }
+}
+
+
+void
+KmerPairSampler::ComputeKmerPairDevs()
+{
+  // Method to compute a sorted list of insert length deviations
+
+  Destroy(kmerpair_devs_);
+  longlong kmerpair_id = 0;
+  for (unsigned int i = 0; i < hash_size_; i++)
+    {
+      hash_tbl_[i].ComputeKmerPairDevs(insert_length_mean_ - kmer_size_,
+				       kmerpair_devs_,
+				       kmerpair_id);
+    }
+  Destroy(hash_tbl_);
+  Sort(kmerpair_devs_);
+}
+
+
+void
+HashEntry::ComputeKmerPairDevs(double mean,
+			       vec<KmerPairDev>& kmerpair_devs,
+			       longlong& kmerpair_id) const
+{
+  // Method to compute a sorted list of insert length deviations
+
+  // NB: the argument  mean  should be  INSERT_LENGTH_MEAN - KMER_SIZE
+
+  const int list_size = list_.size();
+  for (int i = 0; i < list_size; i++)
+    {
+      const vec<KmerInfo*> kmerinfo_ptrs = list_[i].KmerInfoPtrs();
+
+      for (unsigned int l = 0; l < kmerinfo_ptrs.size(); l++)
+	{
+	  KmerInfo* const kmer_ptr = kmerinfo_ptrs[l];
+
+	  if (kmer_ptr->is_deputy)
+	    continue; // use the "main" kmer as the starting point
+
+	  const vec<Location>& my_locations	=
+	    kmer_ptr->location_list;
+	  const vec<Location>& partner_locations =
+	    kmer_ptr->partner_ptr->location_list;
+
+	  for (unsigned int j = 0; j < my_locations.size(); j++)
+	    {
+	      const Location& my_loc = my_locations[j];
+
+	      for (unsigned int k = 0; k < partner_locations.size(); k++)
+		{
+		  const Location& partner_loc = partner_locations[k];
+		  if (my_loc.Contig() != partner_loc.Contig())
+		    continue; // the two kmers land on different contigs
+
+		  const int sep =
+		    partner_loc.Offset() - my_loc.Offset();
+		  // NB: this is always less than the actual insert length,
+		  //     which is  sep + kmer_size
+
+		  const double insert_length_dev =
+		    Abs( static_cast<double>(sep) - mean );
+		  // NB: mean  is assumed to be the mean insert length minus kmer_size,
+		  //     so  insert_length_dev  *is* equal to the actual
+		  //     deviation from the mean of the current insert length
+
+		  KmerPairDev  kmerpair_dev(kmerpair_id, insert_length_dev);
+		  kmerpair_devs.push_back(kmerpair_dev);
+
+		} // for (unsigned int k = 0; k < partner_locations.size(); k++)
+
+	    } // for (unsigned int j = 0; j < my_locations.size(); j++)
+
+	  kmerpair_id++;
+
+	} // for (unsigned int l = 0; l < kmerinfo_ptrs.size(); l++)
+
+    } //   for (int i = 0; i < list_size; i++)
+}
+
+
+int
+KmerPairSampler::NumUniqueKmerPairs(const double insert_length_max_dev) const
+{
+  // accessor for the number of unique kmer-pairs with insert length
+  // within a given deviation limit
+
+  if (insert_length_max_dev < 0)
+    {
+      // negative value of insert_length_max_dev means that
+      // we are running with standard deviation = 0
+ 
+      vec<longlong> kmerpair_ids;
+      for (int i = 0; i < int(kmerpair_devs_.size()); i++)
+	{
+	  if ( kmerpair_devs_[i].Dev() > - 0.1 &&
+	       kmerpair_devs_[i].Dev() < + 0.1 )
+	    {
+	      kmerpair_ids.push_back(kmerpair_devs_[i].KmerPairId());
+	    }
+	}
+      Sort(kmerpair_ids);
+
+      int N = kmerpair_ids.size();
+      int num_unique = 0;
+      int i = 0;
+      while (i < N)
+	{
+	  if (kmerpair_ids[i] != kmerpair_ids[i+1])
+	    {
+	      num_unique++;
+	      i++;
+	    }
+	  else
+	    {
+	      int j = i+1;
+	      while (j < N && kmerpair_ids[j] == kmerpair_ids[i])
+		j++;
+	      i = j;
+	    }
+	}
+
+      return num_unique;
+    }
+
+  KmerPairDev max_dev(0, insert_length_max_dev * insert_length_stddev_);
+  int N = BinLocation(kmerpair_devs_, max_dev);
+
+  vec<longlong> kmerpair_ids;
+  kmerpair_ids.resize(N+1);
+  for (int i = 0; i < N; i++)
+    kmerpair_ids[i] = kmerpair_devs_[i].KmerPairId();
+  kmerpair_ids.resize(N);
+  Sort(kmerpair_ids);
+  kmerpair_ids.push_back(-1); // end-point sentinel, to simplify uniqueness check below
+
+  int num_unique = 0;
+  int i = 0;
+  while (i < N)
+    {
+      if (kmerpair_ids[i] != kmerpair_ids[i+1])
+	{
+	  num_unique++;
+	  i++;
+	}
+      else
+	{
+	  int j = i+1;
+	  while (j < N && kmerpair_ids[j] == kmerpair_ids[i])
+	    j++;
+	  i = j;
+	}
+    }
+
+  return num_unique;
+}
+

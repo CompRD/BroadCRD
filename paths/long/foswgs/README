@@ -1,0 +1,9 @@
+System for assembling Fosmid pool reads via assembling WGS reads.
+Main program is Glumper.
+
+Ran sequence:
+
+Glumper (stop at assembly 1) --> Zooper --> Wingle --> Grubble --> Boinker.
+
+Sneet is for evaluation.  Snick is the same but doesn't pick a component
+before evaluating.

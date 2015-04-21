@@ -1,0 +1,68 @@
+ANCIENT!
+
+This file contains information about sequence files on the Whitehead CGR computers.
+
+0. Project names.  Most are Ln, where n is a positive integer.  Another is G3.
+
+   Henceforth, let Ln denote a project name, even though not all project names
+have this form.
+
+   For each project name, there would be a project directory, but some have been
+archived.  Archived projects can be retrieved in about 1 day.
+
+   Individual projects are in /seq/projects (a few) or /seq/projectsn, where n is a
+positive integer.
+
+   WARNING: You may have write permission on /seq.  Be careful!
+
+2. Go to /seq/projects.  For n a positive integer, 
+
+   type "cat status_files/Ln.data" to get some information
+
+        look for projecttype = HTGS Regular (as opposed to HTGS Draft)
+
+        look for location, which tells you the organism and chromosome number
+
+   type "gogap Ln" to get to the project directory
+
+        if it's archived, you should discover this now
+
+3. Put yourself in the project directory for Ln, and cd to phrassembly/Phrap.
+   Then LnPHRP and LnPHRP.qual contain reads and quality scores, respectively.
+
+   Read labels all(?) have the form >ProjectPlateOther.Instance[.exp] where Project 
+   is the name of the project (e.g. L3191), Plate is Pm for some positive integer m, 
+   Other is some other stuff, and Instance identifies the attempt to sequence the
+   particular DNA fragment (the first is T0, then T1, etc.)  But under another 
+   chemistry, one sees 0 instead.  The .exp is there if the read has already been
+   trimmed of vector.
+
+   Look at LnPHRP.  Let a,b,c,d denote digits, and let m denote a positive integer.
+   >Lines containing Pm where 1 <= m <= 599 are unpaired reads from M13 vectors.
+   >Lines containing Pabc[d] where 6 <= a <= 7 are paired reads from plasmid vectors,
+    allegedly with a mean insert length of 4000 and a standard deviation of 1000.
+   >Lines containing P8bc[d] are paired reads from fosmid vectors,
+    allegedly with a mean insert length of 40000 and a standard deviation of 2500.
+   Either of the latter two types of lines should have an F or an R in them, for 
+   forward or reverse.  Change F to R and look for the changed line.  It is the 
+   paired read.
+
+4. Now go to phrassembly/mapper.  Do "grep avg contig.1.txt".  If the project was
+   finished, you'll see something like "proj. avg. length: 4753 +/- 652.3".  This
+   gives you a priori insert length statistics, which I am assuming represent 
+   total lengths of read...read.  
+
+5. All of the above does not get you the "final finishing reads", which are 
+   transposon reads.  To get these, go to the project directory for Ln, and look
+   for directories which end in _trans.  Cd to one of these, and then cd to Phrap.
+   For example, you may now be in L2124/L2124P602H6_trans/Phrap.  In the example,
+   the transposon reads are in L2124P602H6PHRP.  However, there is one such file
+   for each _tran directory, so in general you'll have a bunch of files of reads.
+
+6. The file "cons" (in the project directory) contains the final contigs.  However, 
+   as the project proceeds, these are changed.  I don't know (yet) how to tell if a
+   project is COMPLETELY finished.
+
+7. The file "rel" (in the project directory) contains placement information for
+   the reads in the final contigs.  It is not clear how seriously it should be
+   taken.

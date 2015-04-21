@@ -1,0 +1,39 @@
+#!/bin/csh
+
+# Assemble 40 Salmonella strains from FDA.
+#
+# Probably should run on 512 GB box as CrossOut has not been tested on a 256 GB box.
+
+set rev = 51400
+
+set count = 1
+
+foreach sam ( 0006 0017 0111 0158 0189 0255 0318 0507 0538 0658 0665 0670 0675 0692 0694 0707 0733 0736 0746 1009 1026 1034 1050 1080 1158 1161 1178 1179 1275 1285 1399 1921 1992 2047 2048 2049 2050 2064 2069 2234 )
+
+     set sample = CFSAN00{$sam}
+     echo "$count $sample"
+
+     set local = /local/scratch/jaffe/GapToy/FDA/$count
+     set global = /wga/scr4/jaffe/GapToy/FDA/$count
+
+     mkdir -p $global
+     mkdir -p $global/data
+
+     GapToy.$rev BAM=/seq/picard_aggregation/G72984/$sample/current/$sample.bam \
+          ROOT=/local/scratch READS_TO_USE=5M INSTANCE=FDA/$count X=all
+
+     if ( $status != 0 ) break
+
+     cp -pr $local/a.final $global
+     cp $local/data/frag_reads_orig.fastb $global/data
+     cp $local/data/frag_reads_orig.qualp $global/data
+     cp $local/subsam* $global
+     cp $local/frags.dist $global
+     cp $local/the_command $global
+     /bin/rm -rf $local
+
+     set count = `expr $count + 1`
+
+end
+
+CrossOut DIR=/wga/scr4/jaffe/GapToy/FDA

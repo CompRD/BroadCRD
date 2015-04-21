@@ -1,0 +1,46 @@
+#!/bin/csh
+
+# evaluate LongProto output, called by trav
+# usage: trav.eval filename
+
+set fn = $1
+
+set ncomp = `cat $fn | grep components | grep has | Col 3`
+set ngaps = `expr $ncomp - 1`
+set nhidden = `cat $fn | grep "edges (" | Col 5`
+
+if ( $ncomp == 0 ) then
+     echo "STATUS: no components!"
+     exit
+endif
+
+if ( $nhidden > 0 ) then
+     echo "STATUS: inversion"
+     exit
+endif
+
+if ( $ngaps == 1 ) then
+     echo "STATUS: gap"
+     exit
+endif
+if ( $ngaps > 1 ) then
+     echo "STATUS: $ngaps gaps"
+     exit
+endif
+
+set nedges = `cat $fn | grep "edges in efasta" | tr '(' '\n' | grep edges | Col 1`
+
+set nextra = `expr $nedges - $ncomp`
+
+if ( $nextra != 0 ) then
+     echo "STATUS: $nextra extra edges"
+     exit
+endif
+
+set favors = `cat $fn | grep favors | tr -d ')' | tr '(' '\n' | grep favors`
+set reffav = `echo $favors | Col 4 | tr -d ','`
+if ( $reffav == 0 ) then
+     echo "STATUS: validates"
+     exit
+endif
+echo "STATUS: $reffav favor ref"

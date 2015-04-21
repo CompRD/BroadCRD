@@ -1,0 +1,216 @@
+///////////////////////////////////////////////////////////////////////////////
+//                   SOFTWARE COPYRIGHT NOTICE AGREEMENT                     //
+//       This software and its documentation are copyright (2014) by the     //
+//   Broad Institute.  All rights are reserved.  This software is supplied   //
+//   without any warranty or guaranteed support whatsoever. The Broad        //
+//   Institute is not responsible for its use, misuse, or functionality.     //
+///////////////////////////////////////////////////////////////////////////////
+
+// MakeDepend: dependency QueryLookupTable
+// MakeDepend: dependency MakeLookupTable
+
+// MakeDepend: library OMP
+// MakeDepend: cflags OMP_FLAGS
+
+#include "MainTools.h"
+#include "lookup/LookAlign.h"
+#include "math/Functions.h"
+#include "paths/long/SupportedHyperBasevector.h"
+#include "polymorphism/Edit.h"
+
+int main( )
+{
+     RunTime( );
+
+     SupportedHyperBasevector shb;
+
+     /*
+     BinaryReader::readFile( "/wga/scr4/macro/scs.shbv", &shb );
+     vecbasevector bases( "/wga/scr4/macro/ecoli.Feb7.1.fastb" );
+     */
+
+     // r48688:LongProto SAMPLE=scardovia READS=#picard TMP=tmp.xxx OUT_INT_HEAD=...
+
+     BinaryReader::readFile( "/wga/scr4/macro/scardo.shbv", &shb );
+     vecbasevector bases( "/wga/scr4/macro/scardo.Feb7.1.fastb" );
+     bases.WriteAll( "thereads.fastb" );
+     int nb = bases.size( );
+     vecbasevector bases2(bases);
+     bases2.Append(bases);
+     for ( int i = nb; i < 2*nb; i++ )
+          bases2[i].ReverseComplement( );
+     bases = bases2;
+
+     // Heuristics.
+
+     const int max_dups = 4;
+
+     // Define paths.
+
+     vec<int> to_left, to_right;
+     shb.ToLeft(to_left), shb.ToRight(to_right);
+     int maxread = 0;
+     for ( int i = 0; i < nb; i++ )
+          maxread = Max( maxread, bases[i].isize( ) );
+     vec<vec<int>> allpaths;
+     for ( int v = 0; v < shb.N( ); v++ )
+     {    vec<vec<int>> paths;
+          for ( int j = 0; j < shb.From(v).isize( ); j++ )
+          {    vec<int> x = { shb.EdgeObjectIndexByIndexFrom( v, j ) };
+               paths.push_back(x);    }
+          while(1)
+          {    vec<vec<int>> paths2;
+               for ( int i = 0; i < paths.isize( ); i++ )
+               {    int v = to_right[ paths[i].back( ) ];
+                    int tail_len = 0;
+                    for ( int j = 1; j < paths[i].isize( ); j++ )
+                         tail_len += shb.EdgeLengthKmers( paths[i][j] );
+                    if ( tail_len >= 2*maxread || shb.From(v).empty( ) )
+                    {    paths2.push_back( paths[i] );
+                         continue;    }
+                    for ( int l = 0; l < shb.From(v).isize( ); l++ )
+                    {    vec<int> p = paths[i];
+                         p.push_back( shb.EdgeObjectIndexByIndexFrom( v, l ) );
+                         vec<int> q = p;
+                         Sort(q);
+                         int mc = 0;
+                         for ( int r = 0; r < q.isize( ); r++ )
+                         {    int s = q.NextDiff(r);
+                              mc = Max( mc, s - r );
+                              r = s - 1;    }
+                         if ( mc <= max_dups ) paths2.push_back(p);    }    }
+               if ( paths2 == paths ) break;
+               paths = paths2;    }
+          allpaths.append(paths);    }
+     PRINT( allpaths.size( ) );
+     vecbasevector basepaths;
+     for ( int i = 0; i < allpaths.isize( ); i++ )
+          basepaths.push_back( shb.Cat( allpaths[i] ) );
+     int nall = 0;
+     for ( int i = 0; i < allpaths.isize( ); i++ )
+          nall += basepaths[i].isize( );
+     PRINT(nall);
+
+     // Align the reads to the paths.
+
+     basepaths.WriteAll( "uber.fastb" );
+     SystemSucceed( 
+          "MakeLookupTable SOURCE=uber.fastb OUT_HEAD=uber LO=True NH=True" );
+     const int nbatches = 100;
+     #pragma omp parallel for schedule(dynamic, 1)
+     for ( int batch = 0; batch < nbatches; batch++ )
+     {    int start = (batch*nb)/nbatches, stop = ((batch+1)*nb)/nbatches; 
+          SystemSucceed( "QueryLookupTable K=12 MM=12 MC=0.005 SEQS=thereads.fastb "
+               "L=uber.lookup SMITH_WAT=True PARSEABLE=True REQUIRE_FULL1=True "
+               "SEQS_TO_PROCESS=\"[" + ToString(start) + "," + ToString(stop) 
+               + ")\" > thereads.aligns." + ToString(batch) );    }
+     SystemSucceed( "cat thereads.aligns.* > thereads.aligns" );
+     vec<look_align> aligns;
+     vec<vec<int>> aligns_index;
+     LoadLookAligns( "thereads.aligns", aligns, aligns_index, nb );
+
+     // Go through the reads.
+
+     for ( int id = 0; id < nb; id++ )
+     {    
+          // Sort the paths by their alignment errors, and take only the best.
+
+          vec<int> errs, pids;
+          vec<look_align> al;
+          for ( int j = 0; j < aligns_index[id].isize( ); j++ )
+          {    const look_align& la = aligns[ aligns_index[id][j] ];
+               errs.push_back( la.Errors( ) );
+               pids.push_back( la.target_id );
+               al.push_back( la );    }
+          SortSync( errs, pids, al );
+
+          if ( al.size( ) == 2 )
+          {
+          vec< vec< pair<int,edit0> > > edits( al.size( ) );
+          for ( int m = 0; m < al.isize( ); m++ )
+          {    const align& x = al[m].a;
+               basevector rd1 = bases[id], rd2 = basepaths[ pids[m] ];
+               if ( al[m].Rc1( ) )
+               {    al[m].a.ReverseThis( rd1.size( ), rd2.size( ) );
+                    rd2.ReverseComplement( );    }
+               int p1 = x.pos1( ), p2 = x.pos2( );
+               for ( int j = 0; j < x.Nblocks( ); j++ )
+               {    if ( x.Gaps(j) > 0 ) 
+                    {    edits[m].push( p1, edit0( DELETION, x.Gaps(j) ) );
+                         p2 += x.Gaps(j);    }
+                    if ( x.Gaps(j) < 0 ) 
+                    {    String s;
+                         for ( int l = 0; l < -x.Gaps(j); l++ )
+                              s.push_back( as_base( rd1[ p1 + l ] ) );
+                         edits[m].push( p1, edit0( INSERTION, s ) );
+                         p1 -= x.Gaps(j);    }
+                    for ( int l = 0; l < x.Lengths(j); l++ )
+                    {    if ( rd1[p1] != rd2[p2] )
+                         {    edits[m].push( p1, 
+                                   edit0( SUBSTITUTION, as_base( rd2[p2] ) ) );    }
+                         ++p1; ++p2;    }    }
+               // Sort( edits[m] );    
+                    }
+
+          for ( int j1 = 0; j1 < al.isize( ); j1++ )
+          for ( int j2 = j1+1; j2 < al.isize( ); j2++ )
+          {    if ( errs[j2] == errs[j1] ) continue;
+               cout << "\n";
+               PRINT5( id, j1, j2, errs[j1], errs[j2] );
+               cout << printSeq( allpaths[ pids[j1] ] ) << "\n";
+               cout << printSeq( allpaths[ pids[j2] ] ) << "\n";
+               cout << "delta:\n";
+               for ( int l = 0; l < edits[j1].isize( ); l++ )
+               {    if ( !Member( edits[j2], edits[j1][l] ) )
+                    {    cout << "1 has " << edits[j1][l].first
+                              << " " << edits[j1][l].second << "\n";
+                         cout << "neighbors:\n";
+                         if ( l > 0 )
+                         {    cout << edits[j1][l-1].first << " " 
+                                   << edits[j1][l-1].second << "\n";    }    
+                         if ( l < edits[j1].isize( ) - 1 )
+                         {    cout << edits[j1][l+1].first << " " 
+                                   << edits[j1][l+1].second << "\n";    }    }    }
+               for ( int l = 0; l < edits[j2].isize( ); l++ )
+               {    if ( !Member( edits[j1], edits[j2][l] ) )
+                    {    cout << "2 has " << edits[j2][l].first
+                              << " " << edits[j2][l].second << "\n";
+                         cout << "neighbors:\n";
+                         if ( l > 0 )
+                         {    cout << edits[j2][l-1].first << " " 
+                                   << edits[j2][l-1].second << "\n";    }
+                         if ( l < edits[j2].isize( ) - 1 )
+                         {    cout << edits[j2][l+1].first << " " 
+                                   << edits[j2][l+1].second 
+                                   << "\n";    }    }    }    }
+          }
+
+          vec<vec<int>> paths;
+          for ( int j = 0; j < errs.isize( ); j++ )
+          {    if ( j > 0 && errs[j] > errs[j-1] ) break;
+               paths.push_back( allpaths[ pids[j] ] );    }
+          if ( paths.empty( ) ) continue;
+
+          // Find the longest subpath(s) in common to the best paths.
+
+          vec<vec<int>> commons;
+          vec<int> lens;
+          for ( int start = 0; start < paths[0].isize( ); start++ )
+          for ( int stop = start+1; stop <= paths[0].isize( ); stop++ )
+          {    vec<int> p;
+               for ( int j = start; j < stop; j++ )
+                    p.push_back( paths[0][j] );
+               Bool shared = True;
+               for ( int j = 1; j < paths.isize( ); j++ )
+                    if ( !paths[j].Contains(p) ) shared = False;
+               if (shared) 
+               {    commons.push_back(p);
+                    int len = 0;
+                    for ( int l = 0; l < p.isize( ); l++ )
+                         len += shb.EdgeLengthKmers( p[l] );
+                    lens.push_back(len);    }    }
+          ReverseSortSync( lens, commons );
+          cout << "\nbest paths for read " << id << ":\n";
+          for ( int i = 0; i < lens.isize( ); i++ )
+          {    if ( i > 0 && lens[i] < lens[i-1] ) break;
+               cout << printSeq( commons[i] ) << endl;    }    }    }

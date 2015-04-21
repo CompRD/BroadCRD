@@ -1,0 +1,321 @@
+// Copyright (c) 2004 Broad Institute of MIT and Harvard
+//
+// SampleKmerPairStats.cc
+//    (largely cannibalized from SampleKmerStats.cc)
+
+
+// Purpose:
+//    Given a list of locations occurring in a fastb file (contigs), compute
+//    the frequencies of occurrence of the kmer-pairss at these locations,
+//    and report the percentage of these kmer-pairs that occur exactly once.
+//
+//    If the optional  CONTIGS_FASTAMB_FILE  of ambiguous base bits is given,
+//    kmers which contain ambiguous bases are discarded from the computation.
+//
+//    The kmer-pairs are picked as follow.  One of the two kmers is picked at
+//    the specified location from the given list; its partner is then picked
+//    from the same contig separated by an insert length, where the insert
+//    length is a random value distributed normally with mean
+//    INSERT_LENGTH_MEAN  and standard deviation  INSERT_LENGTH_STDDEV.  The
+//    frequency of alignments for the kmer-pair is computed as follows.  When
+//    both kmers of a kmer-pair align to a contig, the corresponding insert
+//    length is computed, and the kmer-pair is declared to align as-a-pair if
+//    this resulting insert length is less than
+//           INSERT_LENGTH_MAX_DEV * INSERT_LENGTH_STDDEV .
+//
+//    Run this program for various k and collect the statistics to plot
+//    the percentage of unique kmer-pairs in various genomes as k runs in
+//    the range of [12, 43].
+//
+
+
+// Command line options:
+//    CONTIGS_FASTB_FILE   : the input fastb file
+//    CONTIGS_FASTAMB_FILE : (optional) the input fastamb file
+//
+//    LOCATIONS_FILE       : the input locations file
+//                           (in text form:  contig_number  offset_bases)
+//
+//    KMER_SIZE            : the k-value (limited to [2,46] for now)
+//
+//    INSERT_LENGTH_MEAN    : the mean insert length
+//    INSERT_LENGTH_STDDEV  : the standard deviation of insert length
+//
+//    BASES_TO_HASH      : if N is the value, a hash table of size 4^N will
+//                         be used; the larger it is, the more efficient is
+//                         the code, but the more memory it will use
+//                         (default = 12; this seems to work pretty well)
+//
+//    IS_HUMAN           : if this is True, only contigs #1 to #24 will be
+//                         sampled; this is because of the way the human
+//                         genome is stored.
+//                         (default = False)
+//
+
+// Input files:
+//    CONTIGS_FASTB_FILE
+//    CONTIGS_FASTAMB_FILE (optional)
+//
+//    LOCATIONS_FILE
+
+
+// Output files:
+//    none
+
+
+#include "Bitvector.h"
+#include "Basevector.h"
+#include "kmer_freq/KmerPairSampler.h"
+
+
+//------------------------------------------------------------
+// auxiliary routines
+//
+
+
+inline double percentage(longlong c, longlong N)
+{
+  // returns the percentage of c many things among N many things
+
+  return double(c*100) / double(N);
+}
+
+
+
+//------------------------------------------------------------
+// main()
+//
+
+int main( int argc, char *argv[] )
+{
+  //------------------------------------------------------------
+  // Initialzation
+  //
+
+  RunTime();
+
+  BeginCommandArguments;
+  CommandArgument_String( CONTIGS_FASTB_FILE );
+  CommandArgument_String_OrDefault( CONTIGS_FASTAMB_FILE, "" );
+
+  CommandArgument_String( LOCATIONS_FILE );
+  CommandArgument_UnsignedInt( KMER_SIZE );
+
+  CommandArgument_Double( INSERT_LENGTH_MEAN );
+  CommandArgument_Double( INSERT_LENGTH_STDDEV );
+
+  CommandArgument_UnsignedInt_OrDefault( BASES_TO_HASH, 12 );
+
+  CommandArgument_Bool_OrDefault( IS_HUMAN, False );
+  // NB: if IS_HUMAN is set True, then only contigs #1 - #24 will be used;
+  // this is just a peculiarity with the way the human genome data is stored
+  // here at Broad.
+
+  EndCommandArguments;
+
+
+  const int kmer_size = int(KMER_SIZE);
+  const int bases_to_hash = int(BASES_TO_HASH);
+
+  const Bool use_ambiguous_bits = ( CONTIGS_FASTAMB_FILE != "" );
+
+
+  // Verify that the parameters are within limits
+
+  if (kmer_size <= 1)
+    {
+      cout << "The value " << KMER_SIZE << " of KMER_SIZE"
+	   << " is too small; the minimum allowed is 2." << endl;
+      exit(-1);
+    }
+
+  if (bases_to_hash > 15)
+    {
+      cout << "The value " << BASES_TO_HASH << " of BASES_TO_HASH"
+	   << " is too big; the maximum allowed is 15." << endl;
+      exit(-1);
+    }
+
+  if ( kmer_size - bases_to_hash > 31 )
+    {
+      cout << "The value " << KMER_SIZE - BASES_TO_HASH
+	   << " of KMER_SIZE - BASES_TO_HASH is too big;"
+	   << " the maximum allowed is 31." << endl;
+      exit(-1);
+    }
+
+
+  // Read in the contigs
+  cout << Date() << ": reading contigs..." << endl;
+  vecbasevector basevectors;
+  basevectors.ReadAll( CONTIGS_FASTB_FILE );
+  const int num_contigs = basevectors.size();
+  cout << Date() << ": reading contigs...done." << endl;
+
+
+  vecbitvector ambiguous_bits_vec;
+  if ( use_ambiguous_bits )
+    {
+      // Read in the ambiguous bits
+      cout << Date() << ": reading ambiguous bits..." << endl;
+      ambiguous_bits_vec.ReadAll( CONTIGS_FASTAMB_FILE );
+      ForceAssertEq( ambiguous_bits_vec.size(), basevectors.size() )
+	cout << Date() << ": reading ambiguous bits...done." << endl;
+    }
+
+
+  // Read in the locations file
+  cout << Date() << ": reading locations file..." << endl;
+  vec< Location > sample_locations;
+  Ifstream( locations_stream, LOCATIONS_FILE );
+  int contig, offset;
+  locations_stream >> contig;
+  locations_stream >> offset;
+  while (locations_stream)
+    {
+      const Location location(contig, offset);
+      sample_locations.push_back(location);
+      locations_stream >> contig;
+      locations_stream >> offset;
+    }
+  locations_stream.close();
+  cout << Date() << ": reading locations file...done." << endl;
+  cout << sample_locations.size() << " many locations" << endl;
+
+
+  // Instantiate a KmerPairSampler
+  cout << Date() << ": initializing counters..." << endl;
+  KmerPairSampler kmerpair_sampler( kmer_size,
+				    bases_to_hash,
+				    INSERT_LENGTH_MEAN,
+				    INSERT_LENGTH_STDDEV );
+  cout << Date() << ": initializing counters...done." << endl;
+
+  
+  // Register kmers to be sampled
+  cout << Date() << ": registering kmers to be sampled..." << endl;
+  longlong num_kmerpairs_accepted = 0;
+  if ( use_ambiguous_bits )
+    {
+      num_kmerpairs_accepted =
+	kmerpair_sampler.RegisterKmerPairs(basevectors,
+					   ambiguous_bits_vec,
+					   sample_locations);
+    }
+  else
+    {
+      num_kmerpairs_accepted =
+	kmerpair_sampler.RegisterKmerPairs(basevectors,
+					   sample_locations);
+    }
+  cout << Date() << ": registering kmers to be sampled...done." << endl;
+  cout << num_kmerpairs_accepted << " many kmer-pairs registered to be sampled" << endl;
+
+
+  // Parse each contig for kmer statistics
+  
+  int contig_start = 0;
+  int contig_end = num_contigs;
+
+  if ( IS_HUMAN )
+    {
+      // for the human genome,
+      // use only contigs #1 thru #24 inclusive
+
+      ForceAssertGe( num_contigs, 24 );
+      contig_start = 1;
+      contig_end = 25;
+    }
+
+  cout << Date() << ": parsing " << contig_end - contig_start
+       << " contigs..." << endl;
+
+  int dotter = 1000;
+  while (dotter < num_contigs)
+    {
+      dotter *= 10;
+    }
+  dotter /= 1000;
+  cout << "one dot per " << dotter << " contigs:" << endl;
+
+  if (use_ambiguous_bits)
+    {
+      for (int i = contig_start; i < contig_end; i++)
+	{
+	  if ( i % dotter == dotter-1 )
+	    Dot( cout, i / dotter );
+
+	  kmerpair_sampler.ParseContig( i,
+					basevectors[i],
+					ambiguous_bits_vec[i] );
+	}
+    }
+  else
+    {
+      for (int i = contig_start; i < contig_end; i++)
+	{
+	  if ( i % dotter == dotter-1 )
+	    Dot( cout, i / dotter );
+
+	  kmerpair_sampler.ParseContig( i,
+					basevectors[i] );
+	}
+    }
+
+  cout << endl
+       << Date() << ": parsing " << contig_end - contig_start
+       << " contigs...done." << endl;
+
+  cout << kmerpair_sampler.NumKmersParsed() << " kmers (k = " 
+       << kmer_size << ") parsed" << endl;
+
+
+  // Output the statistics collected
+
+  cout << Date() << ": computing statistics..." << endl;
+
+  cout.setf(ios::internal);
+  cout.setf(ios::fixed);
+
+ 
+  kmerpair_sampler.ComputeKmerPairDevs();
+
+  cout << Date() << ": computing statistics...done." << endl;
+
+  if (INSERT_LENGTH_STDDEV > 0.001)
+    {
+      double max_dev = 0.5;
+      while ( max_dev < 8.1 )
+	{
+	  longlong num_unique_kmerpairs = 
+	    kmerpair_sampler.NumUniqueKmerPairs( max_dev );
+
+	  cout << num_unique_kmerpairs << " (" 
+	       << setprecision(3) << percentage(num_unique_kmerpairs,num_kmerpairs_accepted)
+	       << "%) kmer-pairs (k = "
+	       << kmer_size << ") out of "
+	       << num_kmerpairs_accepted
+	       << " sampled kmer-pairs occurred exactly once with insert length within "
+	       << setprecision(1) << max_dev << " standard deviations of the mean." << endl;
+
+	  if (max_dev < 2.0 || max_dev > 4.45)
+	    max_dev += 0.5;
+	  else
+	    max_dev += 0.1;
+	}
+    }
+  else
+    {
+      longlong num_unique_kmerpairs = 
+	kmerpair_sampler.NumUniqueKmerPairs( -INSERT_LENGTH_MEAN );
+
+      cout << num_unique_kmerpairs << " (" 
+	   << setprecision(3) << percentage(num_unique_kmerpairs,num_kmerpairs_accepted)
+	   << "%) kmer-pairs (k = "
+	   << kmer_size << ") out of "
+	   << num_kmerpairs_accepted
+	   << " sampled kmer-pairs occurred exactly once with the exact same insert length."
+	   << endl;
+    }
+
+} // main()

@@ -1,0 +1,20 @@
+
+#   sample                 expected state for memory locus
+
+1   Balb/c male            0
+2   B6 father*             0
+3   ~B6 mother, responder  1
+4   son, responder         1
+5   son, responder         1
+6   son, nonresponder      0
+7   son, nonresponder      0
+
+Notes:
+A. All mice are Rag-,-.
+B. ~B6: mostly B6 with some Balb/c
+C. *: clone if father unavailable
+
+The following are listed as Anopheles, but appear to be from a male mouse
+closely matching B6:
+/seq/picard/H2T7WBCXX/C1-516_2015-02-26_2015-03-03/2/Solexa-313261/H2T7WBCXX.2.unmapped.bam
+/seq/picard/H2T7WBCXX/C1-516_2015-02-26_2015-03-03/1/Solexa-313261/H2T7WBCXX.1.unmapped.bam

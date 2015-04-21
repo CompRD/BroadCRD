@@ -1,0 +1,250 @@
+// Copyright (c) 2004 Broad Institute of MIT and Harvard
+//
+// KmerPairSampler.h
+
+#include "CoreTools.h"
+#include "Basevector.h"
+#include "Bitvector.h"
+
+
+// class Location
+//
+// Data structure for a location to be sampled.
+//
+
+class Location
+{
+private:
+  // data
+  int contig_;
+  int offset_;
+
+public:
+  Location(const int contig, const int offset) :
+    contig_(contig), offset_(offset)
+  {};
+
+  // accessors
+  int Contig() const { return contig_; };
+  int Offset() const { return offset_; };
+};
+
+
+// class KmerPairDev
+//
+// Data structure for a kmer-pair and its insert-length deviation
+//
+
+class KmerPairDev
+{
+private:
+  // data
+  longlong kmerpair_id_;
+  double   dev_;
+
+public:
+  KmerPairDev(const longlong kmerpair_id, const double dev) :
+    kmerpair_id_(kmerpair_id), dev_(dev)
+  {};
+
+  friend bool operator< (const KmerPairDev& left,
+			 const KmerPairDev& right)
+  {
+    return left.dev_ < right.dev_;
+  }
+
+  // accessors
+  longlong KmerPairId() const { return kmerpair_id_; }
+  double   Dev() const { return dev_; }
+};
+
+
+
+// class KmerInfo
+//
+// Data structure for the kmer held in a HashNode
+
+class KmerInfo
+{
+public:
+  // data
+  vec<Location> location_list;
+  Bool          is_deputy;
+  KmerInfo*     partner_ptr;
+
+  KmerInfo()
+    : partner_ptr(NULL)
+  {}
+
+};
+
+
+// class HashNode
+//
+// Data structure for a node in the hash table, to contain
+// the id_value for a kmer, the hash value and id value of its partner,
+// and a list of the locations where this kmer is found.
+//
+
+class HashNode
+{
+private:
+  // data
+  longlong       id_val_;
+  vec<KmerInfo*> kmerinfo_ptrs_;
+
+  // comparison operators, for sorting and searching 
+  friend inline bool operator<  (const HashNode& left,
+				 const HashNode& right)
+  { return left.id_val_ < right.id_val_; };
+  friend inline bool operator== (const HashNode& left,
+				 const HashNode& right)
+  { return left.id_val_ == right.id_val_; };
+
+public:
+  HashNode() {};
+
+  HashNode(const longlong id_val)
+    : id_val_(id_val)
+  {};
+
+  // accessors for the kmer info pointers
+  vec<KmerInfo*> KmerInfoPtrs() const { return kmerinfo_ptrs_; }
+
+  // method to add kmer info to this node
+  void AddKmerInfo(KmerInfo* const kmer_ptr)
+  {
+    kmerinfo_ptrs_.push_back(kmer_ptr);
+  }
+
+  // Call this method whenever a kmer of this hash node is seen
+  void Mark(const int contig_id, const int offset)
+  {
+    const Location  location(contig_id, offset);
+    for (unsigned int i = 0; i < kmerinfo_ptrs_.size(); i++)
+      {
+	kmerinfo_ptrs_[i]->location_list.push_back(location);
+      }
+  }
+
+};
+
+
+// class HashEntry
+//
+// Data structure for an entry in the hash table, to contain
+// a sorted list of HashNode's.
+//
+
+class HashEntry
+{
+private:
+  vec< HashNode > list_;
+
+public:
+  // Call this method to allow a kmer belonging to this hash entry
+  // to be sampled; kmers which are not Register-ed will not be counted!
+  void Register(const longlong id_val,
+		KmerInfo* const kmer_ptr);
+
+  // is this node already registered?
+  Bool isRegistered(const longlong id_val) const
+  {
+    const HashNode  hash_node(id_val);
+    return (BinPosition(list_,hash_node) >= 0);
+  }
+
+  // Call this method whenever a kmer belonging to this hash entry
+  // is seen as the contigs are parsed.
+  void Mark(const longlong id_val,
+	    const int contig_id,
+	    const int offset);
+
+  // Method to compute a sorted list of insert length deviations
+  void ComputeKmerPairDevs(double insert_length_mean,
+			   vec<KmerPairDev>& kmerpair_devs,
+			   longlong& kmerpair_id) const;
+};
+
+
+
+
+// class KmerPairSampler
+//
+// Provides the means to efficiently (in terms of memory and runtime)
+// parse contigs and count the frequency of occurrences of kmers.
+//
+
+class KmerPairSampler
+{
+private:
+  // hash table for storing frequency counts
+  vec< HashEntry > hash_tbl_;
+
+  // parameters about the hash table,
+  // initialized by the constructor once and for all
+  unsigned int hash_size_;
+  int bases_to_hash_;
+  unsigned int most_sig_hash_weight_;
+  longlong most_sig_id_weight_;
+
+  const int kmer_size_;
+  const double insert_length_mean_;
+  const double insert_length_stddev_;
+
+  // temporary storage for a contig to be parsed
+  vec< unsigned char > contig_bases_;
+  // temporary storage for the ambiguous base bits of a contig to be parsed
+  vec< unsigned char > amb_bases_;
+
+  // internal counter
+  longlong num_kmers_parsed_;
+
+  // sorted array of insert length deviations
+  vec< KmerPairDev > kmerpair_devs_;
+
+  // Routine to efficiently parse the kmers appearing in contig_bases_
+  void ParseForKmers(const int contig_id);
+
+  void ParseForKmers_withAmb(const int contig_id);
+
+public:
+  KmerPairSampler(const int kmer_size,
+		  const int bases_to_hash,
+		  const double insert_length_mean,
+		  const double insert_length_stddev);
+
+  // accessors for the insert length mean and standard deviation
+  double InsertLengthMean() const { return insert_length_mean_; }
+
+  double InsertLengthStddev() const { return insert_length_stddev_; }
+
+  // accessor for the number of kmers parsed
+  longlong NumKmersParsed() const { return num_kmers_parsed_; };
+
+  // Method to pick kmers from a given list of locations
+  // and register them for frequency-counting;
+  longlong RegisterKmerPairs(const vecbasevector& vecbv,
+			     const vec< Location >& vecloc);
+
+  longlong RegisterKmerPairs(const vecbasevector& vecbv,
+			     const vecbitvector& vecamb,
+			     const vec< Location >& vecloc);
+
+  // Method to efficiently parse a contig (in both forward and
+  // reverse-complemented directions) and update the frequency counts
+  // of registered kmers
+  void ParseContig(const int contig_id,
+		   const basevector& bv);
+
+  void ParseContig(const int contig_id,
+		   const basevector& bv,
+		   const bitvector& amb);
+
+  // Method to compute a sorted list of insert length deviations
+  void ComputeKmerPairDevs();
+
+  // accessor for the number of unique kmer-pairs with insert length
+  // within a given deviation limit
+  int NumUniqueKmerPairs(const double insert_length_max_dev) const;
+};

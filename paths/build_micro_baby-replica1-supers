@@ -1,0 +1,96 @@
+#!/bin/csh -f
+
+# usage: build_micro_baby-replica1-supers bam-version region first_super last_super
+
+# At present this only creates unipaths.
+
+# THIS WIPES OUT THE DIRECTORY AND REBUILDS IT.
+
+echo "running build_micro_baby-replica1-supers $1 $2 $3 $4"
+
+# first argument is BAM version, either 1 or 2
+
+set bam = $1
+
+# second argument is the name of the region, e.g region1 or whatever you want
+
+set region = $2
+
+set first_super = $3
+set last_super = $4
+
+# define the bushbaby directory, and create the region inside it
+
+# REF:  O.garnettii/babies/microbaby_$region
+# DATA: $region
+# RUN:  run
+
+echo "`date`: starting"
+set baby = /wga/scr1/ALLPATHS/O.garnettii/babies
+set ref = $baby/microbaby_$region
+set data = $ref/$region
+set run = $data/run
+
+/bin/rm -rf $ref
+mkdir $ref
+mkdir $data
+echo "results are in $run"
+
+set sup = $first_super
+set supers_list = super_{$sup}
+while(1)
+     set sup = `expr $sup + 1`
+     set supers_list = "$supers_list super_{$sup}"
+     if ( $sup == $last_super ) break
+end
+
+# create mini-genome in its own reference dir
+
+SelectB PRE=/ IN_HEAD=$baby/../genome OUT_HEAD=$ref/genome \
+     IDS="[$first_super,$last_super]"
+Fastb PRE=/ FILE=$ref/genome.fasta
+MakeLookupTable SOURCE=$ref/genome.fasta OUT_HEAD=$ref/genome LOOKUP_ONLY=True
+
+# copy ploidy file to data dir
+
+( cd $baby/..; cp ploidy $data )
+
+# extract the fragment data and build assembly input files
+
+set samtools = /seq/dirseq/samtools/current/samtools
+$samtools view /wga/scr1/ALLPATHS/O.garnettii/bam/bushbaby.frag.assembly{$bam}.bam \
+     $supers_list | SAM2CRDDump \
+     OUT_HEAD=$data/frag_reads_orig SEP=-15 DEV=10 USE_OQ=True NH=True
+
+# run the assembly that applies FindErrors to the fragment pairs
+
+GenerateLaneFiles HEAD=$data/frag_reads_orig
+
+( cd /wga/dev/jaffe/checkout1/BroadCRD/bin; \
+RunAllPathsLG PRE=/ ALLPATHS_BASE=/wga/scr1/ALLPATHS \
+     REFERENCE_NAME=O.garnettii/babies/microbaby_$region \
+     DATA_SUBDIR=$region RUN=run K=96 OVERWRITE=True \
+     CORRECT_PAIRS_VIA_ALIGNS=False USE_JUMPS_IN_UNIPATHS=False FRAG_K=28 \
+     TARGETS=none TARGETS_RUN=frag_reads_edit.fastb \
+     DONT_UPDATE_TARGETS_OF="{MergeReadSets-2}" )
+
+( cd /wga/dev/jaffe/checkout2/BroadCRD/bin; \
+RunAllPathsLG PRE=/ ALLPATHS_BASE=/wga/scr1/ALLPATHS \
+     REFERENCE_NAME=O.garnettii/babies/microbaby_$region \
+     DATA_SUBDIR=$region RUN=run K=96 OVERWRITE=True \
+     CORRECT_PAIRS_VIA_ALIGNS=True FRAG_K=28 \
+     USE_JUMPS_IN_UNIPATHS=False \
+     TARGETS=none TARGETS_RUN=filled_reads.unipaths.k96 \
+     DONT_UPDATE_TARGETS_OF="{FindErrors}" )
+
+# dunno if this uses the right checkout:
+
+/wga/dev/jaffe/checkout2/BroadCRD/bin/CloseUnipathGaps NUM_THREADS=16          \
+                 DIR=$run IN_HEAD=frag_reads_edit JUMP_HEAD=                   \
+                 UNIBASES=filled_reads.unibases.k96 UNIBASES_K=96              \
+                 OUT_HEAD=gap_closed WORKDIR=tmp
+
+echo ""
+HyperToReftigs PRE=/ DATA=$data RUN=run K=96 READS=gap_closed
+
+echo "`date`: done"

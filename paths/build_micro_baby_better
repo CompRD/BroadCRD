@@ -1,0 +1,97 @@
+#!/bin/csh -f
+
+# usage: build_micro_baby_better bam-version region range
+
+# At present this only creates unipaths.
+
+# THIS WIPES OUT THE DIRECTORY AND REBUILDS IT.
+
+echo "running build_micro_baby_better $1 $2 $3 $4 $5"
+
+# first argument is BAM version, either 1 or 2
+
+set bam = $1
+
+# second argument is the name of the region, e.g region1 or whatever you want
+
+set region = $2
+
+# third argument is range, e.g. 0:1000-5000, standing for this range of bases
+# on super_0
+
+set range = $3
+
+# optional fourth and fifth arguments (these are passed to RunAllPaths3g)
+
+set extra1 = $4
+set extra2 = $5
+
+# define the bushbaby directory, and create the region inside it
+
+# REF:  O.garnettii/babies/microbaby_$region
+# DATA: $region
+# RUN:  run
+
+echo "`date`: starting"
+set baby = /wga/scr1/ALLPATHS/O.garnettii/babies
+set ref = $baby/microbaby_$region
+set data = $ref/$region
+set run = $data/run
+
+/bin/rm -rf $ref
+mkdir $ref
+mkdir $data
+echo $range > $ref/region
+set tig = `echo $range | tr ':' ' ' | Col 1`
+echo "results are in $run"
+
+# create mini-genome in it's own reference dir
+
+set start = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 2`
+set stop = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 3`
+SelectBases PRE=/ INPUT=$baby/../genome.fasta CONTIG=$tig START=$start STOP=$stop \
+     OUTPUT=$ref/genome.fasta
+( cd $ref; MakeLookupTable SOURCE=genome.fasta OUT_HEAD=genome LOOKUP_ONLY=True )
+MakeLookupTable SOURCE=$ref/genome.fasta OUT_HEAD=$ref/genome
+cp $ref/genome.fastamb $data
+FastbSizes FILE=$ref/genome.fastb TOTAL_ONLY=True REPORT=$ref/genome.size
+GenomeUnipathStats GENOME=$ref/genome K=96 DOT=$ref/genome.dot
+
+# find genome size
+set genome_size = `head -1 $ref/genome.size`
+echo Genome Size: $genome_size
+
+# copy ploidy file to data dir
+
+( cd $baby/..; cp ploidy $data )
+
+# extract the fragment data and build assembly input files
+
+set samtools = /seq/dirseq/samtools/current/samtools
+set bamdir = /wga/scr1/ALLPATHS/O.garnettii/bam
+$samtools view $bamdir/bushbaby.frag.assembly{$bam}.bam \
+     super_$range | SAM2CRDDump \
+     OUT_HEAD=$data/frag_reads_orig SEP=-15 DEV=10 USE_OQ=True NH=True
+
+# extract jumpers generate and build assembly input files
+# (SEP and DEV are wrong)
+
+$samtools view $bamdir/bushbaby.sheared_jump.assembly2.bam super_$range \
+     | SAM2CRDDump OUT_HEAD=$data/jump_reads_orig SEP=2090 DEV=230 NH=True
+
+# run the assembly that generates unipaths
+
+# changed TARGETS_RUN from filled_reads... to gap_closed....
+
+RunAllPathsLG PRE=/ ALLPATHS_BASE=/wga/scr1/ALLPATHS \
+     REFERENCE_NAME=O.garnettii/babies/microbaby_$region \
+     DATA_SUBDIR=$region RUN=run OVERWRITE=True $extra1 $extra2 \
+     TARGETS= TARGETS_RUN="{all_reads.unibases.k96}"
+
+UnipathPatcher PRE=/ DATA=$data RUN=run K=96
+
+echo ""
+HyperToReftigs PRE=/ DATA=$data RUN=run K=96 READS=all_reads.patched ORIGIN=$start
+
+echo ""
+echo "`date`: done"

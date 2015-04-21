@@ -1,0 +1,9 @@
+AGP file i/o and conversion; chain-format tools.
+
+AGP spec:
+http://www.ncbi.nlm.nih.gov/Genbank/WGS.agpformat.html
+
+chain format (ECF) is a format for alignments
+
+chain format "spec":
+http://www.ensembl.org/Docs/wiki/html/EnsemblDocs/ChainAlignmentFormat.html

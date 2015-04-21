@@ -1,0 +1,3 @@
+Tiled contigs are an experimental way to produce contigs for a genome
+with low coverage sequencing by aligning reads onto a finished other
+genome (the master).

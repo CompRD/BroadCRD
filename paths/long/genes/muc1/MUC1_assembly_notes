@@ -1,0 +1,22 @@
+This file contains notes on assembly of the MUC1 repeat region in
+the NA12878 250 base read data.
+
+Presence of MUC1 repeat units, from assembly of 1:155.15M-155.17M using r44471:
+
+unit    orig    mod0   genome
+X       61      222    yes
+A       21       41    yes
+B        7       36    yes
+C        4       19    yes
+D        1       10    yes
+E        0        5    yes
+F        1        5    yes
+G        1        8    yes
+V        1       12    yes
+W        3        0    yes
+H        0        0    no
+I        0       11    no
+J        0        0    no
+K        0        0    no
+
+See also CountMUC1.cc and /wga/dev/references/Homo_sapiens/NA12878_MUC1_repeat.

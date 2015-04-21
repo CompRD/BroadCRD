@@ -1,0 +1,177 @@
+#!/usr/bin/tcsh
+
+# Extracts Illumina reads from a list of Picard BAM files
+# Places extracted reads in /wga/scr4/wg_projects/<ORGANISM>/<PROJECT>
+#
+# NOTE: Update version of this script in /BroadCRD/paths/long/scripts
+#
+# NOTE THAT YOU MUST HAVE AT LEAST TWO BAM FILES!  OTHERWISE WON'T WORK.
+#
+# The project file has the following format:
+# project_name
+# organism_name
+# nickname
+# bam file 1
+# bam file 2
+# ...
+#
+# The list of BAM files should including the full path to their location.
+
+if ($# == 0 || $1 == "-h" || $1 == "--help") then
+    echo "Usage: import_from_bams PROJECT_FILE [N_JOBS]"
+    echo "Extracts Illumina reads from a list of bams in the file PROJECT_FILE"
+    echo "Runs N_JOBS parallel bam extractions (SAM2CRDDump)"
+    echo "Example: import_from_picard Rhino1 2"
+    exit 1
+endif 
+
+# Parse args
+set project_file = $1
+if ($# == 2) then
+    set max_parallel = $2
+else
+    set max_parallel = 2
+endif 
+
+# setup
+set merged = merged
+set final = frag_reads_orig
+set base_dir = /wga/scr4/wg_projects
+
+# Parse the project file and convert each bam to fastb, qualb and pairs
+set project = EMPTY
+set organism = EMPTY
+set nickname = EMPTY
+set bams = 
+foreach line (`cat $project_file`)
+    if ($project == EMPTY) then
+	set project = $line
+    else if ($organism == EMPTY) then
+	set organism = $line
+    else if ($nickname == EMPTY) then
+	set nickname = $line
+	set project_dir = $base_dir/$organism/$project
+	set prep_dir = $project_dir/data_prep
+	set log_dir = $prep_dir/logs
+
+    else
+	if (! -e $line) then
+	    echo "WARNING! - Cannot find bam file: $line"
+        else 
+	    set bams = "$bams $line"
+	endif
+    endif
+end
+
+mkdir -p $project_dir
+mkdir -p $prep_dir
+mkdir -p $log_dir
+
+echo "PROJECT   : $project"
+echo "ORGANISM  : $organism"
+echo "NICKNAME  : $nickname"
+echo "DIRECTORY : $project_dir"
+
+echo "import_from_picard $1 $2 $3 $4 $5 $6" > $log_dir/import.cmd
+
+set tomerge = EMPTY
+set parallel = 0
+
+set count = 0
+foreach bamfile ($bams)
+
+    @ count++
+    echo "Extracting bam #$count : $bamfile"
+
+    # Create a symbolic link to the picard bam
+    set link_name = $count.bam
+    ln -sf $bamfile $prep_dir/$link_name
+	    
+    # Extract from BAM using SAM2CRDDump 
+    set outhead = $prep_dir/$count
+    if (-e $outhead.fastb) then
+	echo "  Fastb file already exists - skipping extraction"
+    else
+	samtools view $prep_dir/$link_name | SAM2CRDDump OUT_HEAD=$outhead SEP=-15 DEV=12 NOMINAL_READ_LEN=251 WRITE_NAMES=True NAMES_PLUS=True USE_OQ=True LIB_NAME=$count LOG_TO_CERR=False WRITE_ALIGNS=False > $log_dir/SAM2CRDDump.$count.log &
+	@ parallel++
+    endif
+
+    if ($tomerge == EMPTY) then
+        set tomerge = $count
+     else
+	set tomerge = "$tomerge,$count"
+     endif
+
+     if ( $parallel == $max_parallel) then
+	echo "Waiting for extraction jobs to complete."
+	wait
+	set parallel = 0
+     endif
+end
+
+# Wait for any unfinished jobs
+if ( $parallel != 0) then 
+    echo "Waiting for extraction jobs to complete."
+    wait
+endif
+
+# Check for errors in the extraction
+set count = 0
+set errors = 0
+foreach bamfile ($bams)
+    @ count++
+    set outhead = $prep_dir/$count
+    if (! -e $outhead.fastb) then
+	echo "Error extracting bam #$count: $bamfile"
+	@ errors++
+    endif
+end
+if ( $errors != 0 ) then 
+    exit 1
+endif
+
+echo "Bam extraction complete. Found $count valid bams."
+
+# Merge into a single fastb  
+echo "Merging..."
+MergeReadSets DIR= $prep_dir READS_IN= "{$tomerge}" READS_OUT= $merged MERGE_ALIGNS=False > $log_dir/MergeReadSets.log
+
+# Randomize order
+echo "Randomizing..."
+SelectRandomPairs READS_IN=$prep_dir/$merged READS_OUT=$prep_dir/$final FRAC=1 > $log_dir/SelectRandomPairs.log
+
+# Compute some stats
+echo "Computing Stats..."
+FastbStats FASTB= $prep_dir/$final > $prep_dir/$final.stats
+
+# Link the final reads back up to the base directory
+ln -s -t $project_dir data_prep/$final.fastb
+ln -s -t $project_dir data_prep/$final.qualb
+ln -s -t $project_dir data_prep/$final.pairs
+ln -s -t $project_dir data_prep/$final.names
+ln -s -t $project_dir data_prep/$final.stats
+
+# Make a copy of the project file
+cp $project_file $prep_dir/project_file
+
+# Create Nickname link
+ln -s ../$organism/$project $base_dir/nicknames/$nickname
+
+# Write a little readme file
+cat > $project_dir/README <<EOF
+Project file     : $project_file
+Project name     : $project
+Organism name    : $organism
+Project nickname : $nickname
+
+In $prep_dir
+Initial bams     : *.bam
+Extracted reads  : *.fastb
+Merged reads     : $merged.fastb
+Randomized reads : $final.fastb
+
+Picard bams:
+EOF
+cat $project_file >> $project_dir/README
+
+echo "Import complete."

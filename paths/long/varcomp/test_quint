@@ -1,0 +1,64 @@
+#!/bin/csh
+
+# Look for discrepancies on a region of X for the quintet.
+
+set tmp = tmp.xxx
+
+set step  =   200000
+set start = 32000000
+set final = 34000000
+
+set total_funk = 0
+set total_funk_filtered = 0
+set xhet_funk_filtered = 0
+set noxhet_funk_filtered = 0
+set orig = $start
+mkdir -p $tmp
+set fails = 0
+while(1)
+     set stop = `expr $start + $step`
+     set range = $start-$stop
+
+     LongProto SAMPLE=human READS=\#picard DATASET=F3 TMP=$tmp \
+          X=X:$range OUT_INT_HEAD=$tmp/aaa.$range LOGGING=REFTRACE_VARIANTS=True
+     if ( $status != 0 ) then
+          echo FAIL
+          set fails = `expr $fails + 1`
+     else
+          FunkyBlocksF3 IN_HEAD=$tmp/aaa.$range.final > $tmp/aaa.$range.funky
+          if ( $status != 0 ) then
+               echo FAIL
+               set fails = `expr $fails + 1`
+          endif
+          FunkyBlocksF3 IN_HEAD=$tmp/aaa.$range.final LO_PROB=0 DISCOVAR_FILTER=True > $tmp/aaa.$range.filtered.funky
+          FunkyBlocksF3 IN_HEAD=$tmp/aaa.$range.final LO_PROB=0 DISCOVAR_FILTER=True INVOLVES_MALE_XHET=True > $tmp/aaa.$range.filtered.xhet.funky
+          FunkyBlocksF3 IN_HEAD=$tmp/aaa.$range.final LO_PROB=0 DISCOVAR_FILTER=True IGNORE_MALE_XHET=True > $tmp/aaa.$range.filtered.noxhet.funky
+     endif
+     set funk = `cat $tmp/aaa.$range.funky | grep -c "\] X"`
+     echo "$range": see $funk false hets
+     set total_funk = `expr $total_funk + $funk`
+
+     set funk_filtered = `cat $tmp/aaa.$range.filtered.funky | grep -c "\] X"`
+     echo "$range": see $funk_filtered false hets after disco-filter
+     set total_funk_filtered = `expr $total_funk_filtered + $funk_filtered`
+
+     set funk_filtered_xhet = `cat $tmp/aaa.$range.filtered.xhet.funky | grep -c "\] X"`
+     echo "$range": see $funk_filtered_xhet false hets after disco-filter, xhet-only
+     set xhet_funk_filtered = `expr $xhet_funk_filtered + $funk_filtered_xhet`
+
+     set funk_filtered_noxhet = `cat $tmp/aaa.$range.filtered.noxhet.funky | grep -c "\] X"`
+     echo "$range": see $funk_filtered_noxhet false hets after disco-filter, no-xhet
+     set noxhet_funk_filtered = `expr $noxhet_funk_filtered + $funk_filtered_noxhet`
+
+     set start = $stop
+     if ( $start == $final ) break
+end
+
+set rsize = `expr $final - $orig`
+echo "region size = $rsize"
+echo "total funk (after_filter=xhet+no_xhet) = $total_funk ($total_funk_filtered=$xhet_funk_filtered+$noxhet_funk_filtered)"
+
+if ( $fails > 0 ) then
+     echo "\nThere were $fails failures, so exiting."
+     exit 1
+endif

@@ -1,0 +1,25 @@
+Examples to look at with NhoodInfo
+
+NA12878
+
+- S=10:53.56M D=1
+  site that differs greatly from reference; 
+  13 kb bubble, 1 mismatch vs 139 mismatches
+
+- S=11:90.26M D=1
+  30 kb heterozygous insertion bubble
+
+- S=7:12.985M D=1
+  6 kb heterozygous deletion bubble
+
+- S=1:206.05M-206.06M D=2 NEATO=True
+  2-fold tandem repeat seen as circle
+
+- S=GGAGTGAAATGCAGTGGCATGGA D=3
+  part of 49 kb line CN=1 doesn't hit reference
+
+- S=ATTCCATTGGAGTCCAATCAATC D=4
+  part of 44 kb line CN=2.53 doesn't hit reference
+
+- S=11:70.955M-71.056M D=4
+  100 kb reference gap closed (by something much smaller)

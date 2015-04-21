@@ -1,0 +1,2732 @@
+>ReleaseArachne-1-0
+First tetst of arachne release mechanism.
+>ReleaseArachne-1-1
+Added CROSS=yes to util/makeArachneRelease.pl
+>ReleaseArachne-1-2
+
+This release requires SOLEXA_PIPELINE_DIR environment 
+variable to be set and pointing out to the pipeline output directory.
+
+BaitDesigner tool for designing baits for hybrid selection is added.
+
+Internal control processing is updated/fixed and it is now run 
+automatically in the pipeline;
+
+Extended flowcell IDs (12345ABCD) are now treated correctly for the 
+purpose of retrieving DB metrics from the DB dump file and populating 
+lane metric files.
+
+analyzeSolexaLane.pl script will now stop lane processing and exit if 
+*.dbinfo file is not present.
+
+Minor bug fixes.
+>ReleaseArachne-1-3
+
+Also added amino directory (missed due to cvs update without -d).
+>ReleaseArachne-1-4
+
+VAAL appears broken in 1-3, but is fixed in the current head. Hence the new release.
+
+
+
+Edit/Add here (prefetched change history since last release is shown below):
+
+################################################################
+SOURCE FILES section: all the changes since the release
+ReleaseArachne-1-3 are listed below for the source files, on which
+the build target solexaPipeline depends through the makefile(s).
+################################################################
+lookup/AlignCollector.cc
+revision 1.10
+
+date: 2007-12-04 19:12:19 +0000;  author: asivache;  state: Exp;  lines: +3 -2
+
+added ErrorThreshold(int query_id) method for all collectors - an align that has more errors than the result of this method is guaranteed to be discarded by the collector; ambiguous collector implementation slightly changed
+
+----------------------------
+
+revision 1.9
+
+date: 2007-12-04 16:35:25 +0000;  author: asivache;  state: Exp;  lines: +86 -7
+
+typedef corrected; changed int to unsigned int in error counters
+
+=============================================================================
+
+BasevectorTools.h
+revision 1.6
+
+date: 2007-12-03 18:08:15 +0000;  author: asivache;  state: Exp;  lines: +118 -63
+
+Implementation changed to use new interface to basevector iterators; interfaces of the methods defined here did not change
+
+=============================================================================
+
+math/Functions.h
+revision 1.12
+
+date: 2007-12-24 14:57:25 +0000;  author: jaffe;  state: Exp;  lines: +14 -0
+
+Add MaxMax.
+
+----------------------------
+
+revision 1.11
+
+date: 2007-12-23 17:26:46 +0000;  author: jaffe;  state: Exp;  lines: +5 -1
+
+Add IPow, integer to integer power.
+
+=============================================================================
+
+solexa/PairedReadParamsByRead.cc
+revision 1.23
+
+date: 2007-12-03 20:19:32 +0000;  author: ohsumit;  state: Exp;  lines: +5 -0
+
+Added documentation warning on chimeric reads estimation.
+
+----------------------------
+
+revision 1.22
+
+date: 2007-12-03 16:45:57 +0000;  author: ohsumit;  state: Exp;  lines: +5 -5
+
+Slight modification of the defition of a distict pair (now use endpoints of la1 and la2) so that it matches the defintion of SolexaMergedPairStats.cc
+
+----------------------------
+
+revision 1.21
+
+date: 2007-12-03 15:08:40 +0000;  author: ohsumit;  state: Exp;  lines: +8 -3
+
+Fixed bug in paired_read_distinct_logical_pairs, where different contigs were not differentiated.
+
+----------------------------
+
+revision 1.20
+
+date: 2007-11-20 18:13:45 +0000;  author: ohsumit;  state: Exp;  lines: +19 -4
+
+Small bug-fix for intercontig chimeras.
+
+=============================================================================
+
+lookup/LookupTools.h
+revision 1.3
+
+date: 2008-01-09 18:07:51 +0000;  author: asivache;  state: Exp;  lines: +3 -2
+
+added option to use reverse instead of reverse complement when computing Kmer queries from the reads - needed for Solid; BasesToQueries can now be used seamlessly in the generic framework of ImperfectLookup()
+
+----------------------------
+
+revision 1.2
+
+date: 2007-12-03 17:26:55 +0000;  author: asivache;  state: Exp;  lines: +169 -1
+
+few utilitarian transformation methods: BasesToQueries, QueriesToHits, QueriesToSeqOffsets with some overloads suitable for different tastes/tasks
+
+=============================================================================
+
+sort_kmers/SortKmersC.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+lookup/MakeLookupTable.cc
+revision 1.47
+
+date: 2007-12-09 19:40:40 +0000;  author: jaffe;  state: Exp;  lines: +3 -0
+
+Add warning about buggy behavior (if your input has a blank in it).
+
+=============================================================================
+
+paths/KmerPathInterval.h
+revision 1.23
+
+date: 2008-01-02 23:47:02 +0000;  author: ilya;  state: Exp;  lines: +4 -0
+
+templatized to allow the use of big_tagged_rpint besides tagged_rpint
+
+----------------------------
+
+revision 1.22
+
+date: 2007-12-19 19:55:30 +0000;  author: ilya;  state: Exp;  lines: +8 -3
+
+updated/corrected documentation
+
+----------------------------
+
+revision 1.21
+
+date: 2007-12-09 18:27:52 +0000;  author: ilya;  state: Exp;  lines: +75 -21
+
+added documentation
+
+=============================================================================
+
+system/System.h
+revision 1.25
+
+date: 2008-01-05 18:10:57 +0000;  author: jaffe;  state: Exp;  lines: +1 -1
+
+Add option err_too to LineOfOutput.
+
+----------------------------
+
+revision 1.24
+
+date: 2008-01-02 22:37:24 +0000;  author: ilya;  state: Exp;  lines: +1 -1
+
+renamed CopyIfNeeded to CpIfNewer
+
+----------------------------
+
+revision 1.23
+
+date: 2007-11-17 14:27:04 +0000;  author: jaffe;  state: Exp;  lines: +2 -0
+
+Add Getenv = getenv + check for success.
+
+=============================================================================
+
+graphics/PlotPoints.cc
+revision 1.23
+
+date: 2007-11-26 13:56:22 +0000;  author: ohsumit;  state: Exp;  lines: +67 -4
+
+Added SEGMENT_FILE option.  Not currently used, but could potentially be used for plotting both introns and exons in one plot.
+
+----------------------------
+
+revision 1.22
+
+date: 2007-11-19 13:23:03 +0000;  author: ohsumit;  state: Exp;  lines: +21 -0
+
+Added an argument, VERT_FILE, which is a file of double's (or int's) signifying x values at which vertical blue lines are drawn.  The lines go from min-x to max-x.  An application of these blue lines is to denote exon boundaries in cDNA coverage plots.
+
+=============================================================================
+
+math/HoInterval.h
+revision 1.16
+
+date: 2007-12-02 16:38:36 +0000;  author: jaffe;  state: Exp;  lines: +3 -1
+
+Now you can do [a,b) - c, i.e. take the difference between a ho_interval
+
+and an integer.  Is it evil?  Maybe, but it's also convenient.
+
+=============================================================================
+
+lookup/Hit.cc
+revision 1.10
+
+date: 2007-12-03 17:23:51 +0000;  author: asivache;  state: Exp;  lines: +21 -41
+
+ditto Hit.h; in addition, couple of less generic overloads of BasesToQueries - these ones take two separate collections of queries to be filled, one with forward queries, and another with rc queries only
+
+=============================================================================
+
+lookup/ImperfectLookup.cc
+revision 1.21
+
+date: 2007-12-04 20:07:05 +0000;  author: asivache;  state: Exp;  lines: +22 -5
+
+added templatized overload that takes lookup table file name as an arg + more comments
+
+----------------------------
+
+revision 1.20
+
+date: 2007-12-03 18:26:50 +0000;  author: asivache;  state: Exp;  lines: +13 -234
+
+Massive refactoring, lots of redundant and marginally relevant code moved to utility methods. Addition: an overload of ImperfectLookup that takes an align collector as an argument; same logic of ungapped alignment implemented in ImperfectLookup can now be used to retrieve unique alignments, all allignments with less than N errors or whatever else is specified by the collector policy
+
+=============================================================================
+
+SortKmersImpl.h
+revision 1.6
+
+date: 2007-12-09 18:27:52 +0000;  author: ilya;  state: Exp;  lines: +14 -0
+
+added documentation
+
+=============================================================================
+
+Basevector.cc
+revision 1.104
+
+date: 2007-12-21 16:11:32 +0000;  author: asivache;  state: Exp;  lines: +117 -51
+
+bug (benign) in SetToSubOf(): on some occasions few extra bytes beyond those actually allocated in the source basevector were copied: FIXED
+
+----------------------------
+
+revision 1.103
+
+date: 2007-12-03 18:03:42 +0000;  author: asivache;  state: Exp;  lines: +190 -123
+
+Dormant bugs fixed: resize, Setsize - incorrect calculation of actual extra space; RawDataRead/Write - incorrect check for read length to be within legal limits; operator=  check for self-assignment added. Modifications: some redundant code (such as calculation of actual extra space upon allocation) moved to private methods; allocation unit (unsigned int) typedefed to a logical type, all methods specified in terms of that type;runaway numerical constants in multiple methods replaced with compile-time defined/computed symbolic constants.  ADDITIONS: basevector iterators typedefed (e.g. basevector::iterator type is now available), Begin()/End(), RCBegin()/RCEnd(), RBegin()/REnd() methods added (return corresponding iterators). Utility method ReverseComplement(integral type) computes reverse complement of the packed representation (defined for byte and word4)
+
+=============================================================================
+
+lookup/BisulfiteAligner.cc
+revision 1.15
+
+date: 2007-12-18 18:08:54 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+missing . in the file name added
+
+----------------------------
+
+revision 1.14
+
+date: 2007-12-18 16:17:51 +0000;  author: asivache;  state: Exp;  lines: +8 -5
+
+changed naming convention to reference files; now original genome/digest must be in GENOME.reference.fastb and CtoT converted lookups must be in GENOME.CtoT.fw.reference.lookup (or .rc.)
+
+----------------------------
+
+revision 1.13
+
+date: 2007-12-10 20:09:07 +0000;  author: asivache;  state: Exp;  lines: +21 -15
+
+added OUT_HEAD cmdline arg; alignments are now printed into a .qltout file instead of stdout
+
+----------------------------
+
+revision 1.12
+
+date: 2007-12-06 18:59:39 +0000;  author: asivache;  state: Exp;  lines: +2 -2
+
+compile warning resolved: enforced int->unsigned conversion
+
+=============================================================================
+
+system/ParsedArgs.h
+revision 1.24
+
+date: 2008-01-04 19:25:11 +0000;  author: ohsumit;  state: Exp;  lines: +25 -1
+
+String.h's ToString(double x) now has sprintf behavior for formatting reasons.  However, ParsedArgs.h uses stringstream to properly convert doubles and floats without loss in precision.
+
+----------------------------
+
+revision 1.23
+
+date: 2007-12-11 13:57:34 +0000;  author: ohsumit;  state: Exp;  lines: +1 -0
+
+Properly fixed doubles parameter cutoff.  Cutoff is now at 16 digits of precision.  This has been test to compile and run properly on the cases tested.
+
+----------------------------
+
+revision 1.22
+
+date: 2007-12-11 13:43:20 +0000;  author: ohsumit;  state: Exp;  lines: +0 -12
+
+Temporary rollback of Double changes - causes problems elsewhere in compilation.
+
+----------------------------
+
+revision 1.21
+
+date: 2007-12-11 13:35:59 +0000;  author: ohsumit;  state: Exp;  lines: +12 -0
+
+Added a template specialization of ProcessArgs for doubles so CommandArgument_Double_OrDefault does not chop off the default parameters at 2 decimal places.
+
+=============================================================================
+
+lookup/LookupTable.h
+revision 1.54
+
+date: 2007-12-03 17:13:21 +0000;  author: asivache;  state: Exp;  lines: +14 -0
+
+added GetContigPos overload that takes int & instead of unsigned int & as its 'contig' parameter
+
+=============================================================================
+
+solexa/AlignParamsByRead.cc
+revision 1.23
+
+date: 2007-12-18 17:54:15 +0000;  author: asivache;  state: Exp;  lines: +6 -1
+
+added GENOME argument: reference is loaded from GENOME.reference.fastb; default is GENOME=HEAD
+
+=============================================================================
+
+lookup/AlignCollector.h
+revision 1.18
+
+date: 2008-01-04 23:40:19 +0000;  author: asivache;  state: Exp;  lines: +18 -11
+
+bug fixed: incorrect resizing of collectors in constructor methods
+
+----------------------------
+
+revision 1.17
+
+date: 2007-12-18 00:36:18 +0000;  author: kiran;  state: Exp;  lines: +9 -9
+
+Added an argument to all of the AlignCollectors that allows the user to specify the size of the collector.  This way, the size of the reads vector can match the number of alignments and there will no ambiguity between the mapping of read query ids and their associated alignment status.
+
+----------------------------
+
+revision 1.16
+
+date: 2007-12-12 19:51:16 +0000;  author: asivache;  state: Exp;  lines: +3 -1
+
+LoadLookAligns(file_name,AlignCollector&) now calls Consolidate() on the collector internally, so the collector is ready to use upon return
+
+----------------------------
+
+revision 1.15
+
+date: 2007-12-05 23:12:17 +0000;  author: asivache;  state: Exp;  lines: +11 -10
+
+indexing is now done with unsigned int; few loop variables also changed accordingly to kill warnings
+
+----------------------------
+
+revision 1.14
+
+date: 2007-12-04 20:08:19 +0000;  author: asivache;  state: Exp;  lines: +11 -3
+
+clearer coments, no changes
+
+----------------------------
+
+revision 1.13
+
+date: 2007-12-04 19:12:19 +0000;  author: asivache;  state: Exp;  lines: +62 -14
+
+added ErrorThreshold(int query_id) method for all collectors - an align that has more errors than the result of this method is guaranteed to be discarded by the collector; ambiguous collector implementation slightly changed
+
+----------------------------
+
+revision 1.12
+
+date: 2007-12-04 16:35:25 +0000;  author: asivache;  state: Exp;  lines: +28 -8
+
+typedef corrected; changed int to unsigned int in error counters
+
+----------------------------
+
+revision 1.11
+
+date: 2007-12-04 15:45:09 +0000;  author: asivache;  state: Exp;  lines: +141 -1
+
+added empty Consolidate method to base implementation; generic algoritms can be more agnostic now and call Consolidate() just in case on their template arg
+
+----------------------------
+
+revision 1.10
+
+date: 2007-12-03 17:10:46 +0000;  author: asivache;  state: Exp;  lines: +27 -2
+
+added ::clear() method to align collector implementations
+
+=============================================================================
+
+Basevector.h
+revision 1.128
+
+date: 2008-01-08 22:02:46 +0000;  author: jaffe;  state: Exp;  lines: +10 -2
+
+Add constructor of basevector from String.
+
+----------------------------
+
+revision 1.127
+
+date: 2007-12-17 05:17:55 +0000;  author: asivache;  state: Exp;  lines: +6 -2
+
+basevector::Set() rolled back to previous implementation; for some unknown reasons new implementation causes Assemblez test case to crash, the previous implementation seems ok. Also, an unrelated bug in SetData(const char *) caught and fixed
+
+----------------------------
+
+revision 1.126
+
+date: 2007-12-03 18:03:42 +0000;  author: asivache;  state: Exp;  lines: +360 -169
+
+Dormant bugs fixed: resize, Setsize - incorrect calculation of actual extra space; RawDataRead/Write - incorrect check for read length to be within legal limits; operator=  check for self-assignment added. Modifications: some redundant code (such as calculation of actual extra space upon allocation) moved to private methods; allocation unit (unsigned int) typedefed to a logical type, all methods specified in terms of that type;runaway numerical constants in multiple methods replaced with compile-time defined/computed symbolic constants.  ADDITIONS: basevector iterators typedefed (e.g. basevector::iterator type is now available), Begin()/End(), RCBegin()/RCEnd(), RBegin()/REnd() methods added (return corresponding iterators). Utility method ReverseComplement(integral type) computes reverse complement of the packed representation (defined for byte and word4)
+
+----------------------------
+
+revision 1.125
+
+date: 2007-12-02 02:18:54 +0000;  author: jaffe;  state: Exp;  lines: +8 -2
+
+Add version of SetToSubOf where range is specified by ho_interval.
+
+=============================================================================
+
+math/Functions.cc
+revision 1.7
+
+date: 2007-12-23 17:26:46 +0000;  author: jaffe;  state: Exp;  lines: +6 -0
+
+Add IPow, integer to integer power.
+
+=============================================================================
+
+sort_kmers/SortKmersH.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+solexa/SolexaTools.h
+revision 1.33
+
+date: 2008-01-07 23:00:06 +0000;  author: iainm;  state: Exp;  lines: +5 -1
+
+New function MixHeadToDirectoryName which will create a directory name from a combination of unpaired and paired HEADs
+
+----------------------------
+
+revision 1.32
+
+date: 2008-01-07 21:11:51 +0000;  author: iainm;  state: Exp;  lines: +8 -1
+
+ExpandHead can now find directories for paired reads. Just ask for the flowcell, not the date, and it will return both directories sorted by date. If it finds more then it stops.
+
+----------------------------
+
+revision 1.31
+
+date: 2007-12-21 20:35:50 +0000;  author: iainm;  state: Exp;  lines: +4 -0
+
+New function HeadToDirectoryName. Creates a safe directory name from a HEAD string by removing braces.
+
+=============================================================================
+
+sort_kmers/SortKmersA.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+lookup/Hit.h
+revision 1.15
+
+date: 2007-12-03 17:21:56 +0000;  author: asivache;  state: Exp;  lines: +43 -26
+
+Changed internal implementations of Query and RawHit to faster ones (interface unchanged); added another RawHit comparsison functor; moved BasesToQueries overloads that involve lookup table into separate LookupTools.h file (unwinds few annoying include circular dependencies)
+
+=============================================================================
+
+system/System.cc
+revision 1.23
+
+date: 2008-01-05 18:10:57 +0000;  author: jaffe;  state: Exp;  lines: +4 -2
+
+Add option err_too to LineOfOutput.
+
+----------------------------
+
+revision 1.22
+
+date: 2008-01-05 18:00:40 +0000;  author: jaffe;  state: Exp;  lines: +1 -1
+
+In LineOfOutput, with force = True, the output of the command is now
+
+returned instead of the empty string.
+
+----------------------------
+
+revision 1.21
+
+date: 2008-01-04 19:36:47 +0000;  author: ilya;  state: Exp;  lines: +7 -0
+
+updated docs
+
+----------------------------
+
+revision 1.20
+
+date: 2008-01-02 22:37:24 +0000;  author: ilya;  state: Exp;  lines: +18 -4
+
+renamed CopyIfNeeded to CpIfNewer
+
+----------------------------
+
+revision 1.19
+
+date: 2007-12-19 19:21:57 +0000;  author: ilya;  state: Exp;  lines: +10 -4
+
+changed CopyIfNeeded() to not crash if a file is missing, since this routine is currently used for optional functionality.
+
+----------------------------
+
+revision 1.18
+
+date: 2007-11-17 14:27:04 +0000;  author: jaffe;  state: Exp;  lines: +8 -0
+
+Add Getenv = getenv + check for success.
+
+=============================================================================
+
+PrintAlignment.cc
+revision 1.46
+
+date: 2007-12-03 17:16:36 +0000;  author: asivache;  state: Exp;  lines: +9 -8
+
+slightly changed visual printout to more compact form when head and tail are printed separately: removed extra newlines and 'dotted' separator lines
+
+=============================================================================
+
+sort_kmers/SortKmersB.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+SeqInterval.h
+revision 1.17
+
+date: 2007-11-16 18:21:41 +0000;  author: sante;  state: Exp;  lines: +15 -10
+
+Fixed sorting functor (check all members when sorting by library id).
+
+=============================================================================
+
+solexa/ProcessChIPData.cc
+revision 1.15
+
+date: 2007-12-21 21:35:02 +0000;  author: asivache;  state: Exp;  lines: +2 -0
+
+small memory leak on exit fixed - delete operators added
+
+=============================================================================
+
+polymorphism/DumbCall.cc
+revision 1.3
+
+date: 2007-12-05 18:42:03 +0000;  author: jmaguire;  state: Exp;  lines: +13 -0
+
+added function SumDumbCalls
+
+=============================================================================
+
+solexa/SolexaCoverage.cc
+revision 1.48
+
+date: 2007-12-09 14:33:59 +0000;  author: jaffe;  state: Exp;  lines: +2 -2
+
+Add argument PIPELINE.
+
+----------------------------
+
+revision 1.47
+
+date: 2007-11-27 17:47:09 +0000;  author: jmaguire;  state: Exp;  lines: +3 -3
+
+set cycle_qual to 100, not 1, when it's not in the metrics.
+
+----------------------------
+
+revision 1.46
+
+date: 2007-11-27 11:25:34 +0000;  author: jmaguire;  state: Exp;  lines: +23 -2
+
+
+
+if cycle_qual isn't in the metrics, replace it with all 1's.
+
+=============================================================================
+
+dna/Restrict.cc
+revision 1.27
+
+date: 2007-12-12 18:34:50 +0000;  author: asivache;  state: Exp;  lines: +21 -18
+
+output into fasta file corrected - now writes everything and does not append
+
+----------------------------
+
+revision 1.26
+
+date: 2007-12-11 20:21:37 +0000;  author: asivache;  state: Exp;  lines: +31 -12
+
+Added OUT_FASTA cmdline argument; error output rolled back from cerr to cout
+
+----------------------------
+
+revision 1.25
+
+date: 2007-12-11 19:56:35 +0000;  author: asivache;  state: Exp;  lines: +9 -2
+
+Exit with an error message instead of crashing if SEQ does not exist; added alias Msp1 for MspI; errors printed to cerr
+
+=============================================================================
+
+Vec.h
+revision 1.179
+
+date: 2008-01-07 21:10:45 +0000;  author: asivache;  state: Exp;  lines: +127 -0
+
+a few flavors of UniqueSortAndCount() method added - unique-sorts its argument vec and while doing so counts repetitions on the fly (counts returned in additional vec<unsigned> arg)
+
+----------------------------
+
+revision 1.178
+
+date: 2008-01-06 02:27:09 +0000;  author: ilya;  state: Exp;  lines: +0 -2
+
+removed an unneeeded method that broke the build -- sorry
+
+----------------------------
+
+revision 1.177
+
+date: 2008-01-06 01:55:26 +0000;  author: ilya;  state: Exp;  lines: +2 -0
+
+fixed some incorrect dependencies.  added TARGETS argument to specify the files you want to make on the command-line (right now the filenames are assumed to refer to the run directory).
+
+----------------------------
+
+revision 1.176
+
+date: 2008-01-04 19:36:14 +0000;  author: ilya;  state: Exp;  lines: +25 -4
+
+renamed Join to JoinVecs for better readability
+
+----------------------------
+
+revision 1.175
+
+date: 2008-01-02 22:31:49 +0000;  author: ilya;  state: Exp;  lines: +86 -0
+
+added utility routines to create and join vectors on the fly
+
+----------------------------
+
+revision 1.174
+
+date: 2007-11-28 22:48:07 +0000;  author: asivache;  state: Exp;  lines: +14 -6
+
+Added generic UniqueSort() implementation that takes arbitrary CompareEqual and LessWeakOrdering functors
+
+=============================================================================
+
+STLExtensions.h
+revision 1.24
+
+date: 2007-12-09 18:27:52 +0000;  author: ilya;  state: Exp;  lines: +1 -0
+
+added documentation
+
+----------------------------
+
+revision 1.23
+
+date: 2007-12-01 13:34:50 +0000;  author: jaffe;  state: Exp;  lines: +75 -3
+
+Add class triple.  I got very tired of making pointless temporary classes
+
+having three members.
+
+=============================================================================
+
+paths/KmerPathInterval.cc
+revision 1.14
+
+date: 2007-12-09 18:27:52 +0000;  author: ilya;  state: Exp;  lines: +20 -20
+
+added documentation
+
+=============================================================================
+
+sort_kmers/SortKmersI.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+BasevectorIterator.h
+revision 1.5
+
+date: 2007-12-03 18:05:12 +0000;  author: asivache;  state: Exp;  lines: +772 -312
+
+Reimplemented. Still works and does so MUCH FASTER than sequential indexing 'for(...) basevector[i++]'
+
+=============================================================================
+
+sort_kmers/SortKmersE.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+system/Types.h
+revision 1.5
+
+date: 2007-12-09 18:22:26 +0000;  author: ilya;  state: Exp;  lines: +2 -0
+
+added LLFORMAT macro to give the right printf/scanf string for longlong type
+
+----------------------------
+
+revision 1.4
+
+date: 2007-12-05 18:34:44 +0000;  author: asivache;  state: Exp;  lines: +2 -0
+
+infinitely_many now defined here (as an unsigned int constant)
+
+=============================================================================
+
+Bitvector.h
+revision 1.25
+
+date: 2007-12-12 16:33:35 +0000;  author: jaffe;  state: Exp;  lines: +6 -0
+
+Add Sum.
+
+=============================================================================
+
+util/Fasta2Fastb.cc
+revision 1.8
+
+date: 2007-12-18 16:01:11 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+NAMES argument was ignored - fixed now
+
+----------------------------
+
+revision 1.7
+
+date: 2007-12-12 21:37:07 +0000;  author: asivache;  state: Exp;  lines: +3 -0
+
+added NAMES cmdline arg; if False, do not save seq. names into fasb.names
+
+=============================================================================
+
+sort_kmers/SortKmersG.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+system/Types.cc
+revision 1.2
+
+date: 2007-11-30 22:08:13 +0000;  author: jbutler;  state: Exp;  lines: +9 -0
+
+Added copyright notice.
+
+=============================================================================
+
+ReadPairing.h
+revision 1.23
+
+date: 2008-01-03 22:58:46 +0000;  author: iainm;  state: Exp;  lines: +3 -3
+
+WritePairs and ReadsToPairs will now allow the pairto files to begin with something other than reads.
+
+=============================================================================
+
+solexa/SolexaPipeline.h
+revision 1.3
+
+date: 2007-11-17 14:27:38 +0000;  author: jaffe;  state: Exp;  lines: +1 -3
+
+Use Getenv instead of getenv.
+
+=============================================================================
+
+paths/KmerPath.h
+revision 1.66
+
+date: 2008-01-02 23:45:52 +0000;  author: ilya;  state: Exp;  lines: +34 -2
+
+added docs and small utils
+
+----------------------------
+
+revision 1.65
+
+date: 2007-12-09 18:15:53 +0000;  author: ilya;  state: Exp;  lines: +35 -22
+
+added Start() and Stop() methods to KmerPath, to get the start and stop kmers of the path.  added documentation.
+
+=============================================================================
+
+lookup/ImperfectLookupTable.cc
+revision 1.19
+
+date: 2007-12-06 15:29:46 +0000;  author: asivache;  state: Exp;  lines: +2 -2
+
+bug fixed: total number of seqs in vecbasevector's fastb file is now determined correctly
+
+----------------------------
+
+revision 1.18
+
+date: 2007-12-05 17:19:21 +0000;  author: asivache;  state: Exp;  lines: +34 -9
+
+if the reads and/or quals are in fastb/qualb file, don't slurp them all into memory; for each chunk of the reads being aligned read only reads/quals for that chunk directly from disk. fasta files can not be read in chunks so far; also, a missing delete operator added ;)
+
+=============================================================================
+
+sort_kmers/SortKmersF.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+String.cc
+revision 1.107
+
+date: 2008-01-04 19:26:35 +0000;  author: ohsumit;  state: Exp;  lines: +0 -12
+
+I meant to commit String.cc which has ToString(double x)
+
+----------------------------
+
+revision 1.106
+
+date: 2008-01-03 20:45:21 +0000;  author: ohsumit;  state: Exp;  lines: +4 -12
+
+ToString(double x, int precision) now works properly with built-in trunction via stringstream.  HACK ALERT: somewhere in either ParsedArgs.* or String.* or somewhere else, there is an implicit assumption that doubles have a period.  Thus, ToString checks if the result is an Int and adds a period if so.  This should be fixed someday by finding the assumption's location.
+
+----------------------------
+
+revision 1.105
+
+date: 2008-01-02 19:11:17 +0000;  author: ohsumit;  state: Exp;  lines: +6 -2
+
+Temporary roll-back of ToString(double x, ...) since somehow (yet unknown) it interferes with PlotPoints.
+
+----------------------------
+
+revision 1.104
+
+date: 2007-12-31 16:05:51 +0000;  author: ohsumit;  state: Exp;  lines: +18 -1
+
+Changed ToString to use stringstream for conversion from floats and doubles, since there are built-in type conversions.  Even with a large precision, the built-in conversion will truncate trailing zeros properly.
+
+=============================================================================
+
+bias/BiasPiles_Solexa.cc
+revision 1.15
+
+date: 2007-12-18 16:42:29 +0000;  author: asivache;  state: Exp;  lines: +19 -5
+
+Added GENOME argument - slightly different way to explicitly specifyreference genome; one alignment was still performed against HEAD.reference.lookup even when alt ref was specified - fixed
+
+=============================================================================
+
+CommonSemanticTypes.h
+revision 1.5
+
+date: 2008-01-04 19:35:43 +0000;  author: ilya;  state: Exp;  lines: +4 -0
+
+added semantic types for dir names
+
+----------------------------
+
+revision 1.4
+
+date: 2008-01-02 22:31:08 +0000;  author: ilya;  state: Exp;  lines: +15 -0
+
+added semantic types for probabilities, copy numbers, filenames
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/projects/GetTargets.cc,v'
+ReadPairing.cc
+revision 1.19
+
+date: 2008-01-03 22:58:46 +0000;  author: iainm;  state: Exp;  lines: +12 -10
+
+WritePairs and ReadsToPairs will now allow the pairto files to begin with something other than reads.
+
+=============================================================================
+
+solexa/SolexaTools.cc
+revision 1.46
+
+date: 2008-01-07 23:00:07 +0000;  author: iainm;  state: Exp;  lines: +9 -1
+
+New function MixHeadToDirectoryName which will create a directory name from a combination of unpaired and paired HEADs
+
+----------------------------
+
+revision 1.45
+
+date: 2008-01-07 21:11:51 +0000;  author: iainm;  state: Exp;  lines: +40 -12
+
+ExpandHead can now find directories for paired reads. Just ask for the flowcell, not the date, and it will return both directories sorted by date. If it finds more then it stops.
+
+----------------------------
+
+revision 1.44
+
+date: 2007-12-28 15:02:16 +0000;  author: jaffe;  state: Exp;  lines: +1 -1
+
+Fix bug in ExpandHead, where flowcell name was assumed to be an integer.
+
+----------------------------
+
+revision 1.43
+
+date: 2007-12-21 20:35:50 +0000;  author: iainm;  state: Exp;  lines: +9 -0
+
+New function HeadToDirectoryName. Creates a safe directory name from a HEAD string by removing braces.
+
+----------------------------
+
+revision 1.42
+
+date: 2007-12-07 19:24:06 +0000;  author: jaffe;  state: Exp;  lines: +1 -1
+
+When ExpandHead calls FindRun, it now passes the pipeline argument.
+
+=============================================================================
+
+Feudal.h
+revision 1.121
+
+date: 2008-01-02 22:32:30 +0000;  author: ilya;  state: Exp;  lines: +4 -0
+
+added isize() methods to mastervec and serfvec for consistency with vec
+
+----------------------------
+
+revision 1.120
+
+date: 2007-12-07 18:27:43 +0000;  author: jaffe;  state: Exp;  lines: +13 -0
+
+Same as last commit, sort of.  Add multi-arg push_back_reserve for a different
+
+class (the one I had intended to add it for).
+
+----------------------------
+
+revision 1.119
+
+date: 2007-12-07 18:16:16 +0000;  author: jaffe;  state: Exp;  lines: +19 -0
+
+Add multi-argument version of push_back_reserve.
+
+=============================================================================
+
+lookup/ImperfectLookup.h
+revision 1.18
+
+date: 2008-01-09 19:00:52 +0000;  author: asivache;  state: Exp;  lines: +2 -6
+
+fix to accomodate solid data correctly: compute queries from reversed rather than rc'd reads when requested
+
+----------------------------
+
+revision 1.17
+
+date: 2007-12-05 18:33:48 +0000;  author: asivache;  state: Exp;  lines: +2 -2
+
+added include file; removed (re)definition of infinitely_many
+
+----------------------------
+
+revision 1.16
+
+date: 2007-12-04 20:07:05 +0000;  author: asivache;  state: Exp;  lines: +45 -13
+
+added templatized overload that takes lookup table file name as an arg + more comments
+
+----------------------------
+
+revision 1.15
+
+date: 2007-12-04 19:13:50 +0000;  author: asivache;  state: Exp;  lines: +2 -1
+
+templatized overload now uses ErrorThreshold method of the collector to break mismatch counting for putative align
+
+----------------------------
+
+revision 1.14
+
+date: 2007-12-03 18:35:43 +0000;  author: asivache;  state: Exp;  lines: +0 -3
+
+*** empty log message ***
+
+----------------------------
+
+revision 1.13
+
+date: 2007-12-03 18:26:50 +0000;  author: asivache;  state: Exp;  lines: +214 -1
+
+Massive refactoring, lots of redundant and marginally relevant code moved to utility methods. Addition: an overload of ImperfectLookup that takes an align collector as an argument; same logic of ungapped alignment implemented in ImperfectLookup can now be used to retrieve unique alignments, all allignments with less than N errors or whatever else is specified by the collector policy
+
+=============================================================================
+
+lookup/ShortQueryLookup.cc
+revision 1.33
+
+date: 2007-12-12 17:15:58 +0000;  author: jaffe;  state: Exp;  lines: +13 -2
+
+Add option PRINT_UNALIGNED_READS.
+
+----------------------------
+
+revision 1.32
+
+date: 2007-12-06 15:50:27 +0000;  author: asivache;  state: Exp;  lines: +2 -2
+
+int -> unsigned int in loop variable; no compilation warnings anymore
+
+=============================================================================
+
+solexa/SolexaComputePerfectAligns.cc
+revision 1.30
+
+date: 2007-12-17 22:31:36 +0000;  author: asivache;  state: Exp;  lines: +25 -14
+
+GENOME: alternative way to specify genome, this time using full prefix
+
+----------------------------
+
+revision 1.29
+
+date: 2007-12-17 22:17:38 +0000;  author: asivache;  state: Exp;  lines: +19 -9
+
+Added REFHEADER cmd line argument (default=); the actual reference to align and compute all stats against is taken as HEAD.REFHEADER.reference.*
+
+=============================================================================
+
+polymorphism/DumbCall.h
+revision 1.13
+
+date: 2007-12-05 18:42:03 +0000;  author: jmaguire;  state: Exp;  lines: +3 -0
+
+added function SumDumbCalls
+
+=============================================================================
+
+bias/BiasPlotGC_Solexa.cc
+revision 1.28
+
+date: 2008-01-05 14:45:52 +0000;  author: jaffe;  state: Exp;  lines: +37 -38
+
+Fix bugs in last commit.
+
+----------------------------
+
+revision 1.27
+
+date: 2007-12-28 14:54:34 +0000;  author: jaffe;  state: Exp;  lines: +15 -5
+
+Fix bugs in computation of fcdotlen.
+
+----------------------------
+
+revision 1.26
+
+date: 2007-12-18 17:03:06 +0000;  author: asivache;  state: Exp;  lines: +6 -3
+
+added REFHEAD argument; if specified, references are sought as HEAD.REFHEAD.reference.*
+
+----------------------------
+
+revision 1.25
+
+date: 2007-12-18 00:38:21 +0000;  author: kiran;  state: Exp;  lines: +2 -2
+
+Updated to reflect changes in AlignCollector.h
+
+----------------------------
+
+revision 1.24
+
+date: 2007-12-06 18:55:19 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+compile warning resolved: enforced int->unsigned conversion
+
+=============================================================================
+
+sort_kmers/SortKmersD.cc
+revision 1.2
+
+date: 2007-11-30 22:07:46 +0000;  author: jbutler;  state: Exp;  lines: +2 -0
+
+Added MakeDepend directive 'shared SortKmers' to all SortKmers instantiation
+
+  files.
+
+=============================================================================
+
+lookup/HitReceiver.h
+revision 1.27
+
+date: 2007-12-05 18:34:11 +0000;  author: asivache;  state: Exp;  lines: +0 -3
+
+removed (re)definition of infinitely_many
+
+=============================================================================
+
+###########################################################
+SCRIPTS section: all the changes since the release
+ReleaseArachne-1-3 are listed below for all the perl 
+scripts checked into the CVS repository.
+###########################################################
+./batchImperfectLookupTable.pl
+revision 1.15
+
+date: 2007-12-28 14:23:34 +0000;  author: ohsumit;  state: Exp;  lines: +4 -4
+
+Indentation fixes.
+
+----------------------------
+
+revision 1.14
+
+date: 2007-12-07 14:15:02 +0000;  author: ohsumit;  state: Exp;  lines: +3 -1
+
+No real changes - CVS sticky tag problem only.
+
+----------------------------
+
+revision 1.13
+
+date: 2007-12-05 18:24:29 +0000;  author: ohsumit;  state: Exp;  lines: +2 -2
+
+add rusage[mem=4096] to all batch jobs.
+
+----------------------------
+
+revision 1.12
+
+date: 2007-12-05 18:17:37 +0000;  author: ohsumit;  state: Exp;  lines: +13 -47
+
+Removed LARGE_JOB option since ILT now only reads the proper part of the read, so splitting the input no longer is necessary.
+
+----------------------------
+
+revision 1.11
+
+date: 2007-12-05 13:43:06 +0000;  author: ohsumit;  state: Exp;  lines: +2 -2
+
+Incorrect option (appeared only in my test versions) removed.
+
+----------------------------
+
+revision 1.10
+
+date: 2007-12-03 20:11:00 +0000;  author: ohsumit;  state: Exp;  lines: +55 -4
+
+Added option LARGE_JOB that will automatically split the input SEQ file [because it is too big to fit on a broad queue machine], then send it to the broad batch.
+
+----------------------------
+
+revision 1.9
+
+date: 2007-12-01 21:39:34 +0000;  author: ohsumit;  state: Exp;  lines: +5 -0
+
+Added ending print for David's scripts.
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/LSF/LSFExample.pl,v'
+./solexa/analyzeSolexaLanePair.pl
+revision 1.4
+
+date: 2007-12-19 19:51:40 +0000;  author: asivache;  state: Exp;  lines: +18 -17
+
+make library, type, strain, species, and ref optional arguments - they are now optional for analyseSolexaLane
+
+----------------------------
+
+revision 1.3
+
+date: 2007-12-03 22:18:48 +0000;  author: ohsumit;  state: Exp;  lines: +1 -1
+
+SOLEXA PIPELINE CHANGE: Changed PLOT_FRAG_HISTO to True in PairedReadParamsFromRead call.
+
+=============================================================================
+
+./solexa/backPropagate.pl
+revision 1.5
+
+date: 2007-12-28 16:37:34 +0000;  author: ohsumit;  state: Exp;  lines: +1 -1
+
+Updated for latest name [changes] in pipelineOutput.
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/projects/VQ_Quality_Experiment.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/VAALRemoveSNP.pl,v'
+./solexa/analyzeSolexaLane.pl
+revision 1.128
+
+date: 2008-01-08 18:16:06 +0000;  author: ohsumit;  state: Exp;  lines: +21 -3
+
+Andrey and I fixed the behavior so alignonly can use the default *.reference.* files present in the directory.
+
+----------------------------
+
+revision 1.127
+
+date: 2007-12-26 15:16:12 +0000;  author: asivache;  state: Exp;  lines: +4 -3
+
+changed cleanup policy for rrbs lanes: leave the sytnthetic digest fragment ends behind (as a fasta file)
+
+----------------------------
+
+revision 1.126
+
+date: 2007-12-19 16:51:41 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+spell REFERENCE_FILE_FULL_PATH correctly
+
+----------------------------
+
+revision 1.125
+
+date: 2007-12-19 16:40:29 +0000;  author: asivache;  state: Exp;  lines: +0 -2
+
+test print removed
+
+----------------------------
+
+revision 1.124
+
+date: 2007-12-18 20:15:56 +0000;  author: asivache;  state: Exp;  lines: +3 -3
+
+remove temporary files (references) on exit
+
+----------------------------
+
+revision 1.123
+
+date: 2007-12-18 19:46:27 +0000;  author: asivache;  state: Exp;  lines: +3 -2
+
+use fc.lane.reference.* softlinks as default ref, not the full original ref filename
+
+----------------------------
+
+revision 1.122
+
+date: 2007-12-18 18:50:19 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+typo corrected
+
+----------------------------
+
+revision 1.121
+
+date: 2007-12-18 18:11:29 +0000;  author: asivache;  state: Exp;  lines: +4 -2
+
+naming of the rrbs temporary reference files fixed
+
+----------------------------
+
+revision 1.120
+
+date: 2007-12-18 18:02:06 +0000;  author: asivache;  state: Exp;  lines: +89 -28
+
+Reorganized: standard processing always uses 'primary' reference. By default the primary ref is the one specified in the db (whole genome), but specific analysis type can create temporary local ref and make it 'primary' for the following analysis; invocations of different analysis steps are updated to pass primary ref argument instead of using default fc.lane.reference
+
+----------------------------
+
+revision 1.119
+
+date: 2007-12-17 19:08:32 +0000;  author: asivache;  state: Exp;  lines: +97 -54
+
+logic is further broken (?cd /wga/dev/asivache/wArachne/) into separate steps with less dependencies; a separate step to create alternative reference is introduced (at the moment takes care of RRBS only)
+
+----------------------------
+
+revision 1.118
+
+date: 2007-12-13 18:52:54 +0000;  author: asivache;  state: Exp;  lines: +5 -4
+
+fragment size range used to build synthetic digest for RRBS is stored in metrics file
+
+----------------------------
+
+revision 1.117
+
+date: 2007-12-13 15:56:26 +0000;  author: asivache;  state: Exp;  lines: +2 -2
+
+correct the content of the information email sent out upon RRBS lane completion
+
+----------------------------
+
+revision 1.116
+
+date: 2007-12-13 15:26:27 +0000;  author: asivache;  state: Exp;  lines: +0 -4
+
+Found last (?) mentioning of flowcell.txt - and killed it
+
+----------------------------
+
+revision 1.115
+
+date: 2007-12-12 22:08:35 +0000;  author: asivache;  state: Exp;  lines: +1 -0
+
+turn off alignment post-processing for RRBS lanes
+
+----------------------------
+
+revision 1.114
+
+date: 2007-12-12 21:38:41 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+Changed RRBS processing to use Fasta2Fastb at an intermediate step
+
+----------------------------
+
+revision 1.113
+
+date: 2007-12-12 16:35:39 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+correct typo in external executable call
+
+----------------------------
+
+revision 1.112
+
+date: 2007-12-11 22:41:11 +0000;  author: asivache;  state: Exp;  lines: +0 -6
+
+few lines commented out long time ago are removed
+
+----------------------------
+
+revision 1.111
+
+date: 2007-12-11 21:56:09 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+do not run PerfectAligns and BiasPiles on RRBS lanes - raw reference is irrelevant
+
+----------------------------
+
+revision 1.110
+
+date: 2007-12-11 20:59:42 +0000;  author: asivache;  state: Exp;  lines: +54 -50
+
+RRBS analysis option added; parameters are now taken from metrics file
+
+----------------------------
+
+revision 1.109
+
+date: 2007-12-11 18:12:57 +0000;  author: asivache;  state: Exp;  lines: +343 -184
+
+added processing of RRBS experiments; added reading parameters from DB metrics; some code blocks shoveled around
+
+----------------------------
+
+revision 1.108
+
+date: 2007-11-21 21:10:53 +0000;  author: ohsumit;  state: Exp;  lines: +1 -1
+
+Added -f to rm command in case no file was present.
+
+----------------------------
+
+revision 1.107
+
+date: 2007-11-21 14:33:47 +0000;  author: ohsumit;  state: Exp;  lines: +2 -1
+
+Added a rm to remove old *.controls.* reference [link].
+
+=============================================================================
+
+./solexa/GetRunDBReport.pl
+revision 1.2
+
+date: 2007-12-05 23:13:13 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+changed '=' to LIKE in the query
+
+=============================================================================
+
+./solexa/HybridSelectionAnalysis2.pl
+revision 1.3
+
+date: 2007-12-05 18:43:41 +0000;  author: jmaguire;  state: Exp;  lines: +103 -8
+
+numerous small changes.
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/PairedReadPlotsHtml.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/SolexaCoverage2GenomeSeq.pl,v'
+./solexa/addDBMetrics.pl
+revision 1.7
+
+date: 2007-12-17 23:06:40 +0000;  author: asivache;  state: Exp;  lines: +50 -20
+
+added --force_dbinfo and --force_update flags
+
+----------------------------
+
+revision 1.6
+
+date: 2007-12-05 23:09:28 +0000;  author: asivache;  state: Exp;  lines: +5 -5
+
+changed to deal with new flowcell naming convention ('12345AAXX')
+
+=============================================================================
+
+./solexa/analyzeSolexa.pl
+revision 1.91
+
+date: 2007-12-11 21:31:40 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+modified condition to suppress annoying emails
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/doICDiagnostics.pl,v'
+./solexa/testSolexaPipeline.pl
+revision 1.11
+
+date: 2007-12-18 19:13:35 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+take more tiles for pooled PCR nightly test
+
+----------------------------
+
+revision 1.10
+
+date: 2007-12-18 18:27:35 +0000;  author: asivache;  state: Exp;  lines: +18 -6
+
+pooled pcr lane added to the nightly test
+
+----------------------------
+
+revision 1.9
+
+date: 2007-12-12 18:36:03 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+5551 takes the longest during nightly test, trying to use fewer tiles
+
+----------------------------
+
+revision 1.8
+
+date: 2007-12-11 22:42:59 +0000;  author: asivache;  state: Exp;  lines: +9 -10
+
+all test cases are re-enabled; explicit parameters removed from analyzeSolexa and analyzeSolexaLane calls - got to read the data from the db; obsolete flowcell.txt is not created anymore
+
+----------------------------
+
+revision 1.7
+
+date: 2007-12-11 21:43:03 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+escape char added to propagate quoted param properly to the output script
+
+----------------------------
+
+revision 1.6
+
+date: 2007-12-11 21:30:55 +0000;  author: asivache;  state: Exp;  lines: +2 -1
+
+added wildcard into db query to accomodate newer flowcell ids
+
+----------------------------
+
+revision 1.5
+
+date: 2007-12-11 21:17:56 +0000;  author: asivache;  state: Exp;  lines: +5 -5
+
+fixed typo introduced during last commit
+
+----------------------------
+
+revision 1.4
+
+date: 2007-12-11 16:16:53 +0000;  author: asivache;  state: Exp;  lines: +5 -4
+
+adding new experiment (RRBS) to a nightly test; not working yet
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/testing/Nightcrawler.pl,v'
+>ReleaseArachne-1-4
+
+hiccup in previous attempt at 1-4, due to shell foolishness.
+
+
+
+Edit/Add here (prefetched change history since last release is shown below):
+
+################################################################
+SOURCE FILES section: all the changes since the release
+ReleaseArachne-1-4 are listed below for the source files, on which
+the build target solexaPipeline depends through the makefile(s).
+################################################################
+###########################################################
+SCRIPTS section: all the changes since the release
+ReleaseArachne-1-4 are listed below for all the perl 
+scripts checked into the CVS repository.
+###########################################################
+>ReleaseArachne-1-5
+
+OK, I'll make 1-5 instead to avoid collisions with the aborted 1-4. 
+
+
+
+Edit/Add here (prefetched change history since last release is shown below):
+
+################################################################
+SOURCE FILES section: all the changes since the release
+ReleaseArachne-1-4 are listed below for the source files, on which
+the build target solexaPipeline depends through the makefile(s).
+################################################################
+###########################################################
+SCRIPTS section: all the changes since the release
+ReleaseArachne-1-4 are listed below for all the perl 
+scripts checked into the CVS repository.
+###########################################################
+>ReleaseArachne-1-6
+
+
+This time the ann library is included in the release. It was left out due to cvs update -d weirdness.
+
+
+Edit/Add here (prefetched change history since last release is shown below):
+
+################################################################
+SOURCE FILES section: all the changes since the release
+ReleaseArachne-1-5 are listed below for the source files, on which
+the build target solexaPipeline depends through the makefile(s).
+################################################################
+FeudalTemplate.h
+revision 1.60
+
+date: 2008-01-09 20:45:28 +0000;  author: ilya;  state: Exp;  lines: +12 -2
+
+added WriteRange method to write a range of a mastervec to a file
+
+=============================================================================
+
+Vec.h
+revision 1.180
+
+date: 2008-01-09 20:46:00 +0000;  author: ilya;  state: Exp;  lines: +7 -0
+
+added a ReverseSort() method that lets you specify the ordering
+
+=============================================================================
+
+Feudal.h
+revision 1.122
+
+date: 2008-01-09 20:50:35 +0000;  author: ilya;  state: Exp;  lines: +3 -0
+
+added WriteRange method to write a range of a mastervec to a file
+
+=============================================================================
+
+###########################################################
+SCRIPTS section: all the changes since the release
+ReleaseArachne-1-5 are listed below for all the perl 
+scripts checked into the CVS repository.
+###########################################################
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNACompleteHTML.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAExonHtml.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAExonHtml2.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAExonPlots.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAExonPlots2.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAanalysis.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAanalysis2.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAdelete2.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAhtml.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/cDNA/cDNAplots.pl,v'
+>ReleaseArachne-1-6
+
+This time the ann library is added. It was left out due to the bad behaviour of cvs update -d.
+>ReleaseArachne-1-7
+
+Fixed another bug in VAAL.
+>ReleaseArachne-1-7
+
+Let's try this again.
+>ReleaseArachne-1-7
+
+omg cvs can't handle paths with two slashes in them. What is this, 1981?
+>ReleaseArachne-1-8
+
+Release to provide a bug fix to some snp code.
+>ReleaseArachne-1-8
+
+some fixes in snp code, and broken build repaired.
+>ReleaseArachne-1-9
+
+Release with changes to some SNP code. (fixing the 1-8 botch).
+>ReleaseArachne-1-10
+
+Latest and reasonably stable version of SolexaAlleleLikelihood.
+>ReleaseArachne-1-11
+
+Motivated by some changes to solexapoly.
+>ReleaseArachne-1-12
+
+changes motivated by solexapoly (take 2)
+>ReleaseArachne-1-13
+
+
+
+
+
+Edit/Add here (prefetched change history since last release is shown below):
+
+################################################################
+SOURCE FILES section: all the changes since the release
+ReleaseArachne-1-12 are listed below for the source files, on which
+the build target solexaPipeline depends through the makefile(s).
+################################################################
+lookup/PerfectLookup.h
+revision 1.6
+
+date: 2008-04-13 13:46:18 +0000;  author: jaffe;  state: Exp;  lines: +9 -4
+
+Clarify documentation.
+
+=============================================================================
+
+BasevectorTools.h
+revision 1.9
+
+date: 2008-04-29 15:39:39 +0000;  author: asivache;  state: Exp;  lines: +28 -8
+
+MismatchString() : an overload added that a)fills externally provided String instance and b) can override mismatch positions only without overriding the whole string; both overloads now take the actual symbol to be printed at mismatch position as a parameter
+
+=============================================================================
+
+system/MemTracker.cc
+revision 1.4
+
+date: 2008-04-29 14:09:28 +0000;  author: jburton;  state: Exp;  lines: +21 -0
+
+Added Jeremy Schmutz's and Dave Flowers' patches.  Their documentation is as follows:
+
+
+
+Patch1:
+
+# These are patches to fix a couple of potential memory leaks.  They also fix the overall memory tracking option, enchance it by tracking bytes allocated, so that memory usage can be easily determined, and add a new compile directive (NO_TRACK_MEMORY) to allow specific modules to turn off global memory tracking if needed (my version of xerces redefines new, which was incompatible with how memory tracking is implemented).
+
+# The big fix is to pairwise_aligners/MakeAlignMethod.cc.  I don't know why the code in question caused problems (it works fine for test cases I made), but it clearly caused excessive memory usage there.  Also, using an int to hold a boolean value was unnecessary (changed to a char).
+
+
+
+Patch2:
+
+# This patch changes makealigns_orig_method::MutmersToAlign() to use spars array logic for its n^2 array, resulting in large memory savings and a fair speed increase in cases of large n (with no noticeable decrease in speed for small n).
+
+# This patch is based on the original MakeAlignsMethod.cc from 20071016, without the patch including the workaround for the memory issue.
+
+=============================================================================
+
+lookup/LookupTools.h
+revision 1.6
+
+date: 2008-04-23 00:18:52 +0000;  author: asivache;  state: Exp;  lines: +15 -6
+
+BasesToQueries(const vecbasevector &, Container2D &, Container2D &,...) overload gets an additional parameter <start_pos> (default=0); non-zero start_pos is equivalent to (virtual) truncating first start_pos bases from each read and then computing queries on the truncated sequences
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/util/AlleleLikelihood.h,v'
+system/System.h
+revision 1.32
+
+date: 2008-04-26 10:16:41 +0000;  author: jaffe;  state: Exp;  lines: +5 -0
+
+Add more PRINT macros.
+
+----------------------------
+
+revision 1.31
+
+date: 2008-04-25 08:00:40 +0000;  author: ilya;  state: Exp;  lines: +8 -0
+
+added DPRINT6, DPRINT7 debug macros
+
+----------------------------
+
+revision 1.30
+
+date: 2008-04-09 01:10:05 +0000;  author: ilya;  state: Exp;  lines: +1 -1
+
+to Fork(), added optional argument to silently ignore errors.
+
+=============================================================================
+
+solid/Solid.h
+revision 1.7
+
+date: 2008-04-29 15:44:29 +0000;  author: asivache;  state: Exp;  lines: +28 -1
+
+Utility methods: FullColorspaceTargetSeq(): takes align, basespace refence and first base and builds full colorspace representation of the alignment target sequence in the correct orientation; CorrectColorRead(): takes full colorspace read, basespace reference and align, and corrects all single-mismatch and discordant double-mismatch errors in the read, leaving only SNP-like mismatch pairs
+
+=============================================================================
+
+lookup/KmerIndex.h
+revision 1.5
+
+date: 2008-04-23 00:13:01 +0000;  author: asivache;  state: Exp;  lines: +4 -4
+
+KmerIndexSeq::Reset now takes additional argument specifying the first position in the basevector, starting from which Kmers (indices) will be generated (default: 0)
+
+=============================================================================
+
+lookup/ImperfectLookup.cc
+revision 1.23
+
+date: 2008-04-17 20:16:46 +0000;  author: jaffe;  state: Exp;  lines: +3 -3
+
+Comment out two PRINT statements.
+
+=============================================================================
+
+math/Matrix.h
+revision 1.15
+
+date: 2008-04-28 19:13:13 +0000;  author: jmaguire;  state: Exp;  lines: +0 -2
+
+Whoops, kiran already implemented det and inverse. Way to waste a sunday afternoon jared! <nelson>ha ha!</nelson> This is what I get for forgetting to get the latest update.
+
+----------------------------
+
+revision 1.14
+
+date: 2008-04-28 17:34:38 +0000;  author: jmaguire;  state: Exp;  lines: +4 -0
+
+added methods Det() and Inverse(). Don't go expecting them to scale or anything.
+
+
+
+Now we can do multivariate gaussians with full covariance matrices. Hooray!
+
+----------------------------
+
+revision 1.13
+
+date: 2008-04-18 04:32:29 +0000;  author: kiran;  state: Exp;  lines: +4 -64
+
+Refactored to bring templated methods in line with the rest of the Matrix interface.
+
+----------------------------
+
+revision 1.12
+
+date: 2008-04-18 04:02:50 +0000;  author: kiran;  state: Exp;  lines: +37 -0
+
+Added Cofactor() and Invert() methods
+
+----------------------------
+
+revision 1.11
+
+date: 2008-04-10 19:41:41 +0000;  author: kiran;  state: Exp;  lines: +29 -0
+
+Added determinant method.
+
+=============================================================================
+
+SortKmersImpl.h
+revision 1.11
+
+date: 2008-04-08 18:55:24 +0000;  author: ilya;  state: Exp;  lines: +2 -1
+
+fixed a bug where the wrong loop boundary was used.   the bug only
+
+affected MarkTrustedB (this solves the crash david has seen).
+
+----------------------------
+
+revision 1.10
+
+date: 2008-04-07 17:03:59 +0000;  author: ilya;  state: Exp;  lines: +49 -38
+
+added option to SortKmers() to iterate over two arrays of reads (one
+
+then the other).   this is to avoid, in MarkTrustedB, appending
+
+mutants to reads, creating an extraneous copy of the mutants and
+
+preventing the reads from being loaded as a read-only mmapped file.
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/Rawintensitiesvector.h,v'
+system/ParsedArgs.cc
+revision 1.42
+
+date: 2008-04-25 08:01:25 +0000;  author: ilya;  state: Exp;  lines: +8 -61
+
+added documentation, removed unused code
+
+----------------------------
+
+revision 1.41
+
+date: 2008-04-09 01:11:20 +0000;  author: ilya;  state: Exp;  lines: +10 -0
+
+changed command logging to fork a separate process to do the appending of the
+
+string to the log file.  this way, if the appending hangs for any
+
+reason, the original program will not be affected or stalled by the
+
+optional logging operation.
+
+=============================================================================
+
+solexa/GetXTalkMatrixFromICs.cc
+revision 1.4
+
+date: 2008-04-24 18:59:33 +0000;  author: kiran;  state: Exp;  lines: +6 -8
+
+Fixed a little overflow bug in intensity histograms.
+
+----------------------------
+
+revision 1.3
+
+date: 2008-04-24 00:48:45 +0000;  author: kiran;  state: Exp;  lines: +96 -2
+
+Scales cross-talk matrix by minimizing the result of the KS-test on the CDFs of the intensity distributions to compensate for bias towards intrinsically brighter dyes.
+
+----------------------------
+
+revision 1.2
+
+date: 2008-04-18 16:29:56 +0000;  author: kiran;  state: Exp;  lines: +19 -260
+
+Factored out vecrawintensitiesvector to solexa/Rawintensitiesvector.h
+
+=============================================================================
+
+Set.h
+revision 1.6
+
+date: 2008-04-07 17:01:55 +0000;  author: ilya;  state: Exp;  lines: +3 -0
+
+added missing include and namespace declaration
+
+=============================================================================
+
+solexa/ExtractSolexaFasta.cc
+revision 1.44
+
+date: 2008-04-09 01:23:01 +0000;  author: kiran;  state: Exp;  lines: +2 -1
+
+Raised the limit on MAX_CLUSTERS_PER_TILE to prevent an allocation assert that kills lane analysees with HUGE numbers of reads.
+
+=============================================================================
+
+solexa/SolexaMetrics.cc
+revision 1.12
+
+date: 2008-04-25 08:05:08 +0000;  author: ilya;  state: Exp;  lines: +36 -6
+
+added docs.  added methods to write multiple metrics databases into
+
+one file, and to read them back.
+
+=============================================================================
+
+KmerShape.h
+revision 1.9
+
+date: 2008-04-25 08:10:07 +0000;  author: ilya;  state: Exp;  lines: +3 -0
+
+added FOR_MAIN_KSHAPES macro that does things just for K=20 and K=21
+
+=============================================================================
+
+solexa/SolexaMetrics.h
+revision 1.11
+
+date: 2008-04-25 08:05:08 +0000;  author: ilya;  state: Exp;  lines: +12 -5
+
+added docs.  added methods to write multiple metrics databases into
+
+one file, and to read them back.
+
+=============================================================================
+
+lookup/AlignCollector.h
+revision 1.26
+
+date: 2008-04-30 18:46:12 +0000;  author: asivache;  state: Exp;  lines: +9 -3
+
+added another optional argument to LoadLookAligns: if ordered=true and high_id is set, qltout file reading is aborted as soon as query_id=high_id is reached
+
+----------------------------
+
+revision 1.25
+
+date: 2008-04-24 02:36:38 +0000;  author: asivache;  state: Exp;  lines: +14 -4
+
+low_id, high_id parameters added to LoadLookAligns (defaults=0,-1); if specified, only aligns for query ids in the range [low_id,high_id) will be loaded into the collector
+
+=============================================================================
+
+Basevector.h
+revision 1.133
+
+date: 2008-04-29 14:09:09 +0000;  author: jburton;  state: Exp;  lines: +2 -0
+
+Added Jeremy Schmutz's and Dave Flowers' patches.  Their documentation is as follows:
+
+
+
+Patch1:
+
+# These are patches to fix a couple of potential memory leaks.  They also fix the overall memory tracking option, enchance it by tracking bytes allocated, so that memory usage can be easily determined, and add a new compile directive (NO_TRACK_MEMORY) to allow specific modules to turn off global memory tracking if needed (my version of xerces redefines new, which was incompatible with how memory tracking is implemented).
+
+# The big fix is to pairwise_aligners/MakeAlignMethod.cc.  I don't know why the code in question caused problems (it works fine for test cases I made), but it clearly caused excessive memory usage there.  Also, using an int to hold a boolean value was unnecessary (changed to a char).
+
+
+
+Patch2:
+
+# This patch changes makealigns_orig_method::MutmersToAlign() to use spars array logic for its n^2 array, resulting in large memory savings and a fair speed increase in cases of large n (with no noticeable decrease in speed for small n).
+
+# This patch is based on the original MakeAlignsMethod.cc from 20071016, without the patch including the workaround for the memory issue.
+
+----------------------------
+
+revision 1.132
+
+date: 2008-04-09 10:41:13 +0000;  author: jaffe;  state: Exp;  lines: +10 -0
+
+Add SetToSubOf constructor.
+
+=============================================================================
+
+solexa/SolexaIntensHomopolyDataSubset.cc
+revision 1.3
+
+date: 2008-04-08 15:19:34 +0000;  author: ohsumit;  state: Exp;  lines: +14 -6
+
+Modified to use up less memory.
+
+=============================================================================
+
+system/System.cc
+revision 1.27
+
+date: 2008-04-09 01:10:05 +0000;  author: ilya;  state: Exp;  lines: +4 -2
+
+to Fork(), added optional argument to silently ignore errors.
+
+=============================================================================
+
+solid/Solid.cc
+revision 1.9
+
+date: 2008-04-29 18:10:43 +0000;  author: asivache;  state: Exp;  lines: +1 -2
+
+fix a bug; now adjacent discordant mismatches are corrected properly
+
+----------------------------
+
+revision 1.8
+
+date: 2008-04-29 15:44:29 +0000;  author: asivache;  state: Exp;  lines: +217 -0
+
+Utility methods: FullColorspaceTargetSeq(): takes align, basespace refence and first base and builds full colorspace representation of the alignment target sequence in the correct orientation; CorrectColorRead(): takes full colorspace read, basespace reference and align, and corrects all single-mismatch and discordant double-mismatch errors in the read, leaving only SNP-like mismatch pairs
+
+=============================================================================
+
+lookup/LookAlign.h
+revision 1.101
+
+date: 2008-04-15 18:42:47 +0000;  author: asivache;  state: Exp;  lines: +18 -7
+
+utility methods: SetStartOnQuery(), AddToStartOnQuery() etc
+
+----------------------------
+
+revision 1.100
+
+date: 2008-04-14 11:51:37 +0000;  author: ilya;  state: Exp;  lines: +5 -4
+
+added docs
+
+----------------------------
+
+revision 1.99
+
+date: 2008-04-09 17:40:37 +0000;  author: iainm;  state: Exp;  lines: +5 -0
+
+New function BuildLookAlignsIndex. Builds index into a vec of look_aligns.
+
+=============================================================================
+
+SortKmers.h
+revision 1.29
+
+date: 2008-04-07 17:03:59 +0000;  author: ilya;  state: Exp;  lines: +21 -9
+
+added option to SortKmers() to iterate over two arrays of reads (one
+
+then the other).   this is to avoid, in MarkTrustedB, appending
+
+mutants to reads, creating an extraneous copy of the mutants and
+
+preventing the reads from being loaded as a read-only mmapped file.
+
+=============================================================================
+
+system/MemTracker.h
+revision 1.3
+
+date: 2008-04-29 14:09:28 +0000;  author: jburton;  state: Exp;  lines: +4 -0
+
+Added Jeremy Schmutz's and Dave Flowers' patches.  Their documentation is as follows:
+
+
+
+Patch1:
+
+# These are patches to fix a couple of potential memory leaks.  They also fix the overall memory tracking option, enchance it by tracking bytes allocated, so that memory usage can be easily determined, and add a new compile directive (NO_TRACK_MEMORY) to allow specific modules to turn off global memory tracking if needed (my version of xerces redefines new, which was incompatible with how memory tracking is implemented).
+
+# The big fix is to pairwise_aligners/MakeAlignMethod.cc.  I don't know why the code in question caused problems (it works fine for test cases I made), but it clearly caused excessive memory usage there.  Also, using an int to hold a boolean value was unnecessary (changed to a char).
+
+
+
+Patch2:
+
+# This patch changes makealigns_orig_method::MutmersToAlign() to use spars array logic for its n^2 array, resulting in large memory savings and a fair speed increase in cases of large n (with no noticeable decrease in speed for small n).
+
+# This patch is based on the original MakeAlignsMethod.cc from 20071016, without the patch including the workaround for the memory issue.
+
+=============================================================================
+
+lookup/LookAlign.cc
+revision 1.94
+
+date: 2008-04-25 14:26:21 +0000;  author: jburton;  state: Exp;  lines: +3 -0
+
+Added an input file check.
+
+----------------------------
+
+revision 1.93
+
+date: 2008-04-17 14:38:53 +0000;  author: jaffe;  state: Exp;  lines: +2 -3
+
+Comment out a logging line.
+
+----------------------------
+
+revision 1.92
+
+date: 2008-04-14 11:52:28 +0000;  author: ilya;  state: Exp;  lines: +6 -0
+
+added status prints.  added Binary3 serialization instantiation for GaplessAlign.
+
+----------------------------
+
+revision 1.91
+
+date: 2008-04-09 17:40:37 +0000;  author: iainm;  state: Exp;  lines: +10 -0
+
+New function BuildLookAlignsIndex. Builds index into a vec of look_aligns.
+
+=============================================================================
+
+KmerRecord.h
+revision 1.63
+
+date: 2008-04-24 04:22:54 +0000;  author: iainm;  state: Exp;  lines: +10 -7
+
+Added Set method to kmer_with_count
+
+----------------------------
+
+revision 1.62
+
+date: 2008-04-20 16:14:40 +0000;  author: jaffe;  state: Exp;  lines: +0 -8
+
+Revert last commit.  It was stupid.
+
+----------------------------
+
+revision 1.61
+
+date: 2008-04-20 15:28:35 +0000;  author: jaffe;  state: Exp;  lines: +10 -0
+
+Add CmpKmers.
+
+----------------------------
+
+revision 1.60
+
+date: 2008-04-07 17:01:39 +0000;  author: ilya;  state: Exp;  lines: +21 -0
+
+added ToString() methods for debugging
+
+----------------------------
+
+revision 1.59
+
+date: 2008-04-07 13:51:53 +0000;  author: sante;  state: Exp;  lines: +14 -0
+
+Added method FromString (mirror to the existing ToString), and
+
+operator>>.
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/ComputeICMetrics.cc,v'
+dna/Restrict.cc
+revision 1.31
+
+date: 2008-04-14 23:48:20 +0000;  author: jaffe;  state: Exp;  lines: +2 -2
+
+Don't print messages about circular fragments if chromosomes are not circular.
+
+=============================================================================
+
+Vec.h
+revision 1.185
+
+date: 2008-04-25 08:11:29 +0000;  author: ilya;  state: Exp;  lines: +4 -1
+
+added code to help class member load memmapped files
+
+----------------------------
+
+revision 1.184
+
+date: 2008-04-09 17:36:55 +0000;  author: iainm;  state: Exp;  lines: +4 -0
+
+New function AsciiOrBinary0VecSize. Return number of elements a vec saved in either Binary0 or ASCII format.
+
+=============================================================================
+
+STLExtensions.h
+revision 1.27
+
+date: 2008-04-14 11:51:12 +0000;  author: ilya;  state: Exp;  lines: +26 -1
+
+added std::bitset lexicographic ordering functions.   changed
+
+make_triple constructor to use const references for args.
+
+=============================================================================
+
+solexa/SolexaPosition.cc
+revision 1.3
+
+date: 2008-04-25 08:02:53 +0000;  author: ilya;  state: Exp;  lines: +1 -0
+
+added BinaryWrite3 serialization
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/util/AlleleLikelihood.cc,v'
+Charvector.h
+revision 1.3
+
+date: 2008-04-14 11:49:56 +0000;  author: ilya;  state: Exp;  lines: +4 -0
+
+added ucharvector and vecucharvector for representing unsigned char vectors
+
+=============================================================================
+
+Bitvector.h
+revision 1.29
+
+date: 2008-04-29 14:09:09 +0000;  author: jburton;  state: Exp;  lines: +2 -1
+
+Added Jeremy Schmutz's and Dave Flowers' patches.  Their documentation is as follows:
+
+
+
+Patch1:
+
+# These are patches to fix a couple of potential memory leaks.  They also fix the overall memory tracking option, enchance it by tracking bytes allocated, so that memory usage can be easily determined, and add a new compile directive (NO_TRACK_MEMORY) to allow specific modules to turn off global memory tracking if needed (my version of xerces redefines new, which was incompatible with how memory tracking is implemented).
+
+# The big fix is to pairwise_aligners/MakeAlignMethod.cc.  I don't know why the code in question caused problems (it works fine for test cases I made), but it clearly caused excessive memory usage there.  Also, using an int to hold a boolean value was unnecessary (changed to a char).
+
+
+
+Patch2:
+
+# This patch changes makealigns_orig_method::MutmersToAlign() to use spars array logic for its n^2 array, resulting in large memory savings and a fair speed increase in cases of large n (with no noticeable decrease in speed for small n).
+
+# This patch is based on the original MakeAlignsMethod.cc from 20071016, without the patch including the workaround for the memory issue.
+
+----------------------------
+
+revision 1.28
+
+date: 2008-04-14 11:49:30 +0000;  author: ilya;  state: Exp;  lines: +9 -0
+
+added Bitvector -> std::bitset conversion
+
+=============================================================================
+
+dna/Bases.h
+revision 1.5
+
+date: 2008-04-28 20:52:27 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+GetComplementaryBaseChar is now inline'd
+
+----------------------------
+
+revision 1.4
+
+date: 2008-04-28 20:39:32 +0000;  author: asivache;  state: Exp;  lines: +12 -0
+
+Added GetComplementaryBaseChar()
+
+=============================================================================
+
+Vec.cc
+revision 1.55
+
+date: 2008-04-09 17:36:55 +0000;  author: iainm;  state: Exp;  lines: +11 -0
+
+New function AsciiOrBinary0VecSize. Return number of elements a vec saved in either Binary0 or ASCII format.
+
+=============================================================================
+
+ReadPairing.h
+revision 1.25
+
+date: 2008-04-17 14:58:29 +0000;  author: iainm;  state: Exp;  lines: +6 -0
+
+New function PairsFileSize, returns the number of pairs without loading file.
+
+=============================================================================
+
+math/MatrixTemplate.h
+revision 1.11
+
+date: 2008-04-28 19:13:13 +0000;  author: jmaguire;  state: Exp;  lines: +0 -29
+
+Whoops, kiran already implemented det and inverse. Way to waste a sunday afternoon jared! <nelson>ha ha!</nelson> This is what I get for forgetting to get the latest update.
+
+----------------------------
+
+revision 1.10
+
+date: 2008-04-28 17:34:38 +0000;  author: jmaguire;  state: Exp;  lines: +77 -1
+
+added methods Det() and Inverse(). Don't go expecting them to scale or anything.
+
+
+
+Now we can do multivariate gaussians with full covariance matrices. Hooray!
+
+----------------------------
+
+revision 1.9
+
+date: 2008-04-18 04:32:29 +0000;  author: kiran;  state: Exp;  lines: +69 -0
+
+Refactored to bring templated methods in line with the rest of the Matrix interface.
+
+=============================================================================
+
+paths/KmerPath.h
+revision 1.68
+
+date: 2008-04-21 11:12:30 +0000;  author: jaffe;  state: Exp;  lines: +1 -1
+
+The default constructor for KmerPathLoc now initializes data to zero
+
+to avoid warnings.
+
+=============================================================================
+
+CommonSemanticTypes.h
+revision 1.9
+
+date: 2008-04-25 08:08:36 +0000;  author: ilya;  state: Exp;  lines: +7 -0
+
+fixed/added docs.
+
+=============================================================================
+
+solexa/SolexaAlleleLikelihood.cc
+revision 1.11
+
+date: 2008-04-25 01:41:15 +0000;  author: jmaguire;  state: Exp;  lines: +7 -7
+
+fixed a bug with ERR_RATE
+
+----------------------------
+
+revision 1.10
+
+date: 2008-04-07 18:07:20 +0000;  author: jmaguire;  state: Exp;  lines: +93 -116
+
+Added priors to Diploid allele caller.
+
+
+
+Moved math code into ./util/AlleleLikelihood.[cc,h]
+
+
+
+Added SolexaAlleleTest -- a tool for exploring the effect of coverage and choice on threshold on sensitivity and specificity of allele calls.
+
+=============================================================================
+
+ReadPairing.cc
+revision 1.20
+
+date: 2008-04-17 14:58:29 +0000;  author: iainm;  state: Exp;  lines: +9 -0
+
+New function PairsFileSize, returns the number of pairs without loading file.
+
+=============================================================================
+
+solexa/SolexaTools.cc
+revision 1.47
+
+date: 2008-04-18 05:49:52 +0000;  author: ohsumit;  state: Exp;  lines: +14 -1
+
+Added a special case to ExpandHeads so that when HEAD does not contain {}'s or a ., then HEADS[0] is simply either pipeline/HEAD or pipeline/trunc_X/HEAD.  However, if HEAD does hae a . in it, it will work as before.
+
+=============================================================================
+
+PackAlign.h
+revision 1.64
+
+date: 2008-04-14 11:50:09 +0000;  author: ilya;  state: Exp;  lines: +8 -3
+
+added docs
+
+=============================================================================
+
+Feudal.h
+revision 1.126
+
+date: 2008-04-29 14:09:09 +0000;  author: jburton;  state: Exp;  lines: +2 -0
+
+Added Jeremy Schmutz's and Dave Flowers' patches.  Their documentation is as follows:
+
+
+
+Patch1:
+
+# These are patches to fix a couple of potential memory leaks.  They also fix the overall memory tracking option, enchance it by tracking bytes allocated, so that memory usage can be easily determined, and add a new compile directive (NO_TRACK_MEMORY) to allow specific modules to turn off global memory tracking if needed (my version of xerces redefines new, which was incompatible with how memory tracking is implemented).
+
+# The big fix is to pairwise_aligners/MakeAlignMethod.cc.  I don't know why the code in question caused problems (it works fine for test cases I made), but it clearly caused excessive memory usage there.  Also, using an int to hold a boolean value was unnecessary (changed to a char).
+
+
+
+Patch2:
+
+# This patch changes makealigns_orig_method::MutmersToAlign() to use spars array logic for its n^2 array, resulting in large memory savings and a fair speed increase in cases of large n (with no noticeable decrease in speed for small n).
+
+# This patch is based on the original MakeAlignsMethod.cc from 20071016, without the patch including the workaround for the memory issue.
+
+----------------------------
+
+revision 1.125
+
+date: 2008-04-25 08:09:23 +0000;  author: ilya;  state: Exp;  lines: +6 -0
+
+added a static method to enable class members to load memory-mapped mastervecs
+
+=============================================================================
+
+solexa/FourBase.h
+revision 1.34
+
+date: 2008-04-25 08:03:29 +0000;  author: ilya;  state: Exp;  lines: +17 -15
+
+added docs
+
+=============================================================================
+
+lookup/ImperfectLookup.h
+revision 1.29
+
+date: 2008-04-23 21:27:05 +0000;  author: asivache;  state: Exp;  lines: +12 -1
+
+in aligner class, clear genomic reference chunk before reloading a new one
+
+----------------------------
+
+revision 1.28
+
+date: 2008-04-23 18:24:38 +0000;  author: asivache;  state: Exp;  lines: +42 -6
+
+bug in first base matching fixed, alignment results validated. works correctly (or rather 100% equivalently to the old version)
+
+----------------------------
+
+revision 1.27
+
+date: 2008-04-23 01:53:57 +0000;  author: asivache;  state: Exp;  lines: +112 -32
+
+Aligner worker class added (keeps state so it can be set up to do different jobs... ideally)
+
+----------------------------
+
+revision 1.26
+
+date: 2008-04-17 20:16:46 +0000;  author: jaffe;  state: Exp;  lines: +2 -2
+
+Comment out two PRINT statements.
+
+=============================================================================
+
+VecTemplate.h
+revision 1.22
+
+date: 2008-04-25 08:11:28 +0000;  author: ilya;  state: Exp;  lines: +9 -3
+
+added code to help class member load memmapped files
+
+=============================================================================
+
+polymorphism/DumbCall.h
+revision 1.14
+
+date: 2008-04-16 14:08:13 +0000;  author: jmaguire;  state: Exp;  lines: +43 -3
+
+added a more general and flexible tool for efficiently accumulating coverage from a list of lanes.
+
+currently uses a ton of memory on big genomes (70GB on human), but that'll change soon. incremental development!
+
+=============================================================================
+
+###########################################################
+SCRIPTS section: all the changes since the release
+ReleaseArachne-1-12 are listed below for all the perl 
+scripts checked into the CVS repository.
+###########################################################
+./LSF/LSFExample.pl
+revision 1.5
+
+date: 2008-04-25 15:56:19 +0000;  author: kiran;  state: Exp;  lines: +40 -42
+
+An updated, simpler example.
+
+=============================================================================
+
+./cleanupSolexaPipelineDirs.pl
+revision 1.2
+
+date: 2008-04-16 15:59:19 +0000;  author: ohsumit;  state: Exp;  lines: +1 -1
+
+Changed scr6 to scr2
+
+=============================================================================
+
+./cleanupSolexaPipelineTest.pl
+revision 1.3
+
+date: 2008-04-16 15:59:19 +0000;  author: ohsumit;  state: Exp;  lines: +1 -1
+
+Changed scr6 to scr2
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/454/SffInfoWrapper.pl,v'
+./assemble/Assemble454.pl
+revision 1.7
+
+date: 2008-04-29 15:44:21 +0000;  author: jburton;  state: Exp;  lines: +40 -55
+
+This module is now fully interfaced with ArachneArgs.pm and PerlRunTime.pm.  It is also updated to reflect changes in the scr directories (e.g. /wga/scr2/ instead of /wga/scr12/, etc.)
+
+----------------------------
+
+revision 1.6
+
+date: 2008-04-17 21:30:51 +0000;  author: jburton;  state: Exp;  lines: +1 -0
+
+Bug fix
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/polymorphism/VAALRemoveSNP.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/polymorphism/analyzeVAAL.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/polymorphism/TruePolySensitivityAllGenomePart1Prototype.pl,v'
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/polymorphism/TruePolySensitivityAllGenomePart2Prototype.pl,v'
+./solexa/solexaLaneAnalyzer.pl
+revision 1.31
+
+date: 2008-04-25 21:24:23 +0000;  author: kiran;  state: Exp;  lines: +3 -2
+
+Modified HybridSelection to use Jared's pipeline.
+
+----------------------------
+
+revision 1.30
+
+date: 2008-04-25 19:58:06 +0000;  author: kiran;  state: Exp;  lines: +107 -8
+
+Now outputs a HEAD.solexaLaneAnalyzer.finished file to indicate that analysis is complete.
+
+----------------------------
+
+revision 1.29
+
+date: 2008-04-14 17:30:00 +0000;  author: kiran;  state: Exp;  lines: +1 -1
+
+Incremented internal version number from 0.01 to 0.02.
+
+----------------------------
+
+revision 1.28
+
+date: 2008-04-14 17:27:08 +0000;  author: kiran;  state: Exp;  lines: +5 -6
+
+Fixed a bug in which the alignments file was not being named correctly, leading the metrics file to incorrectly report 0 alignments.
+
+----------------------------
+
+revision 1.27
+
+date: 2008-04-13 05:37:15 +0000;  author: kiran;  state: Exp;  lines: +168 -147
+
+Added proper cleanup method for failed jobs so the command can be rerun from the point of failure.  Fixed write for 'totalLaneTime' so that it's more realistic with rerun analyses.
+
+----------------------------
+
+revision 1.26
+
+date: 2008-04-10 04:42:23 +0000;  author: kiran;  state: Exp;  lines: +7 -0
+
+Added ComputeICMetrics to the analysis subroutines.
+
+=============================================================================
+
+./solexa/testSolexaPipeline.pl
+revision 1.14
+
+date: 2008-04-25 18:07:05 +0000;  author: asivache;  state: Exp;  lines: +2 -2
+
+yet another correction to the directory structure; it seems that now we mirror the production data folders exactly...
+
+----------------------------
+
+revision 1.13
+
+date: 2008-04-25 05:30:25 +0000;  author: asivache;  state: Exp;  lines: +1 -1
+
+fix typo in the folder name in the last commit
+
+----------------------------
+
+revision 1.12
+
+date: 2008-04-25 04:36:21 +0000;  author: asivache;  state: Exp;  lines: +3 -2
+
+use local copy of Bustard files
+
+=============================================================================
+
+./solexa/reporting/SMTdaemon.pl
+revision 1.3
+
+date: 2008-04-22 12:16:58 +0000;  author: ohsumit;  state: Exp;  lines: +1 -1
+
+nohup added.
+
+----------------------------
+
+revision 1.2
+
+date: 2008-04-16 16:04:08 +0000;  author: ohsumit;  state: Exp;  lines: +2 -2
+
+Changed scr6 to scr2.
+
+=============================================================================
+
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/solexa/HybridSelectionPipeline.pl,v'
+./solexa/makeICsHTML.pl
+revision 1.4
+
+date: 2008-04-16 15:58:30 +0000;  author: ohsumit;  state: Exp;  lines: +1 -1
+
+Changed scr6 to scr2
+
+=============================================================================
+
+./solid/analyzeSolid.pl
+revision 1.10
+
+date: 2008-04-28 06:04:17 +0000;  author: asivache;  state: Exp;  lines: +3 -6
+
+Do not die if a 'results' folder does not contain a csfasta file at all, warning is enough!
+
+----------------------------
+
+revision 1.9
+
+date: 2008-04-23 19:18:16 +0000;  author: asivache;  state: Exp;  lines: +43 -13
+
+lots of changes. synchronizing experimental solid pipeline with cvs. working version
+
+=============================================================================
+
+./testing/Nightcrawler.pl
+revision 1.10
+
+date: 2008-04-25 15:06:09 +0000;  author: jburton;  state: Exp;  lines: +100 -57
+
+New feature: Parallelization -- thanks to the LSFInterface.pm module.  The testing takes less than half as long as it used to.  Also further integrated with ArachneArgs.pm.
+
+=============================================================================
+
+cvs log: nothing known about batchQueryLookupTable.pl
+cvs log: warning: no revision /wga/dev/ArachneCVS/ArachneGcc/hybrid/KmerThresholdPather.pl,v'
+>ReleaseArachne-1-13
+
+>ReleaseArachne-1-13
+

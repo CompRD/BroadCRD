@@ -1,0 +1,61 @@
+Insert walking via DeBruijn graph.
+
+To generate the data files for running on a new species, run:
+
+1. ReadsToPaths
+2. FindHiQualKmersInReads
+3. PathsHQ
+
+Then use WalkOneInsert to explore.
+
+==============================================================================
+
+DIRECTORIES CONTAINING THE NECESSARY DATA FILES:
+
+       (please help keep this up to date)
+
+[let's add canonical evaluation SUBDIRs to these]
+
+[OLD]: computed prior to 3/27/05 change to PathsHQ
+[RUNNING]: being changed now
+
+Note: there were small changes to PathsHQ and FindHiQualKmersInReads on 4/5/05
+which are not likely to change results much.  Many of the path files were 
+generated prior to these changes.
+
+==============================================================================
+
+BACTERIA
+[OLD] DATA=projects/Burkholderia_thailandensis   RUN=jbutler-uncorrected_reads/work
+[OLD] DATA=projects/Burkholderia_thailandensis   RUN=jbutler_2004jul14/work
+[OLD] DATA=projects/Burkholderia_thailandensis   RUN=manfred/work
+
+FUNGI
+DATA=projects/Candida_albicans    RUN=first/work             SUBDIR=fix41
+DATA=projects/Candida_lusitaniae  RUN=first/work             SUBDIR=fix41fixed
+DATA=projects/Candida_lusitaniae  RUN=manfred/work
+DATA=projects/Chaetomium_globosum RUN=assemblez/work
+DATA=projects/Cryptococcus_neoformans_B RUN=run_2004_08_15/work
+DATA=projects/Histoplasma_capsulatum RUN=fullAssemblez/work  SUBDIR=gobble22
+DATA=projects/Lodderomyces_elongisporus RUN=first/work
+DATA=projects/Neurospora RUN=simple_April05/work
+DATA=projects/Puccinia_graminis RUN=runz/work 
+DATA=projects/Rhizopus_oryzae RUN=first/work                 SUBDIR=fix41
+DATA=projects/Rhizopus_oryzae RUN=manfred/work               SUBDIR=
+DATA=projects/Rhizopus_oryzae RUN=uncorrected/work 
+DATA=projects/Saccharomyces_cerevisiae   RUN=manfred/work    SUBDIR=burp6
+DATA=projects/Saccharomyces_cerevisiae   RUN=uncorrected/work
+DATA=projects/Sclerotinia RUN=firstz/work
+DATA=projects/Stagonospora_nodorum RUN=firstz/work           SUBDIR=experiment3
+
+INSECTS
+[OLD] DATA=projects/D.virilis   RUN=first/test2
+[OLD] DATA=projects/D.virilis   RUN=first/work
+[OLD] DATA=projects/D.virilis   RUN=manfred/work
+[OLD] DATA=projects/Aedes_aegypti RUN=run/work
+
+CHORDATES
+DATA=projects/Ciona/FreshData     RUN=Jan7_Ciona/work  SUBDIR=post_RegapLite
+DATA=projects/Dog    RUN=run/work   SUBDIR=dawg9
+DATA=projects/Mouse  RUN=run/work   SUBDIR=backup_mc13
+[RUNNING] DATA=projects/Monodelphis RUN=run/work

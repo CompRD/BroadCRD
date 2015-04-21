@@ -1,0 +1,276 @@
+#!/bin/csh -f
+
+set not_found = 0
+set mods_str = ""
+set today = `date +"%Y-%m-%d"`
+
+foreach mod ( SelectBases \
+              Fasta2Fastb \
+              MutateReference \
+              Fastb2Fasta \
+              MakeLookupTable \
+              GenomeUnipathStats \
+              FastbSizes \
+              RunAllPathsLG \
+              PathsToLocs \
+              ParsePathsToLocs \
+              MapSeeds )
+  set which_mod = `which $mod | grep -v "Command not found"`  
+  if ( $which_mod == "" ) then 
+    echo "**** couldn't find '$mod'!"
+    @ not_found++
+  else
+    set mods_str = `printf "%s %s" "$mods_str" "$which_mod"`    
+  endif
+end 
+
+if ( $# < 4 ) then
+  echo
+  echo "usage: $0 "\\ 
+  echo "         <label> "\\
+  echo "         <0:4000000-4010000> "\\
+  echo "         <"\""n=100,N=180,dev=10%,C=40"\""> "\\
+  echo "         <"\""n=100,N=4000,C=25,dev=10%,jmean=205,jdev=0%,fc_freq=0,ic_freq=0.02,rc_avoid=True"\""> "\\
+  echo "         [<error_templates/template_30BCP.8_100>]"
+  echo
+  exit
+endif
+
+if ($not_found > 0) exit;
+  
+
+set allpaths = /wga/scr4/ALLPATHS
+
+
+
+# ------------------------------ #
+# Process command-line arguments #
+# ------------------------------ #
+
+# ---- arg 1 is just a label to name your run
+set label = $1   
+
+# ---- arg 2 is a range: e.g. 0:1000-5000, standing for this range of bases on super_0
+set range = $2
+
+# ---- arg 3 is the fragment library description: e.g. "n=100,N=180,dev=10%,C=40" 
+set fraglib = $3
+
+# ---- arg 4 is the jumping library description: e.g. 
+#      "n=100,N=4000,C=25,dev=10%,jmean=205,jdev=0%,fc_freq=0,ic_freq=0.02,rc_avoid=True"
+set jumplib = $4
+
+# ---- arg 5 is error_generator_name: e.g. "error_templates/template_30BCP.8_100"
+set error_generator_name = $5 
+
+
+
+# ------------------------------ #
+# Build the directory structures #
+# ------------------------------ #
+
+# ---- define main directory
+set main      = O.garnettii
+set full_main = $allpaths/$main
+
+# ---- define reference directory and create it 
+set ref      = $main/simbaby/$label
+set full_ref = $allpaths/$ref
+mkdir -p $full_ref
+
+# ---- define data directory and create it 
+set data      = $ref/$label
+set full_data = $allpaths/$data
+mkdir -p $full_data
+
+# ---- define run directory
+set run      = $data/$today
+set full_run = $allpaths/$run
+
+# ---- define the log filename
+set log_fn = $full_ref/stdout  
+
+
+
+
+
+# ---- output the command line for this run and the starting date
+echo "$0 $*"            | tee -a $log_fn
+echo "`date`: starting" | tee -a $log_fn
+echo "results are in $full_run" | tee -a $log_fn
+
+echo | tee -a $log_fn
+echo "using the following executables" | tee -a $log_fn
+echo | tee -a $log_fn
+echo $mods_str | tr " " "\n" | tee -a $log_fn
+echo | tee -a $log_fn
+
+
+
+
+
+
+if ( $error_generator_name == "" ) then
+    echo "Simulation without errors!" | tee -a $log_fn
+else
+    echo "Simulation with errors: error generator = $error_generator_name" | tee -a $log_fn
+endif
+
+
+
+# ---- save the range
+echo $range > $full_ref/range
+
+# ---- and extract tig, start, and stop info from range
+set tig   = `echo $range | cut -f1 -d':'`
+set start = `echo $range | tr ':' '-' | cut -f2 -d'-'`
+set stop  = `echo $range | tr ':' '-' | cut -f3 -d'-'`
+
+
+echo tig   = $tig   | tee -a $log_fn
+echo start = $start | tee -a $log_fn
+echo stop  = $stop  | tee -a $log_fn
+
+
+# ---- Find reference genome; convert from fastb to fasta if necessary
+set genome_head = $full_main/oldref/references/catcontigs
+
+if ( ! -e $genome_head.fasta ) then
+  Fastb2Fasta \
+    IN=$genome_head.fastb \
+    OUT=$genome_head.fasta \
+      | tee -a $log_fn
+endif
+
+# ---- extract a mini-reference sequence from which to generate simulated reads
+echo | tee -a $log_fn
+echo "Extracting mini-reference from genome at $genome_head.fasta" | tee -a $log_fn
+
+SelectBases \
+  PRE=/ \
+  INPUT=$genome_head.fasta \
+  CONTIG=$tig \
+  START=$start \
+  STOP=$stop \
+  OUTPUT=$full_ref/genome.fasta
+
+Fasta2Fastb \
+  IN=$full_ref/genome.fasta \
+  OUT=$full_ref/genome.fastb \
+  NAMES=False \
+    | tee -a $log_fn
+
+# ---- make it diploid
+MutateReference \
+  FASTB_IN=$full_ref/genome.fastb \
+  FASTB_OUT=$full_ref/genome.diploid.fastb \
+  SUB_RATE=0.0025 \
+    | tee -a $log_fn
+
+# ---- compute some stats and build a lookup table
+pushd $full_ref
+MakeLookupTable \
+  SOURCE=genome.fastb \
+  OUT_HEAD=genome \
+  LOOKUP_ONLY=True \
+    | tee -a $log_fn
+popd
+
+
+
+GenomeUnipathStats \
+  GENOME=$full_ref/genome \
+  K=96 \
+  DOT=$full_ref/genome.dot \
+    | tee -a $log_fn
+
+# ---- compute genome size - use the haploid version of reference
+FastbSizes \
+  FILE=$full_ref/genome.fastb \
+  TOTAL_ONLY=True \
+  REPORT=$full_ref/genome.size
+
+
+set genome_size = `head -1 $full_ref/genome.size`
+echo Genome Size: $genome_size | tee -a $log_fn
+
+# ---- put files in the data directory
+# ---- FIXED PLOIDY at 2
+ln -sf $full_ref/genome.fasta $full_data/genome.fasta
+ln -sf $full_ref/genome.fastb $full_data/genome.fastb
+echo "2" > $full_data/ploidy
+
+
+# ---- run the assembly that applies FindErrors to the fragment pairs
+
+if ( $error_generator_name == "" ) then
+    echo "Simulation without errors!" | tee -a $log_fn
+    RunAllPathsLG \
+    ALLPATHS_BASE=projects/ALLPATHS \
+    REFERENCE_NAME=$ref \
+    DATA_SUBDIR=$label \
+    RUN=$today \
+    K=96 \
+    FF_K=28 \
+    OVERWRITE=True \
+    MAXPAR=3 \
+    EVALUATION=REFERENCE \
+    FRAG_LIBS=$fraglib \
+    JUMP_LIBS=$jumplib \
+    USE_JUMPS_IN_UNIPATHS=False \
+    ERROR_CORRECTION=False \
+    CORRECT_PAIRS_VIA_ALIGNS=False \
+    ECJ_THREADS=2 \
+    TARGETS=standard \
+    GENOME_SIZE=$genome_size \
+      | tee -a $log_fn
+else
+    echo "Simulation with errors!" | tee -a $log_fn
+    RunAllPathsLG \
+    ALLPATHS_BASE=projects/ALLPATHS \
+    REFERENCE_NAME=$ref \
+    DATA_SUBDIR=$label \
+    RUN=$today \
+    K=96 \
+    FF_K=28 \
+    OVERWRITE=True \
+    MAXPAR=3 \
+    EVALUATION=REFERENCE \
+    FRAG_LIBS=$fraglib \
+    JUMP_LIBS=$jumplib \
+    ERROR_GENERATOR_NAME=$error_generator_name \
+    ERROR_CORRECTION=True \
+    CORRECT_PAIRS_VIA_ALIGNS=True \
+    ECJ_THREADS=2 \
+    TARGETS=standard \
+    GENOME_SIZE=$genome_size \
+      | tee -a $log_fn
+endif
+
+
+# ---- Run PathsToLocs to find unipath placements on the genome
+#      They do not share the same kmer numbers, so set RENUMBER=True
+
+PathsToLocs \
+  DATA=projects/ALLPATHS/$data \
+  RUN=$today \
+  K=96 \
+  PATHS=all_reads.unipaths.k96 \
+  RENUMBER=True \
+  UNIPATH=True \
+  READS=all_reads \
+  UNIPATHS_FASTB=all_reads.unibases.k96 \
+  SHOW_PLACEMENTS=True \
+  MATCH_LEN_PERCENT=100 \
+  RC_TOO=True \
+  GENOME=../genome \
+  TIG_OFFSET=$tig \
+  POS_OFFSET=$start \
+    >& $full_run/PathsToLocs.out
+
+ParsePathsToLocs \
+  IN=$full_run/PathsToLocs.out \
+  UNIBASES=$full_run/all_reads.unibases.k96 \
+    >& $full_run/PathsToLocs.out.summary
+
+echo "`date`: done" | tee -a $log_fn

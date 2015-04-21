@@ -1,0 +1,88 @@
+#!/util/bin/perl -w
+use strict;
+
+
+
+##
+# SplitInputFiles
+#
+# Breaks fasta and qual files in bags of n_entries each.
+#
+# How to use:
+#
+#  SplitInputFiles  base_dir  base_name  n_entries
+#
+# base_dir: where fasta and qual files are.
+# base_name: base name (e.g. "reads" if files are reads.fasta and reads.qual).
+# n_entries: number of entries in each bag (default value provided if empty).
+#
+
+
+
+# Parse and check argument.
+my $base_dir = $ARGV[0];
+my $base_name = $ARGV[1];
+my $n_entries = $ARGV[2];
+
+if ( !$base_dir || !$base_name ) {
+  die ( "You musts specify base_dir and base_name.\n" );
+}
+
+if ( !$n_entries ) {
+  print "Setting n_entries=100000\n";
+  $n_entries = 100000;
+}
+
+# Open fasta and qual files.
+my $root = "$base_dir" . "/$base_name";
+my $fasta_file = "$root" . ".fasta";
+my $qual_file = "$root" . ".qual";
+
+open ( IN_FASTA, $fasta_file ) or die( "Cannot open $fasta_file\n" );
+open ( IN_QUAL, $qual_file ) or die( "Cannot open $qual_file\n" );
+
+# Fasta files.
+my $n_reads = 0;
+my $bag = 0;
+
+open ( OUT_FILE, ">$root" . "$bag" . ".fasta" );
+print "$root" . "$bag" . ".fasta\n";
+while ( my $one_line = <IN_FASTA> ) {
+  if ( $one_line =~ />/ ) {
+    $n_reads++;
+  }
+  
+  if ( $n_reads > $n_entries ) {
+    ++$bag;
+    close OUT_FILE;
+    open ( OUT_FILE, ">$root" . "$bag" . ".fasta" );
+    print "$root" . "$bag" . ".fasta\n";
+    $n_reads = 1;
+  }
+
+  print OUT_FILE $one_line;
+}
+close OUT_FILE;
+
+# Qual files.
+$n_reads = 0;
+$bag = 0;
+
+open ( OUT_FILE, ">$root" . "$bag" . ".qual" );
+print "$root" . "$bag" . ".qual\n";
+while ( my $one_line = <IN_QUAL> ) {
+  if ( $one_line =~ />/ ) {
+    $n_reads++;
+  }
+  
+  if ( $n_reads > $n_entries ) {
+    ++$bag;
+    close OUT_FILE;
+    open ( OUT_FILE, ">$root" . "$bag" . ".qual" );
+    print "$root" . "$bag" . ".qual\n";
+    $n_reads = 1;
+  }
+
+  print OUT_FILE $one_line;
+}
+close OUT_FILE;

@@ -1,0 +1,139 @@
+
+Format of assembly files
+========================
+
+SHORT DESCRIPTIONS
+
+0.  assembly.format: this file
+
+1.  contigs.bases: fasta file for contig bases
+
+2.  contigs.quals: fasta files for contig quality scores
+
+3.  supercontigs: structure of supercontigs (scaffolds)
+
+4.  reads.placed: provides the locations of reads which were placed in the
+    assembly
+
+5.  reads.unplaced: provides the names of reads which were not placed in the
+    assembly, and reasons why
+
+6.  libs.estimate: provides the re-estimation of library size distributions
+
+CONVENTIONS
+
+(a) blank lines are ignored
+
+(b) a "name" is a string from the alphabet "a-zA-Z0-9_.-".
+
+LONG DESCRIPTIONS
+
+1.  contigs.bases: fasta file for contig bases
+
+Each contig begins with a line 
+>name
+where name defines the contig name.  The bases then follow (A, C, G, T).
+
+2.  contigs.quals: fasta file for contig quality scores
+
+The information in this file should coordinate exactly with the information
+in contigs.bases, except that in place of bases, this file has scores, between
+0 and 255, separated by white space.
+
+3.  supercontigs: structure of supercontigs (scaffolds)
+
+This file contains a description of the supercontigs (also called scaffolds).
+They are ordered lists of contigs, with approximately known gaps between
+them.  By assumption, all contigs in a supercontig are oriented in the
+same direction (forward).
+
+The file consists of lines, each starting with a keyword, which is supercontig,
+contig, or gap:
+
+(a) supercontig line format:
+         supercontig [supercontig name]
+
+(b) contig line format:
+         contig [contig name]
+
+(c) gap line format:
+         gap [gap length] [gap length deviation] [link quality score] [link count]
+
+Where:
+
+    * contig name is consistent with the naming in contigs.bases and contigs.quals
+
+    * gap length is the estimated gap length between contigs
+      (negative if overlap predicted)
+
+    * gap length deviation: estimated standard deviation for gap length value
+
+    * link quality score: integer quality score assigned to link between contigs by
+           assembly program, phred [log10] style
+           e.g. 20 means that the link has a 1% chance of being wrong.
+
+    * link count: total number of links crossing this gap
+
+    Any of the last two gap parameters can be replaced by * if unknown.
+
+Example:
+
+supercontig s1
+contig c1
+gap 200 * *
+contig c7
+gap 2235 * *
+contig c3
+
+supercontig s2
+contig c2
+
+supercontig s3
+contig c4
+gap 400 100 *
+contig c5
+
+4.  reads.placed: provides the locations of reads which were placed in the
+    assembly
+
+This is a file with one line per read placed in the assembly.  Each line has
+white-space-separated fields, as follows:
+
+   (a) NCBI ti number for read (or *, if none known)
+   (b) read name
+   (c) start of trimmed read on original read
+   (d) number of bases in trimmed read
+   (e) orientation on contig (0 = forward, 1 = reverse)
+   (f) contig name
+   (g) supercontig name
+   (h) approximate start of trimmed read on contig
+   (i) approximate start of trimmed read on supercontig.
+
+For b, g, and h, the first position is always 1 (not 0).  For g, the start
+of a read on a contig is always the smallest position on the contig which the
+read covers, regardless of its orientation.  This applies to h as well.  For h,
+positions on supercontigs are measured so as to take account of gaps.
+
+5.  reads.unplaced: provides the names of reads which were not placed in the
+    assembly, and reasons why
+
+For each read which is not placed in the assembly, reads.unplaced provides
+an explanation for its exclusion.  These explanations are provided in both 
+short and long forms.  Short forms are names.  For example, the short form might 
+be "chimera", and the long form might be "suspected of being chimeric".  
+Accordingly, reads.unplaced begins with a key which converts short forms to long 
+forms.  A sample key entry would be:
+     chimera: "suspected of being chimeric"
+These entries may extend over multiple lines.
+
+After the key, each remaining line has the form:
+NCBI-ti-number-or-* read-name short-form-explanation
+
+6.  libs.estimate: provides the re-estimation of library size distributions
+
+This is a file with one line per library.  Each line has white-space separated 
+fields as follows:
+
+   (a) library identifier
+   (b) estimated mean insert length
+   (c) estimated standard deviation of insert length.

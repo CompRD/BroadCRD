@@ -1,0 +1,8 @@
+MakeLookupTable K=12 SOURCE="/wga/scratch/build33/*.fa.gz" \
+     OUT=/wga/scratch12/build33.lookup
+
+MakeLookupTable K=12 SOURCE="/wga/scratch/build33/chr22.fa.gz" \
+     OUT=/wga/scratch12/build33.lookup.22
+
+MakeLookupTable K=14 SOURCE="/wga/scratch/build33/*.fa.gz" \
+     OUT=/wga/scratch12/build33.lookup14 CHUNK_SIZE=400000000

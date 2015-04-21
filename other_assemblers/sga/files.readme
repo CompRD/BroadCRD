@@ -1,0 +1,91 @@
+----------- execution script ----------------
+fromLongProto.sh*
+
+--------------- inputs -------------------------------------
+frag_reads_orig.A.fastq.gz
+frag_reads_orig.B.fastq.gz
+
+----------- compressed overlap graph, generated from assembly
+primary-graph.asqg.gz
+
+From https://groups.google.com/forum/?fromgroups=#!topic/sga-users/rInkDEUof-I
+The first line is a header line (beginning with HT)
+Lines that begin with VT are vertex records and include the contig name and the sequence
+Lines that begin with ED are edge records and include information about the overlap in 10 fields:
+1. contig 1 name
+2. contig 2 name
+3. contig 1 overlap start (0 based)
+4. contig 1 overlap end (inclusive)
+5. contig 1 length
+6. contig 2 overlap start (0 based)
+7. contig 2 overlap end (inclusive)
+8. contig 2 length
+9. contig 2 is reverse (1 for reverse, 0 for forward)
+10. number of differences in overlap  (0 for perfect overlaps, which is the default).
+
+Contig 1 is always in the forward direction. If contig 2 is reverse and if the overlap is perfect, then (in Python notation):
+contig1[s1:e1+1] = rev_comp(contig2[s2:e2+1]),
+where s1 ,e1 and s2, e2 are the starting and ending indices listed in the edge record.
+
+DOT Graphviz format can be produced by
+zcat primary-graph.asqg.gz | /wga/scr4/assemblers/sga_standalone/sga/src/bin/sga-asqg2dot.pl > primary-graph.dot
+dot -Tpng primary-graph.dot -o primary-graph.png
+
+
+dot -Tpng assembly.final.dot -o assembly.final.png
+
+----------- variants , generated from assembly
+primary-variants.fa
+
+----------- FASTA of contigs, generated from assembly
+primary-contigs.fa
+
+----------- bwa index primary-contigs.fa
+primary-contigs.fa.amb
+primary-contigs.fa.ann
+primary-contigs.fa.bwt
+primary-contigs.fa.pac
+primary-contigs.fa.rbwt
+primary-contigs.fa.rpac
+primary-contigs.fa.rsa
+primary-contigs.fa.sa
+
+-------------- reads aligned to bwa index of primary-contags.fa
+frag_reads_orig.A.fastq.gz.sai
+frag_reads_orig.B.fastq.gz.sai
+
+-------------- bwa pair-ended alignment
+libPE.bam
+
+----------- contig contig distance estimate from BAM
+libPE.de
+libPE.diffcontigs.sorted.bam
+libPE.hist
+libPE.diffcontigs.bam
+libPE.tmp.hist
+
+----------- copy number estimates of the contigs (libPE.bam)
+libPE.astat
+
+----------- scaffording result (primary-contigs.fa libPE.de libPE.astat)
+scaffolds.scaf
+
+----------- FASTA file with scaffold including 'N', (primary-graph.asqg.gz scaffolds.scaf)
+sga-scaffolds.fa
+
+------------- read correction related
+reads.ec.bwt
+reads.ec.discard.fa
+reads.ec.fastq
+reads.ec.filter.pass.asqg.gz
+reads.ec.filter.pass.bwt
+reads.ec.filter.pass.fa
+reads.ec.filter.pass.rbwt
+reads.ec.filter.pass.rsai
+reads.ec.filter.pass.sai
+reads.ec.rbwt
+reads.ec.rsai
+reads.ec.sai
+reads.pp.bwt
+reads.pp.fastq
+reads.pp.sai

@@ -1,0 +1,49 @@
+File: Complete assembly flow
+
+Here is a description of what to do to get an ALLPATHS assembly from
+Solexa data.
+
+The program <Assemblez> runs the whole assembly flow from start to
+end.
+Here is a description by parts:
+
+Run <SolexaToAllpaths> to take a <Solexa pipeline output dir> and
+create from it an <ALLPATHS project dir>.  The latter includes
+the reads, the read qualities, pairing information for paired reads.
+SolexaToAllpaths also does some initial <read filtering>.
+
+For simulated date, instead of the above, you would run
+<SeqToPaths> with arguments that tell it to create simulated reads
+from the reference genome.
+
+Run <FindStrongKmers> to identify strong kmers.  Then use that for
+error correction.  Run <ProvisionalEdits> to do error correction.
+
+Run <ReadsToPaths> to create <kmer numbers> and convert each corrected
+read to a <kmer path>.  
+
+Run <RemoveSuspiciousReads> to remove suspicious reads.
+
+Run <Unipather> to find unipaths in kmer space.
+
+(Sanity check: run <UnipathEval> to gauge how well the unipaths turned
+out.)
+
+Then <UnipathLocs> which for low-copy unipaths finds reads
+that are aligned perfectly to this low-copy unipath.
+
+Then <PathsToLocs> maps unipaths back to the reference
+sequence  (for simulated data only).
+
+Then, generate the unipath link graph.
+	     contains an estimate of the distance between low-copy
+	     unipaths.
+
+Then after this run <LocalizeReads>.
+
+
+
+
+
+
+

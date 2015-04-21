@@ -1,0 +1,46 @@
+loading dust mask...
+loading segdup mask...
+running XFP...
+('XX', 'CORTEX-250', 'DUST') 2503
+('XX', 'CORTEX-250', 'SEG_DUP') 339
+('XY', 'GATK-100', 'DUST') 363
+('XY', 'CORTEX-250', 'DUST') 8
+('XX', 'DISCOVAR-250', 'ALL') 57296
+('XX', 'CORTEX-250', 'ALL') 34736
+('XY', 'CORTEX-250', 'SEG_DUP') 3
+('XX', 'GATK-100', 'SEG_DUP') 1329
+('XX', 'GATK-100', 'DUST') 3370
+('XY', 'GATK-250', 'SEG_DUP') 139
+('XX', 'GATK-250', 'SEG_DUP') 4073
+('XX', 'DISCOVAR-250', 'DUST') 7252
+('XY', 'GATK-250', 'DUST') 256
+('XY', 'GATK-100', 'SEG_DUP') 25
+('XY', 'GATK-100', 'ALL') 636
+('XX', 'DISCOVAR-250', 'SEG_DUP') 5117
+('XX', 'GATK-250', 'ALL') 53688
+('XX', 'GATK-250', 'DUST') 6215
+('XY', 'DISCOVAR-250', 'DUST') 356
+('XY', 'CORTEX-250', 'ALL') 209
+('XY', 'DISCOVAR-250', 'ALL') 1485
+('XX', 'GATK-100', 'ALL') 42811
+('XY', 'DISCOVAR-250', 'SEG_DUP') 508
+('XY', 'GATK-250', 'ALL') 1760
+sanity check:
+x-het FP for DISCOVAR-250 is 1.44
+x-het FP for CORTEX-250 is 0.33
+x-het FP for GATK-100 is 0.83
+x-het FP for GATK-250 is 1.82
+XY table ===================
+| CALLER       | ALL          | DUST         | SEG_DUP      |
+| :---         | :---         | :---         | :---         |
+| DISCOVAR-250 |         1485 |          356 |          508 |
+| CORTEX-250   |          209 |            8 |            3 |
+| GATK-100     |          636 |          363 |           25 |
+| GATK-250     |         1760 |          256 |          139 |
+XX table ===================
+| CALLER       | ALL          | DUST         | SEG_DUP      |
+| :---         | :---         | :---         | :---         |
+| DISCOVAR-250 |        57296 |         7252 |         5117 |
+| CORTEX-250   |        34736 |         2503 |          339 |
+| GATK-100     |        42811 |         3370 |         1329 |
+| GATK-250     |        53688 |         6215 |         4073 |

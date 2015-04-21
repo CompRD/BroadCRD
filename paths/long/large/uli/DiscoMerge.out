@@ -1,0 +1,211 @@
+
+--------------------------------------------------------------------------------
+Fri Mar 27 12:32:35 2015 run on crd29, pid=41697 [Mar 27 2015 11:29:20 R52413 ]
+DiscoMerge.52413                                                               \
+                 INSTANCES="52278.mouse1,52280.mouse4,52278.mouse5,52278.mouse \
+                 6,52283.mousea,52278.mouseb,52348.mousec,52348.moused,52348.m \
+                 ousee" NAMES="1,4,5,6,a,b,c,d,e" INST_OUT=mouse.1456abcde
+--------------------------------------------------------------------------------
+
+Fri Mar 27 12:32:47 2015: loading assembly 1 of 9
+Fri Mar 27 12:33:10 2015: loading assembly 2 of 9
+Fri Mar 27 12:33:37 2015: loading assembly 3 of 9
+Fri Mar 27 12:34:04 2015: loading assembly 4 of 9
+Fri Mar 27 12:34:31 2015: loading assembly 5 of 9
+Fri Mar 27 12:34:59 2015: loading assembly 6 of 9
+Fri Mar 27 12:35:26 2015: loading assembly 7 of 9
+Fri Mar 27 12:35:51 2015: loading assembly 8 of 9
+Fri Mar 27 12:36:17 2015: loading assembly 9 of 9
+Fri Mar 27 12:36:45 2015: merging assemblies
+Fri Mar 27 12:37:30 2015: building allx, peak mem = 35.95 GB
+Fri Mar 27 12:38:24 2015: building big hbv, peak mem = 35.95 GB
+Fri Mar 27 13:39:55 2015: finding involution, peak mem = 437.95 GB
+Fri Mar 27 13:40:11 2015: recomputing paths
+Fri Mar 27 13:40:11 2015: processing instance 1 of 9
+Fri Mar 27 13:45:23 2015: improving paths
+Fri Mar 27 14:02:19 2015: done
+Fri Mar 27 14:08:28 2015: improving paths
+Fri Mar 27 14:25:23 2015: done
+Fri Mar 27 14:30:54 2015: improving paths
+Fri Mar 27 14:48:14 2015: done
+Fri Mar 27 14:54:20 2015: improving paths
+Fri Mar 27 15:11:58 2015: done
+Fri Mar 27 15:17:49 2015: improving paths
+Fri Mar 27 15:34:36 2015: done
+Fri Mar 27 15:39:01 2015: improving paths
+Fri Mar 27 15:52:28 2015: done
+Fri Mar 27 15:53:03 2015: processing instance 2 of 9
+Fri Mar 27 15:58:30 2015: improving paths
+Fri Mar 27 16:10:38 2015: done
+Fri Mar 27 16:16:56 2015: improving paths
+Fri Mar 27 16:29:30 2015: done
+Fri Mar 27 16:35:44 2015: improving paths
+Fri Mar 27 16:43:43 2015: done
+Fri Mar 27 16:49:38 2015: improving paths
+Fri Mar 27 16:56:00 2015: done
+Fri Mar 27 17:01:54 2015: improving paths
+Fri Mar 27 17:11:21 2015: done
+Fri Mar 27 17:17:29 2015: improving paths
+Fri Mar 27 17:28:58 2015: done
+Fri Mar 27 17:35:01 2015: improving paths
+Fri Mar 27 17:47:58 2015: done
+Fri Mar 27 17:54:26 2015: improving paths
+Fri Mar 27 18:04:11 2015: done
+Fri Mar 27 18:09:55 2015: improving paths
+Fri Mar 27 18:20:10 2015: done
+Fri Mar 27 18:21:02 2015: processing instance 3 of 9
+Fri Mar 27 18:26:23 2015: improving paths
+Fri Mar 27 18:42:13 2015: done
+Fri Mar 27 18:48:39 2015: improving paths
+Fri Mar 27 19:05:33 2015: done
+Fri Mar 27 19:12:25 2015: improving paths
+Fri Mar 27 19:28:40 2015: done
+Fri Mar 27 19:35:14 2015: improving paths
+Fri Mar 27 19:50:43 2015: done
+Fri Mar 27 19:57:06 2015: improving paths
+Fri Mar 27 20:13:30 2015: done
+Fri Mar 27 20:19:51 2015: improving paths
+Fri Mar 27 20:35:36 2015: done
+Fri Mar 27 20:41:32 2015: improving paths
+Fri Mar 27 20:54:46 2015: done
+Fri Mar 27 20:55:56 2015: processing instance 4 of 9
+Fri Mar 27 21:01:28 2015: improving paths
+Fri Mar 27 21:17:44 2015: done
+Fri Mar 27 21:23:53 2015: improving paths
+Fri Mar 27 21:41:09 2015: done
+Fri Mar 27 21:47:31 2015: improving paths
+Fri Mar 27 22:03:05 2015: done
+Fri Mar 27 22:09:44 2015: improving paths
+Fri Mar 27 22:23:48 2015: done
+Fri Mar 27 22:30:23 2015: improving paths
+Fri Mar 27 22:46:45 2015: done
+Fri Mar 27 22:53:32 2015: improving paths
+Fri Mar 27 23:09:41 2015: done
+Fri Mar 27 23:16:35 2015: improving paths
+Fri Mar 27 23:32:48 2015: done
+Fri Mar 27 23:37:03 2015: improving paths
+Fri Mar 27 23:44:15 2015: done
+Fri Mar 27 23:45:31 2015: processing instance 5 of 9
+Fri Mar 27 23:50:45 2015: improving paths
+Sat Mar 28 00:06:34 2015: done
+Sat Mar 28 00:13:05 2015: improving paths
+Sat Mar 28 00:26:34 2015: done
+Sat Mar 28 00:33:32 2015: improving paths
+Sat Mar 28 00:47:56 2015: done
+Sat Mar 28 00:54:57 2015: improving paths
+Sat Mar 28 01:09:26 2015: done
+Sat Mar 28 01:16:57 2015: improving paths
+Sat Mar 28 01:30:57 2015: done
+Sat Mar 28 01:38:09 2015: improving paths
+Sat Mar 28 01:53:22 2015: done
+Sat Mar 28 02:00:52 2015: improving paths
+Sat Mar 28 02:16:07 2015: done
+Sat Mar 28 02:23:16 2015: improving paths
+Sat Mar 28 02:38:27 2015: done
+Sat Mar 28 02:44:55 2015: improving paths
+Sat Mar 28 02:58:38 2015: done
+Sat Mar 28 03:01:58 2015: improving paths
+Sat Mar 28 03:05:16 2015: done
+Sat Mar 28 03:06:50 2015: processing instance 6 of 9
+Sat Mar 28 03:12:39 2015: improving paths
+Sat Mar 28 03:27:01 2015: done
+Sat Mar 28 03:34:18 2015: improving paths
+Sat Mar 28 03:48:21 2015: done
+Sat Mar 28 03:56:28 2015: improving paths
+Sat Mar 28 04:11:00 2015: done
+Sat Mar 28 04:19:21 2015: improving paths
+Sat Mar 28 04:32:47 2015: done
+Sat Mar 28 04:40:26 2015: improving paths
+Sat Mar 28 04:53:18 2015: done
+Sat Mar 28 05:00:46 2015: improving paths
+Sat Mar 28 05:16:19 2015: done
+Sat Mar 28 05:25:14 2015: improving paths
+Sat Mar 28 05:39:54 2015: done
+Sat Mar 28 05:47:36 2015: improving paths
+Sat Mar 28 06:01:12 2015: done
+Sat Mar 28 06:08:59 2015: improving paths
+Sat Mar 28 06:22:51 2015: done
+Sat Mar 28 06:25:11 2015: improving paths
+Sat Mar 28 06:27:48 2015: done
+Sat Mar 28 06:30:27 2015: processing instance 7 of 9
+Sat Mar 28 06:35:49 2015: improving paths
+Sat Mar 28 06:50:39 2015: done
+Sat Mar 28 06:58:13 2015: improving paths
+Sat Mar 28 07:12:05 2015: done
+Sat Mar 28 07:19:23 2015: improving paths
+Sat Mar 28 07:34:44 2015: done
+Sat Mar 28 07:42:13 2015: improving paths
+Sat Mar 28 07:57:19 2015: done
+Sat Mar 28 08:01:53 2015: improving paths
+Sat Mar 28 08:09:09 2015: done
+Sat Mar 28 08:11:26 2015: processing instance 8 of 9
+Sat Mar 28 08:15:54 2015: improving paths
+Sat Mar 28 08:33:58 2015: done
+Sat Mar 28 08:41:00 2015: improving paths
+Sat Mar 28 08:59:13 2015: done
+Sat Mar 28 09:05:53 2015: improving paths
+Sat Mar 28 09:24:12 2015: done
+Sat Mar 28 09:27:28 2015: improving paths
+Sat Mar 28 09:32:54 2015: done
+Sat Mar 28 09:34:57 2015: processing instance 9 of 9
+Sat Mar 28 09:40:12 2015: improving paths
+Sat Mar 28 09:56:28 2015: done
+Sat Mar 28 10:04:03 2015: improving paths
+Sat Mar 28 10:17:21 2015: done
+Sat Mar 28 10:25:03 2015: improving paths
+Sat Mar 28 10:40:48 2015: done
+Sat Mar 28 10:49:31 2015: improving paths
+Sat Mar 28 11:04:17 2015: done
+Sat Mar 28 11:12:27 2015: improving paths
+Sat Mar 28 11:26:14 2015: done
+Sat Mar 28 11:34:48 2015: improving paths
+Sat Mar 28 11:50:30 2015: done
+Sat Mar 28 11:58:34 2015: improving paths
+Sat Mar 28 12:13:29 2015: done
+Sat Mar 28 12:21:51 2015: improving paths
+Sat Mar 28 12:37:47 2015: done
+Sat Mar 28 12:46:21 2015: improving paths
+Sat Mar 28 12:59:24 2015: done
+Sat Mar 28 13:03:55 2015: improving paths
+Sat Mar 28 13:07:23 2015: done
+17.5 hours used computing
+5.7 hours used loading
+read rate = 62.9 MB/second
+Sat Mar 28 13:10:05 2015: validating
+Sat Mar 28 13:24:43 2015: computing subsams
+subsam_names: 1,4,5,6,a,b,c,d,e
+subsam_starts: 0,575002964,1467160104,2146681898,2899519022,3839470398,4748115552,5186316862,5504341458
+Sat Mar 28 14:07:31 2015: finding lines
+Sat Mar 28 15:23:13 2015: determining candidates
+Sat Mar 28 15:23:24 2015: determining candidates
+Sat Mar 28 15:23:35 2015: determining candidates
+Sat Mar 28 15:23:46 2015: determining candidates
+Sat Mar 28 15:24:00 2015: determining candidates
+Sat Mar 28 15:24:12 2015: determining candidates
+Sat Mar 28 15:24:23 2015: determining candidates
+Sat Mar 28 15:24:34 2015: determining candidates
+Sat Mar 28 15:24:48 2015: determining candidates
+CN fraction good = 0.49
+Sat Mar 28 16:06:41 2015: deleting 0 gaps and adding 26 gaps to force symmetry
+Sat Mar 28 16:31:02 2015: done making gaps, time used = 38.4 minutes
+Sat Mar 28 18:16:35 2015: determining candidates
+Sat Mar 28 18:16:44 2015: determining candidates
+Sat Mar 28 18:16:52 2015: determining candidates
+Sat Mar 28 18:17:01 2015: determining candidates
+Sat Mar 28 18:17:12 2015: determining candidates
+Sat Mar 28 18:17:21 2015: determining candidates
+Sat Mar 28 18:17:29 2015: determining candidates
+Sat Mar 28 18:17:37 2015: determining candidates
+Sat Mar 28 18:17:48 2015: determining candidates
+
+====================================================================================
+
+assembly has 22877445 edges of mean length 291.836, edges/kb = 8.37734
+contig line N50: 48,923
+scaffold line N50: 56,394
+total bases in 1 kb+ scaffolds: 2,430,148,874 (89% of genome)
+total bases in 10 kb+ scaffolds: 2,209,368,647 (80.9% of genome)
+Estimated chimera rate in read pairs (including mismapping) = 0.033%.
+see 9 putative interchromosomal misassemblies, rate = 5.1 per Gb
+Sat Mar 28 20:10:59 2015: done
+peak mem usage = 705 GB

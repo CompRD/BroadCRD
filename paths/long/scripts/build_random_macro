@@ -1,0 +1,17 @@
+#!/bin/sh
+# usage: build_random_macro
+
+if [ -f /util/etc/setup_bash ]; then
+    . /util/etc/setup_bash
+fi
+eval `/broad/software/dotkit/init`
+use -q BuildTools
+use -q .samtools-0.1.18
+use -q .coreutils-8.5
+
+export MALLOC_PER_THREAD=1
+touch $CRDPERFSTATLOG
+
+let start=($RANDOM*32768+$RANDOM)%134217727
+let stop=start+100000
+exec timeout -s9 40m timeout 30m Discovar READS='{/wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/1/Solexa-125532/H01UJADXX.1.aligned.duplicates_marked.bam,/wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/2/Solexa-125532/H01UJADXX.2.aligned.duplicates_marked.bam}' REGIONS="10:$start-$stop" REFERENCE=/wga/scr4/dexter/example-data/discovar-example-data/discovar-examples/sample-genome.fasta TMP=$dir/tmp OUT_HEAD=$dir/assembly

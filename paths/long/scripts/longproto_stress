@@ -1,0 +1,67 @@
+#!/bin/csh
+
+# This is a code to search for bugs in LongProto.  It runs forever and sends email 
+# when it finds a bug.  You can add yourself to this email if you like.
+#
+# Note that the revision $major/$minor needs to be manually updated.
+#
+# usage: longproto_stress directory
+
+set major = 460
+set minor = 52
+
+set audience = $user
+
+set region_size = 200000
+
+use -q BuildTools
+use -q .samtools-0.1.18
+
+setenv MALLOC_PER_THREAD 1
+
+set count = 0
+while(1)
+
+     set ichr = 0
+     set chr = `expr $ichr + 1`
+     if ( $chr == "23" ) set chr = X
+     if ( $chr == "24" ) set chr = Y
+     set chr_size = 249250621
+     
+     set max_start = `expr $chr_size - $region_size`
+     set extra_args =
+     # echo "searching for assembly arguments"
+     while(1)
+          set nanox = `date +%N`
+          set nano = `expr $nanox + 0`
+          # echo "trying nano=$nano"
+
+          # pick random start point for region
+
+          set start = `expr $nano % $max_start`
+          set stop = `expr $start + $region_size`
+
+          set genomefasta = /wga/scr4/bigrefs/human19/genome.fasta
+          SelectBases PRE=/ INPUT=$genomefasta START=$start STOP=$stop CONTIG=$ichr \
+                        UPCASE=True OUTPUT=/tmp/$$.fasta NH=True
+          set Ncount = `grep -v ">" /tmp/$$.fasta | tr -d 'ACGT\n' | wc --bytes`
+          rm /tmp/$$.fasta
+          # echo "trying Ncount=$Ncount"
+          if ( $Ncount < 10000 ) break
+     end
+
+     set nanox = `date +%N`
+     set nano = `expr $nanox + 0`
+     set spc = `expr 1 + $nano % 99`
+     if ( $spc < 10 ) set spc = "{0}$spc"
+
+     set count = `expr $count + 1`
+     echo "launch run $count at `date`"
+     /wga/builds/$major/$minor/bin_debug/LongProto READS=\#picard SAMPLE=human \
+          X={$chr}:$start-$stop TMP=$1 DATA_SPEC=SELECT_FRAC=0.$spc \
+          >& $1/longproto_stress.out
+     if ( $status != 0 ) then
+          mail -s "longproto_stress failed" $audience < $1/longproto_stress.out
+     endif
+
+end

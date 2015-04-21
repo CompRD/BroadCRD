@@ -1,0 +1,13 @@
+#!/bin/sh
+# usage: build_disco READS={bams} REGION=<region> TMP=<tmp> OUT_HEAD=<out> ...
+
+if [ -f /util/etc/setup_bash ]; then
+    . /util/etc/setup_bash
+fi
+eval `/broad/software/dotkit/init`
+use -q BuildTools
+use -q .samtools-0.1.18
+
+export MALLOC_PER_THREAD=1
+touch $CRDPERFSTATLOG
+exec Discovar "$@"

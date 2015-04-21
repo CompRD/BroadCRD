@@ -1,0 +1,327 @@
+File: Project data files
+
+Description of the data files that Arachne and ALLPATHS manipulate.
+We describe the common file extensions, files, where to find them,
+which programs read and write which files, and how to read/write
+each file.
+
+Section: Data Files
+
+Description of data files created and read by various programs.
+
+The location of data files is prefixed by the contents of the
+ARACHNE_PRE environment variable.
+
+Group: Initial data files 
+
+Reads and accompanying records -- <qualities>, <intensities>.
+
+Data File: reads.fastb
+
+The actual reads.
+
+The quality of each base in the read is indicated in various ways by
+<reads.qualb>, <reads.intensities> and <reads.trusted>.
+See also the <.passing> file.
+
+Data File: reads.qualb
+
+The <quality scores> for reads.
+
+Data File: reads.trusted
+
+For each base of each read, whether it is "trusted" -- a binary determination that
+has been verified to correspond well with true base accuracy.
+Written by <SolexaTrusted>.  Output as part of the <pipeline>.
+
+Format:
+
+>     vecbitvector trusted;
+
+
+Data File: reads.intensities
+
+For each position in each read, for each of the four possible 
+bases, the intensity of the signal for that base at that read
+position.  The raw data indicating how sure we are that the base there
+is an A, a T, a G, and a C.  Of course, we may later adjust our
+confidence in each reading of that read position based on aligning
+other reads in the read set to that read, and gathering kmer
+statistics; but this is the raw data.  Intensities are an important
+factor in determining <quality scores> and <base calls>.
+
+To read, do
+>vecvec<four_base>& I;
+>I.ReadAll( HEADS[i] + ".intensities", i > 0 ); 
+
+Read by <LoadSolexaData()>.
+
+Data File: genome.size
+
+Gives the size of the genome.
+
+Group: Path data files
+
+Representation of the reads as paths in kmer space.
+
+Data File: reads.paths
+
+These are <vecKmerPath> objects, which contain the full 
+<read paths> for each read.  Produced by <ReadsToPaths>.
+See also <reads.paths_rc>.
+
+Data File: reads.paths_rc
+
+These are <vecKmerPath> objects, which contain the full 
+<read paths> for the reverse complement of each read.  
+Produced by <ReadsToPaths>.  See also <reads.paths>.
+
+Data File: reads.pairto
+
+See <.pairto>.
+
+Data File: reads.ref.locs
+
+For <simulated reads>, the true location of each read on the
+reference.
+
+Data File: reads.true.fastb
+
+For simulated reads, the true sequence of each read.  Can be derived
+from <genome.fastb> and <reads.ref.locs>, but is also available
+directly in this file.
+
+Data File: reads.lengths
+
+The length of each read in <reads.fastb>.  This info is available just
+by loading the reads.fastb file, but if you only need the lengths,
+this file is smaller & faster to load.
+
+Group: Unipaths data files
+
+Data File: reads.unipaths.kN
+
+Unipaths constructed from the reads.
+
+Data File: genome.paths.kN
+
+Unipaths constructed from the genome.
+
+Data File: reads.unipaths.predicted_count.kN
+
+Prediction of the <unipath copy number> for all unipaths.  Produced by
+<UnipathCoverage>.
+It is a vecvec<pdf_entry>, where each pdf_entry gives a number of copies and a
+probability for that number, just as if it were a vecvec< pair<int,double> >
+(but a vecvec< pair<int,double> > file isn't cross-platform byte
+compatible).
+
+So, for each unipath in <reads.unipaths.kN>, this gives a vector of
+(copy number, probability) pairs giving the probability that the given
+unipath has the given copy number.  Hopefully, for a given unipath
+the sum of the probabilities over all possible copy numbers
+comes close to 1.0.
+
+Group: Misc data files
+
+Data File: reads.gc_bias
+
+The GC bias curve.  Produced by program <GcBiasCurve>.  Used by <UnipathGcBias>.
+
+Group: Debug and log files
+
+Files output for human consumption
+
+Data File: commands.log
+
+The log of all commands that are run.  Lives in the 
+<command log dir>.   Contains the program name and all command-line 
+args, as well as the username of the user (so you can put together the
+sequence of commands ran by a single user).
+
+Notes:
+   - note that when one program runs another program, the daughter
+   program also adds a line to the command log file.  so some of the
+   lines in the log file reflect programs started by other programs --
+   not just programs that the user ran manually.
+
+   - not all data files read or written are explicitly listed on the
+     command line -- some programs use the command line parameters to
+     specify directories where to find files, but the file
+     names/prefixes are hard-coded into the programs.
+
+   - there is a small chance that corrupted output will be written to
+     this file, since it may opened for appending by multiple programs
+     at once.  that doesn't seem to happen in practice.
+
+
+Section: Data File Extensions
+
+Here are descriptions of the data file extensions used in
+Arachne/ALLPATHS.
+
+The extensions of the form "ext.kS" where S is a <kmer shape id> are
+documented under "ext.kS".  In the actual data files the letter S is
+replaced by one of the kmer shape ids.
+
+Some of the extensions are only components of larger
+stackings/combinations of extensions; for example, .paths is often a
+component of a larger extension such as .paths.k32, indicating that
+the <paths> were built from 32-base kmers.
+
+Data file extension: .fastb
+
+Binary version of FASTA format: a list of <base vectors>.  Can represent a
+genome, or a set of reads.
+
+Data file extension: .unipaths
+
+Unipaths, either <read unipaths> or <genome unipaths>.  Here they're represented
+in <kmer space>.  
+
+Data file extension: .unipaths.placements
+
+Placements of unipaths onto the reference genome.
+
+Data file extension: .lookup
+
+A <kmer lookup table>.  See <lookup_table>.
+
+Data file extension: .paths
+
+Contain <KmerPaths> generated from a genome or a read set.
+Produced by <GenomeToPaths>.  Produced by <SeqToPaths>.
+
+Data file extension: .pairto
+
+Contain <read pairings>.
+To read, do
+>     vec<read_pairing> pairs;
+>     ReadPairsFile( run_dir + "/reads.pairto", pairs );
+
+Data file extension: .pairtob
+
+Binary versioni of <.pairto>.
+
+Data file extension: .pairto_index
+
+For each read in a set of paired reads,
+gives the id of the <read pair> to which the read belongs.
+
+Data file extension: .qltout
+
+Alignment of reads to reference.  A huge text file (<Will and Pablo>
+have found that a binary format is not much faster).  Can be read by
+<LookAlignFinder>;  see <AlignParamsByRead> for an example.
+
+Data file extension: .passing
+
+List of <passing reads> in <Solexa pipeline output>.
+Just a list of <read ids> of the passing reads.
+
+Data file extension: .intensities
+
+See <reads.intensities>.
+
+Group: KmerShortMap file
+
+These files store <KmerShortMaps>, which are (kmer, short int) pairs.
+These can be used to represent kmer frequencies, or simply sets of
+kmers (where the short int part of each pair is ignored), or associate
+other values with kmers.
+
+Programmatically, such a data structure can be represented as
+>  vec< kmer_with_count<K> > table;
+and read as 
+>  BinaryRead3( file, table );
+
+But these files can also be loaded by constructing a <KmerShortMap> or
+a <KmerFrequencyTable> from the filename.
+
+Note that even though this is a vec of kmer_with_count, the value
+associated by a KmerShortMap with each kmer needn't be a count.
+It can, for example, be a Boolean value, or just a dummy value
+(for example, it can be 1 for all kmers if the KmerShortMap is
+representing a set of kmers).
+
+
+Related programs are <FindStrongKmers>, <EvaluateStrongKmers>, <FindKmerFrequencies>.
+
+Data file extension: .freq_table.kS
+
+A <kmer frequency table>, giving for each kmer how many times it occurs
+in the reads or in the genome.  Written by function <WriteKmerFrequencies()>.
+Written by programs <FindKmerFrequencies> and <FindGenomicKmers>.
+
+Data file extension: .nonunique.kS
+
+A <kmer frequency table>, giving for each kmer how many times it
+occurs in the reads; includes nonunique kmers only
+(those that occur at least twice in the reads).  The idea is that
+a truly <genomic kmer> would likely be included in at least two reads
+(unless extreme bad luck or bias prevents it from being read),
+so a unique kmer is most likely non-genomic.
+
+Written by program <FindStrongKmers>.
+
+Data file extension: .strong.kS
+
+A set of <strong kmers>.  Represented as a <KmerShortMap> file where
+the short int value associated with each kmer is ignored, and only the
+set of kmers included matters.
+
+
+Group: Obsolete data file extensions
+
+Data file extensions: High-quality paths
+
+These were used for Sanger reads, but are not used anymore.
+Still present in <run dirs>, however.
+
+    .pathshqdb - hq paths database; now just a link to <.pathsdb>
+    .pathshq - hq paths; now just a link to <.paths>
+    .pathshq_rc - hq paths reverse complement; now just a link to
+        <.paths_rc>
+
+////////////////////////////////////////////////////////////////
+
+Section: Data Directories
+
+Some of the directories which store data for this project -- where to
+find what.
+
+Data directory: /broad/solexaproc/pipelineOutput
+
+Contains the output of the <Solexa pipeline>.
+
+Data directory: project directory
+
+A directory containing an ALLPATHS project.  Intially produced by
+<SolexaToAllpaths>.  Under it there are <run directories>.
+
+Data directory: run directory
+
+The output of one <run>, located under the <pipeline output>
+directory.
+
+For unpaired reads, contains files of the form 
+FC.L.* giving info for lane L of this run's flowcell FC.
+For paired reads, contains files of the form 
+FCa.L.* and FCb.L.*, where the i'th records in the 'a' and 'b'
+versions of a file correspond to reads of the same pair.
+
+Data directory: /wga/dev/WGAdata
+
+Contains the ALLPATHS projects.  <SolexaToAllpaths> converts <pipeline
+output> to the ALLPATHS projects under this directory.  The
+ARACHNE_PRE environment variable should be set to this directory.
+
+Synonyms: Various synonyms
+   Broad pipeline directory - See </broad/solexaproc/pipelineOutput>
+   pipeline output - See </broad/solexaproc/pipelineOutput>
+   run dir - See <run directory>
+   WGA data directory - See </wga/dev/WGAdata>
+   
+   
+
+

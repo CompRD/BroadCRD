@@ -1,0 +1,20 @@
+.PHONY: clean
+clean: cleanExes cleanObjects
+	rm -f dependencies.db Makefile_deps
+
+.PHONY: cleanObjects
+cleanObjects:
+	rm -rf $(OBJ)/*
+
+.PHONY: cleanExes
+cleanExes:
+	rm -rf $(BIN)/*
+
+.PHONY: cleanAll
+cleanAll:
+	rm -rf bin/* obj/* bin_*/* obj_*/* dependencies.db Makefile_deps
+
+auxfiles/auxfiles: auxfiles/*.jar auxfiles/*.js
+	@ mkdir -p $(BIN)/auxfiles
+	cp $? $(BIN)/auxfiles
+	@ touch auxfiles/auxfiles

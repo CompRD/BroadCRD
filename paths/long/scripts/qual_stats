@@ -1,0 +1,52 @@
+#!/bin/csh
+
+# Generate a table of quality score stats for some HiSeq 2500 lanes.
+# These are for raw quality scores.  All human except last column, which
+is Arabidopsis.
+
+cd /wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/1/Solexa-125532
+echo date > ~/crd/ttt1
+echo cyc/lane >> ~/crd/ttt1
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 1 >> ~/crd/ttt1
+echo 11/1/12 > ~/crd/ttt2
+echo H01UJ.1 >> ~/crd/ttt2
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 2 >> ~/crd/ttt2
+
+cd /wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/2/Solexa-125532
+echo 11/1/12 > ~/crd/ttt3
+echo H01UJ.2 >> ~/crd/ttt3
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 2 >> ~/crd/ttt3
+
+cd /wga/scr4/picard/H06HDADXX/C1-508_2013-01-10_2013-01-13/1/Solexa-135852
+echo 1/10/13 > ~/crd/ttt4
+echo H06HD.1 >> ~/crd/ttt4
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 2 >> ~/crd/ttt4
+
+cd /wga/scr4/picard/H06HDADXX/C1-508_2013-01-10_2013-01-13/2/Solexa-135852
+echo 1/10/13 > ~/crd/ttt5
+echo H06HD.2 >> ~/crd/ttt5
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 2 >> ~/crd/ttt5
+
+cd /wga/scr4/picard/H06JHADXX/C1-508_2013-01-10_2013-01-13/1/Solexa-135853
+echo 1/10/13 > ~/crd/ttt6
+echo H06JH.1 >> ~/crd/ttt6
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 2 >> ~/crd/ttt6
+
+cd /wga/scr4/picard/H06JHADXX/C1-508_2013-01-10_2013-01-13/2/Solexa-135853
+echo 1/10/13 > ~/crd/ttt7
+echo H06JH.2 >> ~/crd/ttt7
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 2 >> ~/crd/ttt7
+
+cd /seq/picard/H75EWADXX/C1-516_2013-09-21_2013-10-03/1/Solexa-183236
+echo 9/21/13 > ~/crd/ttt8
+echo H75EW.1 >> ~/crd/ttt8
+cat *.quality_by_cycle_metrics | grep -v '#' | egrep "[0-9]|\." | Col 2 >> ~/crd/ttt8
+
+cd crd
+PasteRight PRE=. FILE1=ttt1 FILE2=ttt2 N=10 NH=True > sss1
+PasteRight PRE=. FILE1=sss1 FILE2=ttt3 N=24 NH=True > sss2
+PasteRight PRE=. FILE1=sss2 FILE2=ttt4 N=36 NH=True > sss3
+PasteRight PRE=. FILE1=sss3 FILE2=ttt5 N=48 NH=True > sss4
+PasteRight PRE=. FILE1=sss4 FILE2=ttt6 N=60 NH=True > sss5
+PasteRight PRE=. FILE1=sss5 FILE2=ttt7 N=72 NH=True > sss6
+PasteRight PRE=. FILE1=sss6 FILE2=ttt8 N=84 NH=True > sss7

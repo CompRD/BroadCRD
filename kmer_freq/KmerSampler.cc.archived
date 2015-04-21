@@ -1,0 +1,426 @@
+// Copyright (c) 2004 Broad Institute/Massachusetts Institute of Technology
+//
+// KmerSampler.cc
+
+#ifndef FORCE_DEBUG
+     #define NDEBUG
+#endif
+
+#include "kmer_freq/KmerSampler.h"
+
+
+KmerSampler::KmerSampler(const int kmer_size,
+			 const int bases_to_hash) :
+  kmer_size_(kmer_size),
+  num_kmers_parsed_(0)
+{
+  ForceAssertLe(bases_to_hash, 15);
+  // 4^15 is the largest power of 4 an unsigned int can hold
+  ForceAssertLe(kmer_size - bases_to_hash, 31);
+  // 4^31 is the largest power of 4 an longlong can hold
+
+  // number of bases to be used for computing the hash value
+  bases_to_hash_ = (kmer_size <= bases_to_hash) ? kmer_size-1 : bases_to_hash;
+
+  // the weight (power of 4) for the most significant base
+  // in computing the hash value
+  most_sig_hash_weight_ = 1;
+  for (int i = 0; i < bases_to_hash_ - 1; i++)
+    most_sig_hash_weight_ *= 4;
+
+  // the weight (power of 4) for the most significant base
+  // in computing the id-value of a kmer
+  most_sig_id_weight_ = 1;
+  for (int i = bases_to_hash_; i < kmer_size_ - 1; i++)
+    most_sig_id_weight_ *= 4;
+
+  // the size of the hash table
+  const unsigned int hash_size = most_sig_hash_weight_ * 4;
+
+  hash_tbl_.resize(hash_size);
+  hash_size_ = hash_size;
+}
+
+
+longlong
+KmerSampler::RegisterKmers(const vecbasevector& vecbv,
+			   const vec< SampleLocation >& vecloc)
+{
+  // Method to pick kmers from a given list of locations
+  // and register them for frequency-counting
+
+  longlong num_accepted = 0;
+  const int num_locs = vecloc.size();
+  for (int i = 0; i < num_locs; i++)
+    {
+      const SampleLocation& loc = vecloc[i];
+      const int contig = loc.Contig();
+      const int offset = loc.Offset();
+      const basevector& bv = vecbv[contig];
+
+      if (offset + kmer_size_ > int(bv.size()))
+	continue; // because the resulting kmer will span across contigs!
+
+      num_accepted++;
+
+      // extract the kmer
+      vec< unsigned char > kmer_bases(kmer_size_);
+      for (int j = 0; j < kmer_size_; j++)
+	{
+	  kmer_bases[j] = static_cast<unsigned char>(bv[offset+j]);
+	}
+
+      // compute the hash value
+      unsigned int hash_val = 0;
+      for (int j = 0; j < bases_to_hash_; j++)
+	{
+	  hash_val *= 4;
+	  hash_val += kmer_bases[j];
+	}
+
+      // compute the id value
+      longlong id_val = 0;
+      for (int j = bases_to_hash_; j < kmer_size_; j++)
+	{
+	  id_val *= 4;
+	  id_val += kmer_bases[j];
+	}
+
+      // register that kmer
+      hash_tbl_[ hash_val ].Register( id_val );
+    }
+
+  return num_accepted;
+}
+
+
+
+longlong
+KmerSampler::RegisterKmers(const vecbasevector& vecbv,
+			   const vecbitvector& vecamb,
+			   const vec< SampleLocation >& vecloc)
+{
+  // Method to pick kmers from a given list of locations
+  // and register them for frequency-counting
+
+  longlong num_accepted = 0;
+  const int num_locs = vecloc.size();
+  for (int i = 0; i < num_locs; i++)
+    {
+      const SampleLocation& loc = vecloc[i];
+      const int contig = loc.Contig();
+      const int offset = loc.Offset();
+      const basevector& bv = vecbv[contig];
+
+      if (offset + kmer_size_ > int(bv.size()))
+	continue; // because the resulting kmer will span across contigs!
+
+      // determine if the resulting kmer contains any ambiguous base
+      Bool has_amb_base = False;
+      const bitvector& ambbitvector = vecamb[contig];
+      for (int j = 0; !has_amb_base && j < kmer_size_; j++)
+	{
+	  if (ambbitvector[offset+j])
+	    has_amb_base = True;
+	}
+      if (has_amb_base)
+	continue; // because the resulting kmer contains ambiguous bases
+
+      num_accepted++;
+
+      // extract the kmer
+      vec< unsigned char > kmer_bases(kmer_size_);
+      for (int j = 0; j < kmer_size_; j++)
+	{
+	  kmer_bases[j] = static_cast<unsigned char>(bv[offset+j]);
+	}
+
+      // compute the hash value
+      unsigned int hash_val = 0;
+      for (int j = 0; j < bases_to_hash_; j++)
+	{
+	  hash_val *= 4;
+	  hash_val += kmer_bases[j];
+	}
+
+      // compute the id value
+      longlong id_val = 0;
+      for (int j = bases_to_hash_; j < kmer_size_; j++)
+	{
+	  id_val *= 4;
+	  id_val += kmer_bases[j];
+	}
+
+      // register that kmer
+      hash_tbl_[ hash_val ].Register( id_val );
+    }
+
+  return num_accepted;
+}
+
+
+
+void
+KmerSampler::ParseContig(const basevector& bv)
+{
+  // Method to efficiently parse a contig (in both forward and
+  // reverse-complemented directions) and update the frequency counts
+  // of registered kmers
+
+  const int contig_len = bv.size();
+
+  if (contig_len < kmer_size_)
+    return;
+
+  contig_bases_.resize(contig_len);
+
+  // Copy the contig basevector into  contig_bases_
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = static_cast<unsigned char>(bv[i]);
+    }
+
+  // Parse contig_bases_ for kmers
+  ParseForKmers();
+
+  // Turn  contig_bases_  to its reverse-complement
+  vec< unsigned char > tmp_bases = contig_bases_;
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = 3 - (tmp_bases[contig_len-1-i]);
+    }
+
+  // Parse contig_bases_ again for kmers
+  ParseForKmers();
+
+  // update num_kmers_parsed_
+  num_kmers_parsed_ += 2 * (contig_len - kmer_size_ + 1);
+}
+
+
+void
+KmerSampler::ParseContig(const basevector& bv,
+			 const bitvector& amb)
+{
+  // Method to efficiently parse a contig (in both forward and
+  // reverse-complemented directions) and update the frequency counts
+  // of registered kmers
+
+  const int contig_len = bv.size();
+
+  if (contig_len < kmer_size_)
+    return;
+
+  contig_bases_.resize(contig_len);
+  amb_bases_.resize(contig_len);
+
+  // Copy the contig basevector into  contig_bases_
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = static_cast<unsigned char>(bv[i]);
+      amb_bases_[i] = amb[i];
+    }
+
+  // Parse contig_bases_ for kmers
+  ParseForKmers_withAmb();
+
+  // Turn  contig_bases_  to its reverse-complement
+  vec< unsigned char > tmp_bases = contig_bases_;
+  vec< unsigned char > tmp_amb_bases = amb_bases_;
+  for (int i = 0; i < contig_len; i++)
+    {
+      contig_bases_[i] = 3 - (tmp_bases[contig_len-1-i]);
+      amb_bases_[i] = tmp_amb_bases[contig_len-1-i];
+    }
+
+  // Parse contig_bases_ again for kmers
+  ParseForKmers_withAmb();
+
+  // update num_kmers_parsed_
+  num_kmers_parsed_ += 2 * (contig_len - kmer_size_ + 1);
+}
+
+
+void
+KmerSampler::ParseForKmers()
+{
+  // Routine to efficiently parse the kmers appearing in contig_bases_
+
+  // compute  next_kmer_hash_val  and  next_kmer_id_val
+  // for the first kmer
+  unsigned int next_kmer_hash_val = 0;
+  for (int i = 0; i < bases_to_hash_; i++)
+    {
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[i];
+    }  
+  longlong next_kmer_id_val = 0;
+  for (int i = bases_to_hash_; i < kmer_size_; i++)
+    {
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[i];
+    }
+
+  const int contig_len = contig_bases_.size();
+  for (int j = 0; j < contig_len - kmer_size_; j++)
+    {
+      hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val);
+
+      // compute  next_kmer_hash_val  and  next_kmer_id_val 
+      // for the next kmer
+      next_kmer_hash_val -= contig_bases_[j] * most_sig_hash_weight_;
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[j + bases_to_hash_];
+
+      next_kmer_id_val -= contig_bases_[j + bases_to_hash_] * most_sig_id_weight_;
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[j + kmer_size_];
+    }
+  hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val);
+}
+
+
+
+void
+KmerSampler::ParseForKmers_withAmb()
+{
+  // Routine to efficiently parse the kmers appearing in contig_bases_
+
+  // compute  next_kmer_hash_val  and  next_kmer_id_val
+  // for the first kmer
+  unsigned int next_kmer_hash_val = 0;
+  for (int i = 0; i < bases_to_hash_; i++)
+    {
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[i];
+    }  
+  longlong next_kmer_id_val = 0;
+  for (int i = bases_to_hash_; i < kmer_size_; i++)
+    {
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[i];
+    }
+
+  // compute  next_ambkmer_hash_val  and  next_ambkmer_id_val
+  // for the first kmer
+  unsigned int next_ambkmer_hash_val = 0;
+  for (int i = 0; i < bases_to_hash_; i++)
+    {
+      next_ambkmer_hash_val *= 4;
+      next_ambkmer_hash_val += amb_bases_[i];
+    }  
+  longlong next_ambkmer_id_val = 0;
+  for (int i = bases_to_hash_; i < kmer_size_; i++)
+    {
+      next_ambkmer_id_val *= 4;
+      next_ambkmer_id_val += amb_bases_[i];
+    }
+
+
+  const int contig_len = contig_bases_.size();
+  for (int j = 0; j < contig_len - kmer_size_; j++)
+    {
+      // mark the kmer only if it does not contain ambiguous bases
+      if (next_ambkmer_hash_val == 0 && next_ambkmer_id_val == 0)
+	hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val);
+
+      // compute  next_kmer_hash_val  and  next_kmer_id_val 
+      // for the next kmer
+      next_kmer_hash_val -= contig_bases_[j] * most_sig_hash_weight_;
+      next_kmer_hash_val *= 4;
+      next_kmer_hash_val += contig_bases_[j + bases_to_hash_];
+
+      next_kmer_id_val -= contig_bases_[j + bases_to_hash_] * most_sig_id_weight_;
+      next_kmer_id_val *= 4;
+      next_kmer_id_val += contig_bases_[j + kmer_size_];
+
+      // compute  next_ambkmer_hash_val  and  next_ambkmer_id_val 
+      // for the next kmer
+      next_ambkmer_hash_val -= amb_bases_[j] * most_sig_hash_weight_;
+      next_ambkmer_hash_val *= 4;
+      next_ambkmer_hash_val += amb_bases_[j + bases_to_hash_];
+
+      next_ambkmer_id_val -= amb_bases_[j + bases_to_hash_] * most_sig_id_weight_;
+      next_ambkmer_id_val *= 4;
+      next_ambkmer_id_val += amb_bases_[j + kmer_size_];
+    }
+
+  if (next_ambkmer_hash_val == 0 && next_ambkmer_id_val == 0)
+    hash_tbl_[ next_kmer_hash_val ].Mark(next_kmer_id_val);
+}
+
+
+
+void
+KmerSampler::ComputeStatistics(longlong& num_kmers_parsed,
+			       longlong& num_unique_kmers) const
+{
+  // Method to compute the statistics of kmer frequencies
+
+  num_kmers_parsed = num_kmers_parsed_;
+
+  num_unique_kmers = 0;
+  for (unsigned int i = 0; i < hash_size_; i++)
+    {
+      hash_tbl_[i].ComputeStatistics(num_unique_kmers);
+    }
+}
+
+
+void
+HashEntry::Register(longlong id_val)
+{
+  // Call this method to allow a kmer belonging to this hash entry
+  // to be sampled; kmers which are not Register-ed will not be counted!
+
+  HashNode  hash_node(id_val);
+
+  if (list_.size() == 0)
+    {
+      list_.push_back(hash_node);
+    }
+  else
+    {
+      int id = BinPosition(list_,hash_node);
+      if (id < 0)
+	{
+	  list_.push_back(hash_node);
+	  Sort(list_);
+	}
+    }
+}
+
+
+
+void
+HashEntry::Mark(longlong id_val)
+{
+  // Call this method whenever a kmer belonging to this hash entry
+  // is seen as the contigs are parsed.
+
+  if (list_.size() != 0)
+    {
+      const HashNode  hash_node(id_val);
+      const int id = BinPosition(list_,hash_node);
+      if (id >= 0)
+	{
+	  // kmer is in list_
+	  list_[id].IncFreq();
+	}
+    }
+}
+
+
+
+void
+HashEntry::ComputeStatistics(longlong& num_unique_kmers) const
+{
+  // Method to return the number of unique kmers within this hash entry.
+
+  const int list_size = list_.size();
+  for (int i = 0; i < list_size; i++)
+    {
+      if (list_[i].IsUnique())
+	num_unique_kmers++;
+    }
+}

@@ -1,0 +1,114 @@
+
+/**
+   \mainpage Allpaths documentation
+
+   This page contains Allpaths documentation.  It contains a small selection of Allpaths information that was documented in detail in Doxygen format.
+   Links to complete documentation for everything in the Arachne/ CVS repository are included.
+
+   Here are the various groups of related code:
+
+   Stages of processing for genome assembly:
+
+   \li \ref grp_kmerGathering
+   \li \ref grp_edits
+
+   Other groups of related code:
+
+   <ul>
+     <li>\ref grp_gc</li>
+     <li>\ref grp_eval
+       <ul>
+         <li>\ref grp_refalign</li>
+       </ul>
+   </ul>
+
+   General topics:
+     \li \ref page_terms
+     \li \ref page_files
+*/
+
+
+/**
+   \defgroup grp_kmerGathering Extraction of kmers that occur in the reads
+
+   Extraction of all kmers that occur in the reads.  This is parameterized by kmer length and shape.
+*/
+
+/**
+   \defgroup grp_edits Error correction
+
+   Fixing errors in reads.  This is also referred to as 'editing' or 'doing edits'.
+
+   Several error correction methods are used:
+
+   \li if there is a simultaneous change of a few
+      bases that makes the kmers in the read much more likely, do the mutation (ProvisionalEdits.cc, MakeProvisionalChanges.cc)
+   \li in all reads with a kmer, look at the position immediately after the kmer, and if there is strong consensus for
+      one base then edit all reads to have that base there ( SolexaToAllpaths.cc )
+   \li a generalization of the above, anchor (align) on a kmer all reads in which that kmer occurs, then see if there
+     is strong consensus in the non-kmer columns, and if there is, edit the non-conensus positions in the reads to
+     match the consensus ( AnchorConsensusEdits.cc )  
+*/
+
+
+/**
+  \defgroup grp_gc Dealing with GC bias
+
+  Dealing with GC bias.  How much coverage a genomic region with a given copy number gets depends on its GC content.  So, for example, if a kmer has
+  an abnormally low frequency, maybe that's because the kmer is erroneous, but maybe that's because it falls in a region which is read abnormally rarely
+  due to its GC bias or other content bias.
+*/
+
+/**
+   \defgroup grp_refalign Alignment of reads to reference
+
+   Alignment of reads from a known genome back to that reference genome.  Alignments of reads to reference are also referred to as "hits".
+
+   \ingroup grp_eval
+*/
+
+/**
+   \defgroup grp_eval Evaluating the quality of various steps
+  
+   Code that can be used to evaluate the quality of the various steps:
+   assembly, error correction, read localization.
+*/
+
+
+/**
+   \page page_terms Terms and concepts
+
+   \section sec_basic_terms Basic terms
+
+   \subsection term_kmer kmer
+
+   A group of k letters from a read.
+
+   \subsection term_path path, or kmer path
+
+   A sequence of kmers where each next one is obtatined from a previous one by taking
+   all letters of the previous one but the first, and adding a new letter:
+   an example for k=3 would be ABCD, BCDE, EFGH, ...
+
+   \subsection term_unipath
+
+   A \ref term_path that does not branch.
+*/
+
+
+/**
+   \page page_files Data file names and extensions
+
+   Names and extensions of data files used in this system.
+
+   \subsection ext_fastb
+
+   .fastb files contain a list of basevectors; they're the binary equivalent of
+   .fasta files.  See Basevector.h .
+   
+   \subsection ext_lookup
+
+   .lookup files, produced by the program MakeLookupTable.cc, contain an index of all
+   k-mers in a genome.
+
+ */

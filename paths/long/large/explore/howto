@@ -1,0 +1,7 @@
+How to trace a gap
+
+RegionIds X=region
+where region is in hg19 coordinates
+
+Snorgle1 TRACE_RID=...
+Snorgle2 TRACE_RID=...

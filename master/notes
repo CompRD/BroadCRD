@@ -1,0 +1,38 @@
+
+NOTES FROM IAIN
+
+crd monitor
+
+crdutils/scripts/monitor-cron
+
+Script intended to be run as a cron job - currently running on wga8
+Monitors crd servers, using crds script
+Sends email alerts when servers go down or up
+Run every 5 minutes under dexter
+See log in /wga/dev/crd-stats/monitor/
+Writes html version of the crds output to /web/ftp/pub/crd/Misc
+Webpage: ftp://ftp.broadinstitute.org/pub/crd/Misc/crdsmonitor.html
+
+Dexter tasks
+
+dexter is both the name for our regression testing suite, and also the special user that runs the tests and many other tasks too. Dexter the regression test is explained elsewhere, but dexter the user is explained here.
+
+There are cron jobs running as dexter on all our machines. Two common to every machine are:
+crds-cron
+reboot-cron
+
+crds-cron is responsible for monitoring the health of our machines, and used by the crds utility.
+
+reboot-cron is a simple script to alert us when a machine is rebooted.
+
+Use the helper scripts crds-crontab and reboot-crontab to add the appropriate job to the cron table. 
+
+These scripts (and others) are under svn control in crdutil/scripts. The working copy used by the cron jobs, as well as in other places, can be found in:
+
+/wga/dev/dexter
+
+This directory is intended to be a place to keep scripts, under svn control or otherwise, that are needed by the user dexter - with the exception of the dexter testing suite. There is a script that updates the contents of this directory and it is run by a special cron job on wga8:
+
+0-59/5 * * * * /wga/dev/dexter/update_dexter_dir.sh self
+ 
+This script is self updating. It can also be run manually if needed.

@@ -1,0 +1,17 @@
+
+Options for SAMPLE:
+
+This can be 
+
+bacteria: bcereus, bifi, ecoli, ecoli11, ecoli12, ecoli_scs, entero, rhody, neiss, 
+scardovia, tb, tb148
+
+human: human, hpool1, hpool2, hpool3, human.hpool2, human.hpool3
+
+other: mouse, plasmo, arabidopsis, ***.fastb, unknown or random:spec, 
+where spec is a string specifying a 'structured' random genome, as in the following 
+example: "A(10K)|B(100)|A'|A|C(100K)|,A|A" -- this would be for two chromosomes, 
+where the first involves random regions A,B,C of specified sizes, and is the 
+concatenation A|B|A'|A|C| where A' denotes the rc of A and the last | indicates 
+circularity of the chromosome.  The second chromosome is the linear concatenation of
+two copies of A.

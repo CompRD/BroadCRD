@@ -1,0 +1,4 @@
+Calculate the GC content of genomic sequence, identify CpG islands,
+deal with C methylation issues (change Cs to Ts, etc...) 
+
+

@@ -1,0 +1,48 @@
+<html>
+<head>
+<title>Be right back...</title>
+<base href="@proxypath" >
+@include:icon-headers.txt
+</head>
+
+<body><BODY TEXT="#000000" LINK="#DD7755" VLINK="#DD7755"
+ALINK="#993300" bgcolor=white>
+
+<font face=arial>
+
+<image src="assets/broad-logo.jpg" />
+
+<h1>
+<center>
+We're sorry, but this server seems to be under maintenance.
+</center>
+</h1>
+
+<div style="font-size: 115%;">
+<center>
+<br />
+<br />
+While the disco ball has stopped spinning temporarily, we assure you
+that behind the scenes, the music plays on.
+
+<br />
+<br />
+If this is during business hours in Cambridge, MA, USA, it is likely that a
+technician has already been dispatched.
+
+<br />
+<br />
+Relax and grab a drink at the bar while we fix the problem.
+</center>
+</div>
+
+
+<div id="results">
+<br/>@textoutput<br/>
+<center>
+<img id="imageout" src="@imagefile" />
+</center>
+</div>
+</font>
+</body>
+</html>

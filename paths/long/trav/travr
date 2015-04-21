@@ -1,0 +1,69 @@
+#!/bin/csh
+
+# travr: assemble a Rhodobacter chromosome and report results using a controlled 
+# vocabulary.  The first applicable state of the following is reported:
+# - LongProto failed [if it crashed]
+# - m-edge perfect circle plus n other edges
+# - does not have one perfect circle.
+
+# usage:
+# travr chr outhead executable extras
+#
+# required environment variables:
+# - TRAV_CRD: directory for putting some stuff
+# - TRAV_LCRD: directory for putting some other stuff
+# 
+# required args:
+# - chr = chromosome record number
+#
+# optional args:
+# - outhead = argument passed to LongProto for file naming, default = aaa
+# - executable = name of executable, default = LongProto
+# - extra arguments to pass to LongProto; if first is 'control', exclude internal
+#   list of extra arguments; default = null.
+
+# Define region and executable.
+
+set chr = $1
+set executable = $3
+if ( $executable == "" ) set executable = LongProto
+
+# Define extra arguments.
+
+set extra1 = $4
+set extras =
+if ( $extra1 != "control" ) then
+     set extras = ""
+else
+     set extra1 =
+endif
+
+# Define LongProto command core.
+
+set core = "$executable SAMPLE=rhody READS=#picard $extras $extra1 $5 $6 $7"
+
+# Launch LongProto.
+
+set head = $2
+if ( $head == "" ) set head = aaa
+$core TMP= $TRAV_LCRD/tmp.xxx OUT_INT_HEAD= $TRAV_CRD/$head \
+     OUT_HEAD= $TRAV_CRD/$head.end X=$chr OUT_GENOME= $TRAV_LCRD/genome.fastb \
+     >& $TRAV_LCRD/xxx
+
+# Evaluate results.
+
+if ( $status != 0 ) then
+     echo "STATUS: LongProto failed"
+     mail -s "trav $1 $2 $3 failed" $user < $TRAV_LCRD/xxx
+     exit
+endif
+set gp = $TRAV_CRD/$head.final.gpaths
+set pc = `cat $gp | grep -c "perfect circle"`
+if ( $pc != 1 ) then
+     echo "STATUS: does not have one perfect circle"
+else
+     set pcn = `cat $gp | grep "perfect circle" | tr ':' '\n' | egrep "fw|rc" | grep -v perf | tr -d "fwrc " | tr ',' '\n' | sort -u | wc --lines`
+     set other = `cat $TRAV_LCRD/xxx | grep visible | grep -v efasta | Col 1`
+     set other = `expr $other - $pcn`
+     echo "STATUS: $pcn-edge perfect circle plus $other other edges"
+endif

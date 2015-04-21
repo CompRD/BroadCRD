@@ -1,0 +1,58 @@
+#!/bin/csh
+
+# Estimate the N50 perfect stretches in NA12878 assemblies of DISCOVAR and
+# DISCOVAR de novo.
+#
+# The way this is computed is not completely correct, but probably pretty close.
+#
+# Need to make LongProto CallRefTrace AssessBestAlign Substitute TallyPerfs.
+
+/bin/rm -f perfs.all
+
+foreach id (1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 34 37 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106)
+
+     echo $id
+
+     set pool = hpool2
+     if ( $id > 55 ) set pool = hpool3
+
+     LongProto SAMPLE=human.$pool READS=\#picard X=$id TMP=tmp.xxx \
+          OUT_INT_HEAD= ~/crd/aaa \
+          IN_GENOME=/wga/dev/references/Homo_sapiens/NA12878_Fosmid_Pool.regions.fin/fos.$id.fasta \
+          LOGGING=REFTRACE=True OUT_HEAD= ~/crd/aaa > loggo
+
+     if ( $status != 0 ) then
+          echo failed 1
+          exit
+     endif
+
+     CallRefTrace HBV_ASSEMBLY= ~/crd/aaa.hbv \
+          REF=/wga/dev/references/Homo_sapiens/NA12878_Fosmid_Pool.regions.fin/fos.$id.fasta \
+          MAX_OFFSET_DIFF=30,250,10 MAX_ERROR_RATE=0.31,0.31,0.5 OFFSET_ADD=5 \
+          MIN_GROUP_FRAC=0.1,0.75,0.1 MAX_TWIDDLE=5,120,250 FIX_BUG=True \
+          VERBOSITY=4 BEST_GLOBAL_OUT=global.fastb > crt.out
+
+     if ( $status != 0 ) then
+          echo failed 2
+          exit
+     endif
+
+     echo "+" >> perfs.all
+     AssessBestAlign BEST_GLOBAL=global.fastb \
+          X=$id PERFS=True NH=True >> perfs.all
+
+     if ( $status != 0 ) then
+          echo failed 3
+          exit
+     endif
+
+end
+
+echo "\nDISCOVAR"
+cat perfs.all | TallyPerfs
+
+echo "\nDISCOVAR de novo"
+cd /wga/scr4/jaffe/GapToy/49895/a.fin/eval
+cat F* | egrep "match|EVAL" | tr -d 'a-z ()' | tr ':' '\n' | grep -v = | grep -v '^$' | Substitute NH=True FROM=EVAL_ASSEMBLY TO=+ > ~/crd/perfs.denovo
+cd crd
+cat perfs.denovo | TallyPerfs

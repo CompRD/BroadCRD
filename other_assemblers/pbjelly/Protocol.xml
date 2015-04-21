@@ -1,0 +1,14 @@
+<jellyProtocol>
+    <reference>/wga/scr4/blau/pbjelly/fosmids/velvet.fasta</reference>  
+    <outputDir>/wga/scr4/blau/pbjelly/fosmids/output</outputDir>
+    <blasr>-minMatch 8 -minPctIdentity 70 -bestn 8 -nCandidates 30 -maxScore -500 -nproc 64 -noSplitSubreads</blasr>
+    <input baseDir="/wga/scr4/blau/pbjelly/">
+        <job>019892.fasta</job>
+        <job>019891.fasta</job>
+        <job>019899.fasta</job>
+        <job>019900.fasta</job>
+        <job>019914.fasta</job>
+        <job>019915.fasta</job>
+        <job>019916.fasta</job>
+    </input>
+</jellyProtocol>

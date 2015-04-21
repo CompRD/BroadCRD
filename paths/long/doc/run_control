@@ -1,0 +1,10 @@
+
+Notes on running only part of LongProto:
+
+1. Generate just a genome fastb file and exit: supply the
+   'CONTROL OVER REGION' arguments and OUT_GENOME=..., EXIT=OUT_GENOME.
+
+2. Generate just simulated reads: run with OUT_SIM_READS=... EXIT=OUT_SIM_READS.
+
+3. Load Illumina reads from Picard and error correct using the ALLPATHS-LG
+   pipeline: specify READS=#picard and supply TMP directory.

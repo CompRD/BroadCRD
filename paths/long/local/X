@@ -1,0 +1,11 @@
+
+Options for X:
+
+Define regions of genome to use.  If nothing specified use the entire genome.  A 
+single nonnegative integer gets you a particular genome contig.  A range like 
+2:1000-20000 gets you e.g.  bases 1000 to 20000 on reference contig 2.  For human,
+2 means chr2, etc.  Or you may provide a comma-separated list {...} whose elements 
+are genome contigs ids or ranges as above.  A ParseIntSet list of contig ids may 
+be used.  Finally one may use "random(n)" where n is a positive integer, which 
+selects a clock-seeded random region of the genome of size n.
+

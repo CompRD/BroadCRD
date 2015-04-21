@@ -1,0 +1,23 @@
+#!/bin/csh
+
+# GetExons GENE= NH=True MODE=intervals FLANK=5000 PREFIX=True CODING=True \
+#    | grep -v total > gene_list
+# cat gene_list | head -3000 > glist4
+# cat gene_list | head -6000 | tail -3000 > glist5
+# cat gene_list | head -9000 | tail -3000 > glist6
+# cat gene_list | head -12000 | tail -3000 > glist7
+# cat gene_list | head -19000 | tail -7000 > glist8
+# cat gene_list | head -26000 | tail -7000 > glist9
+# cat gene_list | tail -6722 > glist10
+
+/bin/rm -f ~/crd/glist$1.results
+foreach x (`cat ~/crd/glist$1`)
+     echo $x
+     LongProto SAMPLE=human READS=\#picard TMP=tmp.xxx LOGGING=COUNT_COV=3 \
+          DATASET="17E_PD,16E_MD,15E_DD" \
+          HEURISTICS=DETECT_VARIANTS=False X=$x > ddd
+     if ( $status != 0 ) mail -s "globber on $x failed" jaffe < ddd
+     cat ddd | ( pgrep "coverage:" ) > eee
+     set nlines = `cat eee | wc --lines`
+     if ( $nlines != 2 ) echo $x >> ~/crd/glist$1.results
+end

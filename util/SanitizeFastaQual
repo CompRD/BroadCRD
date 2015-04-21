@@ -1,0 +1,82 @@
+#!/util/bin/perl -w
+use strict;
+
+
+
+##
+#
+# SanitizeFastaQual
+#
+#
+# To use:
+#
+#  SanitizeFastaQual DATA_DIR
+#
+# It replaces reads.fasta and reads.qual in DATA_DIR with new versions,
+# in which read names are replaced by spaceless names (read name becomes
+# whatever was the read name before the first space).
+#
+#
+
+
+
+# Parse arguments
+my $data_names = $ARGV[0];
+
+# Open files.
+my $fasta_file = "$data_names/" . "reads.fasta";
+my $qual_file = "$data_names/" . "reads.qual";
+my $fasta_out = "$fasta_file" . "_temp";
+my $qual_out = "$qual_file" . "_temp";
+
+open ( FASTA, $fasta_file ) or die ( "$fasta_file not found\n" );
+open ( QUAL, $qual_file ) or die ( "$qual_file not found\n" );
+open ( FASTA_OUT, ">$fasta_out" ) or die ( "Cannot open $fasta_out" );
+open ( QUAL_OUT, ">$qual_out" ) or die ( "Cannot open $qual_out" );
+
+# Fasta file.
+print "Cleaning fasta...\n";
+
+my $a_line;
+my @split_line;
+while ( $a_line = <FASTA> ) {
+  if ( $a_line =~ />/ ) {
+    if ( $a_line =~ / / ) {
+      @split_line = split / /, $a_line;
+      print FASTA_OUT "$split_line[0]\n";
+    }
+    else {
+      print FASTA_OUT $a_line;
+    }
+  }
+  else {
+    print FASTA_OUT $a_line;
+  }
+}
+
+system ( "mv $fasta_out $fasta_file" );
+
+print "done\n";
+
+# Qual file.
+print "Cleaning qual...\n";
+
+while ( $a_line = <QUAL> ) {
+  if ( $a_line =~ />/ ) {
+    if ( $a_line =~ / / ) {
+      @split_line = split / /, $a_line;
+      print QUAL_OUT "$split_line[0]\n";
+    }
+    else {
+      print QUAL_OUT $a_line;
+    }
+  }
+  else {
+    print QUAL_OUT $a_line;
+  }
+}
+
+system ( "mv $qual_out $qual_file" );
+
+print "done\n";
+

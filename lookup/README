@@ -1,0 +1,181 @@
+QueryLookupTable and its brethren.
+
+This directory contains files which are part of a system for:
+
+(a) building a kmer lookup table for a given genome, which then forms
+    a big file on disk (see MakeLookupTable.cc);
+
+(b) aligning query sequences to the given genome, by reading in the kmer 
+    lookup table from disk and matching the query sequences to it
+    (see QueryLookupTable.cc).
+
+The structure of the lookup table is maintained in LookupTable.h.
+
+SOME OF THE DOCUMENTATION HERE IS OUTDATED.
+
+---------------------------------------------------------------------------------
+
+SOME EXAMPLES TO PLAY WITH
+
+The following are in /seq/wgascratch02/lookup:
+
+     MakeLookupTable
+     QueryLookupTable
+     the source files
+
+     build33.lookup         (prebuilt 12-mer lookup table for the human genome)
+     build33.lookup.22      (prebuilt 12-mer lookup table for human chr. 22)
+
+     chimp1000.fastb        (base and quality
+     chimp1000.qualb         scores for 1000 random chimp reads)
+
+The lookup table for human chr. 22 can be used to rapidly experiment with 
+the QueryLookupTable options, which are described in QueryLookupTable.cc.
+
+example:
+
+QueryLookupTable SEQS=chimp1000.fastb QUALS=chimp1000.qualb                \
+     K=12 LOOKUP_TABLE=/seq/wgascratch02/lookup/build33.lookup.22 MAX_FREQ=500
+
+try again with 
+     VISUAL=True
+     or TARGET_NAMING=from_file
+     or higher MAX_FREQ 
+     or MAX_FREQ=500:5000
+     or PARSEABLE=True READABLE_BRIEF=False
+
+Note: if you run the code versus the whole human genome (build33.lookup),
+be aware that it has to read in 15 GB from disk each time.  This argues for
+running on relatively large sets of query sequences, to avoid overloading
+the system.  One additional feature (worth knowing about) is that on
+consecutive runs, the operating system will tend to cache the disk, which
+can speed up the reads (by up to around ten-fold).  I have asked systems if 
+they have any other advice about this.
+
+Note: the lookup tables were (in effect) built with
+     MakeLookupTable K=12 SOURCE="/wga/scratch/build33/*.fa.gz" \
+          OUT=/seq/wgascratch02/lookup/build33.lookup
+     MakeLookupTable K=12 SOURCE="/wga/scratch/build33/chr22.fa.gz" \
+          OUT=/seq/wgascratch02/lookup/build33.lookup.22
+
+---------------------------------------------------------------------------------
+
+HOW TO ACCESS AND COMPILE THE SOURCE CODE
+
+1. Go somewhere where you have at least 100MB free space.
+2. setenv CVSROOT /wga/devel/ArachneCVS
+3. limit stacksize 100000
+4. cvs checkout Arachne
+5. cd Arachne
+6. make QueryLookupTable MakeLookupTable
+
+---------------------------------------------------------------------------------
+
+KNOWN PROBLEMS, LIMITATIONS, AND CAVEATS
+
+1. The total number of bases in the genome fasta files cannot exceed four
+billion.  This limitation is intrinsic.
+
+2. The method works by reading in a very large hash table on disk, about 15 GB
+for the human genome if hashed with 12-mers.  Consequently, querying this table
+involves a lot of disk reading.  This limitation is intrinsic, although if run
+on a sufficiently large set of query sequences, the disk cost is negligible.
+
+3. Ambiguous bases (including Ns representing gaps) in the genome and the query
+sequence are all changed to A.  Consequently, these bases can show up 
+incorrectly in alignments.  [This could be fixed by keeping a separate vector 
+showing the positions of ambiguous bases.]
+
+4. Alignments sometimes leave off last base.
+
+5. If a query sequence aligns to the end of one target fasta record, and to
+the beginning of the next, the resulting alignments may be garbled.  
+
+6. Alignments may appear twice, because MakeLookupTable divides the genome 
+into chunks which overlap slightly.  Also, incomplete alignments could result
+when a query sequence aligns "off the end" of a chunk.
+
+7. Query sequences can be no longer than 200 Mb, and the code has only been
+tested on sequences of size up to 200 kb.
+
+---------------------------------------------------------------------------------
+
+ALIGNMENT FORMAT
+
+We describe the parseable format ("PARSEABLE") of alignments outputted 
+by QueryLookupTable.cc.  Other related formats are then described.
+
+An alignment is given by a single tab-delimited line having the 
+following fields:
+
+QUERY q q_start q_stop q_length q_rc t t_start t_stop t_length     \
+     n_blocks g1 b1 e1 g2 b2 e2 ... gn bn en
+
+where:
+
+     QUERY is a fixed string, which can be used to grep out PARSEABLE alignments
+
+     q is the numerical identifier of the query sequence
+
+     q_start, q_stop are the starting and stopping positions of the alignment 
+     on the query sequence (or on its reverse complement, if q_rc = 1)
+
+     q_length is the length of the query sequence
+
+     q_rc is 0 if the query sequence is in alignment to the target genome,
+     1 if the reverse complement of the query sequence is in alignment
+
+     t is the identifier of the target genome fasta record
+
+     t_start, t_stop are the starting and stopping position of the alignment
+     on the given target fasta record
+
+     t_length is the length of the target fasta record
+
+     n_block is the number of blocks in the alignment (see below)
+
+     g1 is zero
+
+     b1 is the number of bases in the first block
+
+     e1 is the number of nonaligning bases in the first block
+
+     g2 is the gap between the first and the second block, positive if there's
+     a gap on the query sequence, negative if there's a gap on the target
+     sequence
+
+Example:
+
+     Consider an alignment between the query sequence ACGGTACGTTACTATTT and
+     the target sequence AAAACGCTGTTTTAGTAT, given by the following picture:
+  
+                         ACGGTACG TT ACTATTT
+                      AAAACGCT  GTTTTAGTAT
+
+     Then we would have
+
+     q_start = 0, q_stop = 15
+     t_start = 3, t_stop = 18
+     
+     n_blocks = 4
+
+     g1 = 0     g2 = -2    g3 = 1     g4 = 1
+     b1 = 5     b2 = 1     b3 = 2     b4 = 5
+     e1 = 1     e2 = 0     e3 = 0     e4 = 0
+
+Note.  All identifiers and coordinates are ZERO-BASED.  The stopping position
+of an interval on a sequence is defined to be the coordinate of the base
+after the last base in the interval.  Mismatch counts are computed after
+replacing all ambiguous bases by "random" bases.
+
+Related formats:
+
+PARSEABLE_BRIEF: same as parseable, but omits detail starting with n_blocks
+
+READABLE_BRIEF: one human-readable line
+
+RMR_BY_BLOCK: show reciprocal mismatch rate for each block in the alignment
+
+VISUAL: shows a picture of the alignment, including quality scores for 
+query sequence (if provided).  Should be used in conjunction with one of the
+other formats.

@@ -1,0 +1,128 @@
+#!/bin/csh -f
+
+# usage: build_micro_baby-replica1 bam-version region range
+
+# Build a micro-baby up through gap_closed unipaths, attempting to use the code of 
+# bushbaby v1 and the data of v1 or v2.
+
+# THIS WIPES OUT THE DIRECTORY AND REBUILDS IT.
+
+echo "running build_micro_baby-replica1 $1 $2 $3 $4 $5"
+
+# first argument is BAM version, either 1 or 2
+
+set bam = $1
+
+# second argument is the name of the region, e.g region1 or whatever you want
+
+set region = $2
+
+# third argument is range, e.g. 0:1000-5000, standing for this range of bases
+# on super_0
+
+set range = $3
+
+# optional fourth and fifth arguments (these are passed to RunAllPaths3g)
+
+set extra1 = $4
+set extra2 = $5
+
+# define the bushbaby directory, and create the region inside it
+
+# REF:  O.garnettii/babies/microbaby_$region
+# DATA: $region
+# RUN:  run
+
+echo "`date`: starting"
+set baby = /wga/scr1/ALLPATHS/O.garnettii/babies
+set ref = $baby/microbaby_$region
+set data = $ref/$region
+set run = $data/run
+
+/bin/rm -rf $ref
+mkdir $ref
+mkdir $data
+echo $range > $ref/region
+set tig = `echo $range | tr ':' ' ' | Col 1`
+echo "results are in $run"
+
+# create mini-genome in it's own reference dir
+
+set start = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 2`
+set stop = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 3`
+SelectBases PRE=/ INPUT=$baby/../genome.fasta CONTIG=$tig START=$start STOP=$stop \
+     OUTPUT=$ref/genome.fasta
+( cd $ref; MakeLookupTable SOURCE=genome.fasta OUT_HEAD=genome LOOKUP_ONLY=True )
+MakeLookupTable SOURCE=$ref/genome.fasta OUT_HEAD=$ref/genome
+cp $ref/genome.fastamb $data
+FastbSizes FILE=$ref/genome.fastb TOTAL_ONLY=True REPORT=$ref/genome.size
+GenomeUnipathStats GENOME=$ref/genome K=96 DOT=$ref/genome.dot
+
+# find genome size
+set genome_size = `head -1 $ref/genome.size`
+echo Genome Size: $genome_size
+
+# copy ploidy file to data dir
+
+( cd $baby/..; cp ploidy $data )
+
+# extract the fragment data and build assembly input files
+
+set samtools = /seq/dirseq/samtools/current/samtools
+$samtools view /wga/scr1/ALLPATHS/O.garnettii/bam/bushbaby.frag.assembly{$bam}.bam \
+     super_$range | SAM2CRDDump \
+     OUT_HEAD=$data/frag_reads_orig SEP=-15 DEV=10 USE_OQ=True NH=True
+
+# extract jumpers generate assembly input files
+# (SEP and DEV are wrong)
+# NONSENSE FOR NOW, TURNED OFF.
+
+# $samtools view /wga/scr4/jaffe/stickleback/S-9203.bam super_$range \
+#      | egrep "30NCK|30NE7" | SAM2CRDDump \
+#     OUT_HEAD=$data/jump_reads_orig SEP=2090 DEV=230 NH=True
+
+# run the assembly that applies FindErrors to the fragment pairs
+
+( cd /wga/dev/jaffe/checkout1/BroadCRD/bin; \
+GenerateLaneFiles HEAD=$data/frag_reads_orig )
+
+( cd /wga/dev/jaffe/checkout1/BroadCRD/bin; \
+RunAllPathsLG PRE=/ ALLPATHS_BASE=/wga/scr1/ALLPATHS \
+     REFERENCE_NAME=O.garnettii/babies/microbaby_$region \
+     DATA_SUBDIR=$region RUN=run K=96 OVERWRITE=True $extra1 $extra2 \
+     CORRECT_PAIRS_VIA_ALIGNS=False USE_JUMPS_IN_UNIPATHS=False FRAG_K=28 \
+     TARGETS=none TARGETS_RUN=frag_reads_edit.fastb \
+     DONT_UPDATE_TARGETS_OF="{MergeReadSets-2}" )
+
+( cd /wga/dev/jaffe/checkout2/BroadCRD/bin; \
+RunAllPathsLG PRE=/ ALLPATHS_BASE=/wga/scr1/ALLPATHS \
+     REFERENCE_NAME=O.garnettii/babies/microbaby_$region \
+     DATA_SUBDIR=$region RUN=run K=96 OVERWRITE=True $extra1 $extra2 \
+     CORRECT_PAIRS_VIA_ALIGNS=True FRAG_K=28 \
+     USE_JUMPS_IN_UNIPATHS=False \
+     TARGETS=none TARGETS_RUN=filled_reads.unipaths.k96 \
+     DONT_UPDATE_TARGETS_OF="{FindErrors}" )
+
+# dunno if this uses the right checkout:
+
+/wga/dev/jaffe/checkout2/BroadCRD/bin/CloseUnipathGaps NUM_THREADS=16          \
+                 DIR=$run IN_HEAD=frag_reads_edit JUMP_HEAD=                   \
+                 UNIBASES=filled_reads.unibases.k96 UNIBASES_K=96              \
+                 OUT_HEAD=gap_closed WORKDIR=tmp 
+
+# Run PathsToLocs to find unipath placements on the genome
+# They do not share the same kmer numbers, so set RENUMBER=True
+
+PathsToLocs PRE=/wga/scr1/ALLPATHS DATA=O.garnettii/babies/microbaby_$region/$region \
+     RUN=run K=96 PATHS=all_reads.unipaths.k96 RENUMBER=True \
+     UNIPATH=True UNIPATHS_FASTB=all_reads.unibases.k96 SHOW_PLACEMENTS=True \
+     MATCH_LEN_PERCENT=100 RC_TOO=True GENOME=../genome TIG_OFFSET=$tig \
+     READS=all_reads POS_OFFSET=$start >& $run/PathsToLocs.out
+ParsePathsToLocs IN=$run/PathsToLocs.out \
+     UNIBASES=$run/all_reads.unibases.k96 >& $run/PathsToLocs.out.summary
+
+echo ""
+HyperToReftigs PRE=/ DATA=$data RUN=run K=96 READS=gap_closed ORIGIN=$start
+
+echo ""
+echo "`date`: done"

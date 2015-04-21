@@ -1,0 +1,13 @@
+#!/bin/bash
+bindir=$HOME/l/builds/473/70/bin
+export PATH=$bindir:$PATH
+
+dir=`dirname $0`
+
+which LongProto
+
+( $dir/test_xhet_better 1 5 $1 1>test_xhet1.report 2>&1; echo $? > test_xhet1.status ) &
+( $dir/test_xhet_better 2 5 $1 1>test_xhet2.report 2>&1; echo $? > test_xhet2.status ) &
+( $dir/test_xhet_better 3 5 $1 1>test_xhet3.report 2>&1; echo $? > test_xhet3.status ) &
+( $dir/test_xhet_better 4 5 $1 1>test_xhet4.report 2>&1; echo $? > test_xhet4.status ) &
+wait

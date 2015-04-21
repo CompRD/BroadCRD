@@ -1,0 +1,28 @@
+#!/bin/csh
+
+# This code generates reduced coverage assemblies for mouse chromosome 1.
+# The assemblies were (probably) run using revision 34935, except for 
+# MakeScaffoldsLG, which was run with 34987.
+#
+# Note inclusion of the mitochondrial genome in the first call to AlignScaffolds,
+# which is not really right but avoids indexing issues.
+
+set mouse = /wga/scr1/ALLPATHS/M.musculus
+set mouse_refhead = $mouse/female.nonrandom
+
+foreach f (50 75 100)
+     foreach j (50 75 100)
+          paths/build_micro mouse jaffe.cov.$f.$j 1 FRAG_COV=$f% JUMP_COV=$f% \
+               > ~jaffe/crd/mouse.cov.$f.$j
+          set run = /wga/scr1/ALLPATHS/M.musculus/babies/jaffe.cov.$f.$j/data/run
+          set test = $run/ASSEMBLIES/test
+          set A = $test/linear_scaffolds.efasta
+          FastaToEfasta IN=$test/linear_scaffolds.fasta OUT=$A
+          AlignScaffolds IN=$A REF_HEAD=$mouse_refhead.chrM+1 OUT_HEAD=$A.vs_ref \
+               ANNOT_FILE=$mouse/annotation/annotations \
+               >& $A.AlignScaffolds.for_paper.out
+          AlignScaffolds IN=$A REF_HEAD=$mouse/mm8.chr1 OUT_HEAD=$A.vs_mm8 \
+               ANNOT_FILE=$mouse/annotation/annotations_segdup \
+               >& $A.AlignScaffolds.vs_mm8.for_paper.out
+     end
+end

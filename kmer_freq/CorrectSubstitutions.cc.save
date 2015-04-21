@@ -1,0 +1,985 @@
+// Copyright (c) 2005 Broad Institute/Massachusetts Institute of Technology
+
+/*
+
+This is a modified version of CorrectSubstitutions.cc.  The changes are being
+abandoned for now but may be of use later.  Here is a summary of the changes:
+
+- Complex of changes
+(a) FindReadPairAlignments now has second arg aligns2 and uses it for phase 2 output
+(b) Phase 2 doesn't check for stop - start <= maxcliq.
+(c) Second call to CorrectFromAligns done using aligns2 and mode 1.
+
+- Put some elements of aligns in aligns2.
+
+- Use BINOMIAL_BOUND the second time. [NOT RECOMMENDED.]
+
+- MAX_ALIGNS2 arg.
+
+- If two reads align, and bases on one are frequent...   [COMMENTED OUT.]
+
+- PerturbBases and application (surrounded by ===, commmented out).
+
+- true_bases --> resize made safer.
+
+- Don't test all_high the second time.
+
+- Bugfix: add line u2 += start.  (DOESN'T DO MUCH.)
+
+*/
+
+// CorrectSubstitutions.  Given a fastb file of reads, and the table T of nonunique
+// k-mers in them (together with their multiplicities, as produced by 
+// FindNonuniqueKmers), attempt to correct sequencing errors in the reads using
+// the following scheme:
+//
+// 1. Find alignments between reads, as follows.  For each k-mer which appears at
+// most MAXCLIQ times in the reads and their reverse complements, find all shared
+// instances between reads (or their reverse complements), such that the extended 
+// read-read alignment has a substitution rate of at most MAX_ERROR_PERCENT.  Such
+// an alignment is defined by a single number (the offset).  If more than one offset
+// if found for two reads, we declare the alignment to be ambiguous, and discard it.
+//
+// 2. Provisionally edit the reads R as follows.  Scan each read R starting at the 
+// left.  Take the k-mer x starting at the given position, and binary search T.
+// If x is in T, advance to the next k-mer in R.  Otherwise, look up all 3k of the 
+// point mutations of x in T, and if exactly one is present, and has multiplicity 
+// >= MIN_MULT, edit R to incorporate the corresponding correction, and advance to 
+// the kmer which starts after the changed position.  Then repeat the process,
+// going backwards.
+//
+// 3. Repeat step 1, but now seeding the alignments on shared k-mers in the 
+// provisionally edited reads.  The alignments are still between the unedited reads
+// and as before are required to satisfy the substitution rate bound.  Combine the
+// two sets of alignments between the unedited reads.  Discard the provisionally
+// edited reads.
+
+// 4. Recover alignments by transitivity.
+
+// 5. For each read R, form the multiple alignment given by all the reads which are
+// known to align to it.  (Ignore reads having more than MAX_ALIGNS alignments.)
+// Scan each column in the multiple alignment.  For each column in which 
+// - the number n of the most common base b is at least MIN_MULT
+// - the base of R is not b
+// - if k is the number of other bases and p = ACTUAL_ERROR_RATE, then
+//   sum_(x=k)^n (n choose x) p^x (1-p)^(n-x) >= BINOMIAL_BOUND
+// - the base on R does not belong to a kmer which occurred more than MAXCLIQ 
+//   times in the reads or the provisionally edited reads, 
+// then we change the base on R to b.
+//
+// 6. We say that two read pairs (x1,x2) and (y1,y2) align if
+// x1,y1 share a k-mer (forward on the reads) and x2,y2 share a k-mer (forward on
+// the reads).  An alignment is defined by offsets for x1,y1 and x2,y2.  If the
+// offsets are not uniquely determined, the alignment is disregarded.  This code
+// finds the alignments between read pairs such that one of the k-mers appears at
+// most MAXCLIQ times (forward on reads), and uses those alignments to correct some
+// sequencing errors.  This is done by taking each read pair, and stacking up all
+// the pairs which align to it (and which we found above).  The offsets define
+// multiple alignments between the reads on each end.  We then process each column
+// in the multiple alignments and correct errors.
+//
+// SHOW_MISTAKES: show mistakes
+// (requires existence of reads.true.fastb)
+//
+// SHOW_CORRECTIONS: show corrected errors
+// 
+// SHOW_LOTS: show uncorrected errors, corrected errors, and mistakes
+// (requires existence of reads.true.fastb)
+
+#ifndef FORCE_DEBUG
+     #define NDEBUG
+#endif
+
+#include <math.h>
+
+#include "Basevector.h"
+#include "Bitvector.h"
+#include "Feudal.h"
+#include "FeudalMimic.h"
+#include "math/Functions.h"
+#include "KmerRecord.h"
+#include "MainTools.h"
+#include "ReadPairing.h"
+#include "SortKmers.h"
+#include "VecTemplate.h"
+
+double BinomialSum( int n, int k, double p )
+{    ForceAssertGe( n, 1 );
+     ForceAssertGe( k, 0 );
+     ForceAssertLe( k, n );
+     double sum = 0, choose = 1.0, product = pow( 1.0 - p, double(n) );
+     for ( int i = 0; i <= k; i++ )
+     {    sum += choose * product;
+          choose *= double(n - i);
+          choose /= double(i + 1);
+          product *= p / (1.0 - p);    }
+     return sum;    }
+
+template<int K, int I> inline void GetNextKmerPairMark( 
+     const vector< kmer_record<K,I> >& R, int S, int& read_id1, int& read_id2, 
+     int& pos1, int& pos2, int max_set, vecbitvector& frequent )
+{    static int i, j, r1, r2;
+     if ( read_id1 >= 0 ) goto after_return;
+     for ( i = 0; i < S; i++ )
+     {    int l;
+          for ( j = i+1; j < S; j++ )
+          {    for ( l = (K+3)/4 - 1; l >= 0; l-- )
+                    if ( R[j].Bytes( )[l] != R[i].Bytes( )[l] ) break;
+               if ( l >= 0 ) break;    }
+          if ( j - i > max_set )
+          {    for ( int u = i; u < j; u++ )
+               {    int id = R[u].GetId( ), pos = R[u].GetPos( );
+                    if ( pos < 0 ) pos = -pos;
+                    --pos;
+                    for ( int p = pos; p < pos + K; p++ )
+                         frequent[id].Set( p, True );    }
+               i = j - 1;
+               continue;    }
+          for ( r1 = i; r1 < j; r1++ )
+          {    read_id1 = R[r1].GetId( );
+               pos1 = R[r1].GetPos( );
+               for ( r2 = r1+1; r2 < j; r2++ )
+               {    read_id2 = R[r2].GetId( );
+                    if ( read_id1 == read_id2 ) continue;
+                    pos2 = R[r2].GetPos( );
+                    return;
+                    after_return: continue;    }    }    
+          i = j - 1;    }    
+     read_id1 = -1;    }
+
+const int undefined = 1000000000;
+
+// Storage of alignments.  We keep a vec< vec< pair<int,int> > >, with one outer 
+// entry for each read, and one pair for each read it aligns to.  The first entry
+// in the pair is the id of the read, or -id-1, in case the second read has been
+// reverse complemented.  The second entry in the pair is the offset (pos1-pos2)
+// of the alignment, or "undefined" in case the offset is ambiguous.  This initial 
+// implementation will need to be revised to work efficiently on large genomes.
+
+template<int I, int k> void FindReadAlignments( const vecbasevector& reads, 
+     const vecbasevector& creads, int maxcliq, float max_error_percent, 
+     vec< vec< pair<int,int> > >& aligns, Bool reads_eq_creads,
+     vecbitvector& frequent )
+{    int N = reads.size( );
+     aligns.resize(N);
+     vec<int> rid(N);
+     for ( int i = 0; i < N; i++ ) 
+          rid[i] = i;
+     unsigned int S = 0;
+     for ( int l = 0; l < N; l++ )
+          S += reads[l].size( ) - k;
+     S += S/4;
+     S /= 33;
+     vec< kmer_record<k,I> > R(S);
+     for ( int pass = 0; pass < 100; pass++ )
+     {    dummy<100> d100;
+          SortKmers( d100, creads, rid, pass, R, S );
+          ForceAssertGe( R.size( ), S );
+          int id1(-1), id2, pos1, pos2;
+          while(1)
+          {    GetNextKmerPairMark<k,I>( R, S, id1, id2, pos1, pos2, 
+                    maxcliq, frequent );
+               if ( id1 < 0 ) break;
+               const basevector &b1 = reads[id1], &b2 = reads[id2];
+               int p1 = pos1, p2 = pos2;
+               int rc = (p1 < 0) ^ (p2 < 0);
+               if ( p1 < 0 ) p1 = -p1;
+               if ( p2 < 0 ) p2 = -p2;
+               --p1;
+               --p2;
+               int len1 = b1.size( ), len2 = b2.size( );
+               if (rc) p2 = len2 - k - p2;
+               int offset = p1 - p2;
+               int start = Max( 0, offset ), stop = Min( len1, offset + len2 );
+               int substitutions = 0;
+               int max_substitutions 
+                    = int( floor( float(stop-start) * max_error_percent / 100.0 ) );
+               for ( int j = start; j < stop; j++ )
+               {    if ( reads_eq_creads && j == p1 )
+                    {    j += k;
+                         if ( j == stop ) break;    }
+                    unsigned char base2 
+                         = ( !rc ? b2[j-offset] : 3 - b2[ len2 - (j-offset) - 1 ] );
+                    if ( b1[j] != base2 ) 
+                    {    ++substitutions;    
+                         if ( substitutions > max_substitutions ) break;    }    }
+               if ( substitutions > max_substitutions ) continue;
+               int id1x = ( !rc ? id1 : -id1-1 ), id2x = ( !rc ? id2 : -id2-1 );
+               Bool found = False;
+               for ( int z = 0; z < aligns[id1].isize( ); z++ )
+               {    if ( aligns[id1][z].first == id2x )
+                    {    if ( aligns[id1][z].second != offset )
+                         {    aligns[id1][z].second = undefined;    }
+                         found = True;
+                         break;    }    }
+               if ( !found ) aligns[id1].push_back( make_pair(id2x, offset) );    
+               int offset_swap;
+               if ( !rc ) offset_swap = -offset;
+               else offset_swap = offset + len2 - len1;
+               if ( !found ) aligns[id2].push_back( make_pair(id1x, offset_swap) );
+               else
+               {    for ( int z = 0; z < aligns[id2].isize( ); z++ )
+                    {    if ( aligns[id2][z].first == id1x )
+                         {    if ( aligns[id2][z].second != offset_swap )
+                              {    aligns[id2][z].second = undefined;    }
+                              break;    }    }    }    }
+          Dot( cout, pass );    }
+     cout << endl;    }
+
+template<int I, int k> void FindReadPairAlignments( const vecbasevector& reads, 
+     const vec<int>& partner, int maxcliq, float max_error_percent, 
+     vec< vec< pair<int,int> > >& aligns, vec< vec< pair<int,int> > >& aligns2 )
+{    int N = reads.size( );
+     aligns.resize(N);
+     aligns2.resize(N);
+               
+     vec<int> rid(N);
+     for ( int i = 0; i < N; i++ ) 
+          rid[i] = i;
+     unsigned int S = 0;
+     for ( int l = 0; l < N; l++ )
+          S += reads[l].size( ) - k;
+     S += S/4;
+     S /= 33;
+          
+     for ( int phase = 1; phase <= 2; phase++ )
+     {    vec< kmer_record<k,I> > R(S);
+          cout << "phase " << phase << ":\n" << "pass " << flush;
+          for ( int pass = 0; pass < 100; pass++ )
+          {    dummy<100> d100;
+               SortKmers( d100, reads, rid, pass, R, S );
+               int i, j, m;
+               for ( i = 0; i < (int) S; i++ )
+               {    for ( j = i+1; j < (int) S; j++ )
+                    {    int l;
+                         for ( l = (k+3)/4 - 1; l >= 0; l-- )
+                              if ( R[j].Bytes( )[l] != R[i].Bytes( )[l] ) break;
+                         if ( l >= 0 ) break;    }
+                    sort( R.begin() + i, R.begin() + j, kmer_record<k,I>::cmp_pos );
+                    for ( m = i; m < j; m++ )
+                         if ( R[m].GetPos( ) > 0 ) break;
+                    for ( int pass = 1; pass <= 2; pass++ )
+                    {    int start, stop;
+                         if ( pass == 1 )
+                         {    start = i;
+                              stop = m;    }
+                         else
+                         {    start = m;
+                              stop = j;    }
+                         if ( phase == 1 )
+                         {    if ( stop - start > maxcliq ) continue;
+                              for ( int u1 = start; u1 < stop; u1++ )
+                              {    int id1 = R[u1].GetId( );
+                                   int pos1 = R[u1].GetPos( );
+                                   if ( pos1 < 0 ) pos1 = -pos1;
+                                   --pos1;
+                                   for ( int u2 = start; u2 < stop; u2++ )
+                                   {    int id2 = R[u2].GetId( );
+                                        if ( id1 == id2 ) continue;
+                                        const basevector &b1 = reads[id1];
+                                        const basevector &b2 = reads[id2];
+                                        int len1 = b1.size( ), len2 = b2.size( );
+                                        int pos2 = R[u2].GetPos( );
+                                        if ( pos2 < 0 ) pos2 = -pos2;
+                                        --pos2;
+                                        int offset = pos1 - pos2;
+                                        int start = Max( 0, offset ); 
+                                        int stop = Min( len1, offset + len2 );
+                                        int substitutions = 0;
+                                        int max_substitutions = int( floor( 
+                                             float(stop-start) * max_error_percent 
+                                             / 100.0 ) );
+                                        for ( int j = start; j < stop; j++ )
+                                        {    if ( j == pos1 )
+                                             {    j += k;
+                                                  if ( j == stop ) break;    }
+                                             if ( b1[j] != b2[j-offset] )
+                                             {    ++substitutions;     
+                                                  if ( substitutions 
+                                                       > max_substitutions ) 
+                                                  {    break;    }    }    }
+                                        if ( substitutions > max_substitutions ) 
+                                             continue;
+                                        Bool found = False;
+                                        for ( int z = 0; z < aligns[id1].isize( ); 
+                                             z++ )
+                                        {    if ( aligns[id1][z].first == id2 )
+                                             {    if ( aligns[id1][z].second != 
+                                                       offset )
+                                                  {    aligns[id1][z].second 
+                                                            = undefined;    }
+                                                  found = True;
+                                                  break;    }    }
+                                        if ( !found ) 
+                                        {    aligns[id1].push_back( make_pair( id2, 
+                                                  offset ) );    }    }    }    }
+                         if ( phase == 2 )
+                         {    // if ( stop - start <= maxcliq ) continue;
+                              sort( R.begin( ) + start, R.begin( ) + stop, 
+                                   kmer_record<k,I>::id_cmp );
+                              static vec<int> ids;
+                              ids.resize( stop - start );
+                              for ( int u = start; u < stop; u++ )
+                                   ids[ u - start ] = R[u].GetId( );
+                              for ( int u1 = start; u1 < stop; u1++ )
+                              {    int id1 = R[u1].GetId( );
+                                   int id1p = partner[id1];
+                                   if ( id1p < 0 ) continue;
+                                   for ( int v = 0; v < aligns[id1p].isize( ); v++ )
+                                   {    if ( aligns[id1p][v].second == undefined ) 
+                                             continue;
+                                        int id2p = aligns[id1p][v].first;
+                                        int id2 = partner[id2p];
+                                        if ( id2 < 0 ) continue;
+                                        int u2 = BinPosition( ids, id2 );
+                                        if ( u2 < 0 ) continue;
+                                        u2 += start;
+                                        int pos1 = R[u1].GetPos( );
+                                        if ( pos1 < 0 ) pos1 = -pos1;
+                                        --pos1;
+                                        int pos2 = R[u2].GetPos( );
+                                        if ( pos2 < 0 ) pos2 = -pos2;
+                                        --pos2;
+                                        int offset = pos1 - pos2;
+                                        const basevector &b1 = reads[id1];
+                                        const basevector &b2 = reads[id2];
+                                        int len1 = b1.size( ), len2 = b2.size( );
+                                        int start = Max( 0, offset ); 
+                                        int stop = Min( len1, offset + len2 );
+                                        int substitutions = 0;
+                                        int max_substitutions = int( floor( 
+                                             float(stop-start) * max_error_percent 
+                                             / 100.0 ) );
+                                        for ( int j = start; j < stop; j++ )
+                                        {    if ( j == pos1 )
+                                             {    j += k;
+                                                  if ( j == stop ) break;    }
+                                             if ( b1[j] != b2[j-offset] )
+                                             {    ++substitutions;     
+                                                  if ( substitutions 
+                                                       > max_substitutions ) 
+                                                  {    break;    }    }    }
+                                        if ( substitutions > max_substitutions ) 
+                                             continue;
+                                        Bool found = False;
+                                        for ( int z = 0; z < aligns2[id1].isize( ); 
+                                             z++ )
+                                        {    if ( aligns2[id1][z].first == id2 )
+                                             {    if ( aligns2[id1][z].second 
+                                                       != offset )
+                                                  {    aligns2[id1][z].second 
+                                                            = undefined;    }
+                                                  found = True;
+                                                  break;    }    }
+                                        if ( !found ) 
+                                        {    aligns2[id1].push_back( make_pair( 
+                                                  id2, offset ) );    
+                                                  }    }    }    }    }
+                    i = j - 1;    }
+               Dot( cout, pass );    }
+          cout << endl;    }    }
+
+void CanonicalizeKmer( basevector& b )
+{    int K = b.size( );
+     static basevector c;
+     c.ReverseComplement(b);
+     for ( int j = 0; j < (K+3)/4; j++ )
+     {    if ( c.DataAsBytes(j) < b.DataAsBytes(j) )
+          {    b = c;
+               return;    }
+          if ( c.DataAsBytes(j) > b.DataAsBytes(j) ) return;     }    }
+
+template<int K> inline longlong GetPos( const kmer_with_count<K>& x,
+     const vec< kmer_with_count<K> >& kmers, const vec<longlong>& index,
+     int ishift )
+{    unsigned int xtop = *x.Ints( );
+     unsigned int xshift = xtop >> ishift;
+     longlong pos = lower_bound( kmers.begin( ) + index[xshift],
+          kmers.begin( ) + index[xshift+1], x ) - kmers.begin( );
+     return pos;    }
+
+int DigitCount( int n )
+{    if ( n == 0 ) return 1;
+     int digits = 0;
+     while( n > 0 )
+     {    n /= 10;
+          ++digits;    }
+     return digits;    }
+
+String Blanks( int n )
+{    static String s;
+     s.resize(n);
+     for ( int i = 0; i < n; i++ )
+          s[i] = ' ';
+     return s;    }
+
+void CorrectFromAligns( int mode, const vecbasevector& reads, 
+     const vecbasevector& true_reads, vecbasevector& creads, 
+     const vec<int>& partner, const vecbitvector& frequent,
+     vec< vec< pair<int,int> > >& aligns, double ACTUAL_ERROR_PERCENT, 
+     double BINOMIAL_BOUND, int MIN_MULT, Bool SHOW_MISTAKES, Bool SHOW_CORRECTIONS, 
+     Bool SHOW_LOTS, int MAX_ALIGNS )
+{    int nreads = reads.size( );
+     longlong corrections = 0, mistakes = 0;
+     int max_id_digits = DigitCount( nreads - 1 ) + 1;
+     for ( int id1 = 0; id1 < nreads; id1++ )
+     {    
+          // Organize alignments to id1.
+
+          if ( aligns[id1].isize( ) > MAX_ALIGNS ) continue;
+          static vec< pair<int,int> > offset_id;
+          offset_id.clear( );
+          offset_id.push_back( make_pair( 0, id1 ) );
+          if ( mode == 1 )
+          {    for ( int j = 0; j < aligns[id1].isize( ); j++ )
+               {    int id2 = aligns[id1][j].first;
+                    int offset = aligns[id1][j].second;
+                    if ( offset == undefined ) continue;
+                    offset_id.push_back( make_pair( offset, id2 ) );    }    }
+          if ( mode == 2 )
+          {    int id1p = partner[id1];
+               if ( id1p < 0 ) continue;
+               for ( int j = 0; j < aligns[id1].isize( ); j++ )
+               {    int id2 = aligns[id1][j].first;
+                    int id2p = partner[id2];
+                    if ( id2p < 0 ) continue;
+                    for ( int jp = 0; jp < aligns[id1p].isize( ); jp++ )
+                    {    if ( aligns[id1p][jp].first != id2p ) continue;
+                         int offset = aligns[id1][j].second;
+                         int offsetp = aligns[id1p][jp].second;
+                         if ( offset == undefined || offsetp == undefined ) continue;
+                         offset_id.push_back( make_pair( offset, id2 ) );
+                         break;    }    }    }
+          Sort(offset_id);
+          int id1_ind = -1;
+          for ( int u = 0; u < offset_id.isize( ); u++ )
+               if ( offset_id[u].second == id1 ) id1_ind = u;
+
+          // Generate multiple alignment as array of bases.
+
+          static vec< vec<unsigned char> > bases, true_bases;
+          int nrows = offset_id.size( );
+          if ( bases.isize( ) < nrows ) bases.resize(nrows);
+          if ( SHOW_MISTAKES && true_bases.isize( ) < nrows ) 
+               true_bases.resize(nrows);
+          int ncols = 0;
+          int offset0 = offset_id[0].first;
+          for ( int u = 0; u < nrows; u++ )
+          {    int offset = offset_id[u].first;
+               int id = offset_id[u].second;
+               if ( id < 0 ) id = -id-1;
+               ncols = Max( ncols, reads[id].isize( ) + offset - offset0 );    }
+          for ( int u = 0; u < nrows; u++ )
+          {    bases[u].resize_and_set( ncols, 'N' );
+               if (SHOW_MISTAKES) true_bases[u].resize_and_set( ncols, 'N' );    }
+          for ( int u = 0; u < nrows; u++ )
+          {    int offset = offset_id[u].first;
+               int id = offset_id[u].second;
+               int idx = ( id >= 0 ? id : -id-1 );
+               for ( int r = 0; r < reads[idx].isize( ); r++ )
+               {    unsigned char base;
+                    if ( id >= 0 ) base = reads[id][r];
+                    else base = 3 - reads[idx][ reads[idx].isize( ) - r - 1 ];
+                    bases[u][ r + offset - offset0 ] = base;    
+                    if (SHOW_MISTAKES)
+                    {    if ( id >= 0 ) base = true_reads[id][r];
+                         else base 
+                              = 3 - true_reads[idx][ reads[idx].isize( ) - r - 1 ];
+                         true_bases[u][ r + offset - offset0 ] = base;    }    }    }
+
+          // Define corrections to read id1.
+
+          Bool found_correction = False, found_mistake = False; 
+          Bool found_error = False;
+          static vec<char> column_corrections;
+          column_corrections.resize_and_set( ncols, ' ' );
+          for ( int v = 0; v < ncols; v++ )
+          {    static vec<int> count;
+               count.resize_and_set( 4, 0 );
+               for ( int u = 0; u < nrows; u++ )
+                    if ( bases[u][v] != 'N' ) ++count[ bases[u][v] ];
+               int count1 = Max(count), best1 = -1, count2 = -1, best2 = -1;
+               for ( int r = 0; r < 4; r++ )
+               {    if ( count[r] == count1 )
+                    {    best1 = r;
+                         break;    }    }
+               for ( int r = 0; r < 4; r++ )
+               {    if ( r != best1 && count[r] > count2 )
+                    {    count2 = count[r];
+                         best2 = r;    }    }
+               if ( bases[id1_ind][v] == 'N' ) continue;
+               int pos1 = v - (offset_id[id1_ind].first - offset0);
+               if ( SHOW_MISTAKES && bases[id1_ind][v] != true_bases[id1_ind][v] )
+               {    column_corrections[v] = '?';
+                    found_error = True;    }
+
+               if ( frequent.size( ) > 0 && frequent[id1][pos1] ) continue;
+               if ( bases[id1_ind][v] == best1 ) continue;
+               if ( count1 < MIN_MULT ) continue;
+               if ( BINOMIAL_BOUND > 0.0 )
+               {    int total = Sum(count);
+                    double p = 1.0 - BinomialSum( 
+                         total, total - count1 - 1, ACTUAL_ERROR_PERCENT/100.0 );
+                    if ( p < BINOMIAL_BOUND ) continue;    }
+               else if ( Sum(count) - count1 != 1 ) continue;
+
+               column_corrections[v] = '*';
+               creads[id1].Set( pos1, best1 );
+               if ( SHOW_MISTAKES && true_bases[id1_ind][v] != best1 )
+               {    column_corrections[v] = '!';
+                    ++mistakes;
+                    found_mistake = True;    }
+               ++corrections;
+               found_correction = True;    }
+          if ( !( found_error && SHOW_LOTS ) )
+          {    if ( !found_correction ) continue;
+               if ( !SHOW_CORRECTIONS && !SHOW_MISTAKES ) continue;
+               if ( !SHOW_CORRECTIONS && !found_mistake ) continue;    }
+
+          // Output multiple alignment and corrections.
+
+          if ( SHOW_MISTAKES && found_mistake )
+          {    cout << "\nsee mistake (total corrections so far = " << corrections
+                    << ", total mistakes = " << mistakes << ")\n";    }
+          cout << "\n" << Blanks( max_id_digits + 3 );
+          for ( int v = 0; v < column_corrections.isize( ); v++ )
+               cout << column_corrections[v];
+          cout << "\n";
+          for ( int u = 0; u < nrows; u++ )
+          {    int offset = offset_id[u].first, id = offset_id[u].second;
+               cout << ( id == id1 ? "@ " : "  " );
+               int idz = ( id >= 0 ? id : -id-1 );
+               int ndigits = DigitCount(idz) + ( id < 0 ? 1 : 0 );
+               cout << Blanks( max_id_digits - ndigits );
+               if ( id < 0 ) cout << "-";
+               cout << idz << " " << Blanks( offset - offset0 );
+               if ( id >= 0 ) cout << reads[id].ToString( );
+               else 
+               {    static basevector b;
+                    b.ReverseComplement( reads[-id-1] );
+                    cout << b.ToString( );    }
+               cout << "\n";    
+               if ( id == id1 && SHOW_MISTAKES )
+               {    cout << "= " << Blanks( max_id_digits - ndigits );
+                    cout << idz << " " << Blanks( offset - offset0 );
+                    cout << true_reads[id].ToString( ) << "\n";    
+                    if ( frequent.size( ) > 0 )
+                    {    cout << "H " << Blanks( max_id_digits - ndigits );
+                         cout << idz << " " << Blanks( offset - offset0 );
+                         for ( int q = 0; q < reads[id].isize( ); q++ )
+                              cout << ( frequent[id][q] ? "H" : "-" );
+                         cout << "\n";    }    }    }    }
+     if (SHOW_MISTAKES) PRINT2( mistakes, corrections )
+     else PRINT(corrections);    }
+
+/*
+void PerturbBases( const basevector& r, int K, const vec<longlong>& index,
+     int ishift, int id, const vecbasevector& true_reads,
+     const vec< kmer_with_count<20> >& kmers, int MIN_MULT,
+     vec< pair<int,unsigned char> >& perturbations )
+{    perturbations.clear( );
+     for ( int j = 0; j <= r.isize( ) - K; j++ )
+     {    static basevector b, m;
+          b.SetToSubOf( r, j, K );
+          m = b;
+          CanonicalizeKmer(m);
+          kmer_with_count<20> x( m, 0 );
+          longlong pos = GetPos( x, kmers, index, ishift );
+          if ( pos == kmers.isize( ) ) continue;
+          if ( eq_kmer( x, kmers[pos] ) ) continue;
+          int uhit = -1, vhit = -1, counthit = -1;
+          for ( int u = 0; u < K; u++ )
+          {    for ( int v = 0; v < 4; v++ )
+               {    if ( b[u] == v ) continue;
+                    m = b;
+                    m.Set( u, v );
+                    CanonicalizeKmer(m);
+                    kmer_with_count<20> y( m, 0 );
+                    longlong mpos = GetPos( y, kmers, index, ishift );
+                    if ( mpos == kmers.isize( ) ) continue;
+                    if ( !eq_kmer( y, kmers[mpos] ) ) continue;
+                    int count = kmers[mpos].Count( );
+                    if ( count < MIN_MULT || uhit >= 0 ) goto next_posy;
+                    uhit = u;
+                    vhit = v;    
+                    counthit = count;    }    }
+          if ( uhit >= 0 ) 
+          {    cout << "change base " << j + uhit << " on read " << id
+                    << " to " << as_base(vhit);
+               if ( true_reads[id][j+uhit] != vhit ) cout << " (WRONG!)";
+               cout << "\n";
+               perturbations.push_back( make_pair( j+uhit, vhit ) );
+               // r.Set( j + uhit, vhit );
+               // if ( jix == 0 || j > ji[jix-1] ) j += uhit;    
+               // else j = j + uhit - K + 1;    
+                    }
+          next_posy: continue;    }    }
+*/
+
+void AddAlignsByTransitivity( const vecbasevector& reads, 
+     vec< vec< pair<int,int> > >& aligns, int MAX_ALIGNS, double MAX_ERROR_PERCENT,
+     int K, const vec<Bool>& all_high )
+{    cout << Date( ) << ": looking for alignments by transitivity" << endl;
+     int nreads = reads.size( );
+     int by_transitivity = 0;
+     for ( int id1 = 0; id1 < nreads; id1++ )
+     {    if ( aligns[id1].isize( ) > MAX_ALIGNS ) continue;
+          if ( all_high.nonempty( ) && all_high[id1] ) continue;
+          int len1 = reads[id1].size( );
+          const basevector& b1 = reads[id1];
+          static vec<int> id1_to;
+          id1_to.clear( );
+          int n1 = aligns[id1].size( );
+          for ( int x = 0; x < n1; x++ )
+               id1_to.push_back( aligns[id1][x].first );
+          Sort(id1_to);
+          static vec<int> id1_to_new;
+          id1_to_new.clear( );
+          for ( int j1 = 0; j1 < n1; j1++ )
+          {    if ( aligns[id1].isize( ) > MAX_ALIGNS ) break;
+               int id2 = aligns[id1][j1].first;
+               Bool rc2 = ( id2 < 0 );
+               int id2x = ( !rc2 ? id2 : -id2-1 );
+               int len2 = reads[id2x].size( );
+               int offset12 = aligns[id1][j1].second;
+               for ( int j2 = 0; j2 < aligns[id2x].isize( ); j2++ )
+               {    int id3 = aligns[id2x][j2].first;
+                    if ( id3 == id1 || id3 == -id1-1 ) continue;
+                    Bool rc3 = ( id2 < 0 ) ^ ( id3 < 0 );
+                    int id3x = ( id3 >= 0 ? id3 : -id3-1 );
+                    int len3 = reads[id3x].size( );
+                    int offset23 = aligns[id2x][j2].second;
+                    int offset13;
+                    if ( !rc2 ) offset13 = offset12 + offset23;
+                    else offset13 = offset12 - ( offset23 + len3 - len2 );
+                    if ( offset13 + len3 < K || offset13 > len1 - K ) continue;
+                    int id3y = ( !rc3 ? id3x : -id3x-1 );
+                    if ( BinMember( id1_to, id3y ) ) continue;
+                    if ( Member( id1_to_new, id3y ) ) continue;
+                    int start = Max( 0, offset13 );
+                    int stop = Min( len1, offset13 + len3 );
+                    int substitutions = 0;
+                    int max_substitutions = int( floor( 
+                         float(stop-start) * MAX_ERROR_PERCENT / 100.0 ) );
+                    const basevector& b3 = reads[id3x];
+                    for ( int j = start; j < stop; j++ )
+                    {    unsigned char base3 = ( !rc3 ? b3[j-offset13] 
+                              : 3 - b3[ len3 - (j-offset13) - 1 ] );
+                         if ( b1[j] != base3 ) 
+                         {    ++substitutions;     
+                              if ( substitutions > max_substitutions ) 
+                              {    break;    }    }    }
+                    if ( substitutions > max_substitutions ) continue;
+                    ++by_transitivity;
+                    aligns[id1].push_back( make_pair( id3y, offset13 ) );
+                    id1_to_new.push_back(id3y);    }    }    }
+     cout << Date( ) << ": done, found " << by_transitivity 
+          << " additional alignments" << endl;    }
+
+int main( int argc, char *argv[] )
+{
+     RunTime( );
+
+     BeginCommandArguments;
+     CommandArgument_String(PRE);
+     CommandArgument_String(DATA); 
+     CommandArgument_String(RUN); 
+     CommandArgument_Int(K);
+     CommandArgument_Int_OrDefault(K0, 14); 
+     CommandArgument_String(KMERS);
+     CommandArgument_String(READS_IN);
+     CommandArgument_String_OrDefault(READS_OUT, "");
+     CommandArgument_Int(MAXCLIQ);
+     CommandArgument_Int(MIN_MULT);
+     CommandArgument_Double(MAX_ERROR_PERCENT);
+     CommandArgument_Bool_OrDefault(SHOW_MISTAKES, False);
+     CommandArgument_Bool_OrDefault(SHOW_CORRECTIONS, False);
+     CommandArgument_Bool_OrDefault(SHOW_LOTS, False);
+     CommandArgument_Double(ACTUAL_ERROR_PERCENT);
+     CommandArgument_Double(BINOMIAL_BOUND);
+     CommandArgument_Int(MAX_ALIGNS);
+     CommandArgument_Int(MAX_ALIGNS2);
+     EndCommandArguments; 
+
+     if (SHOW_LOTS) 
+     {    SHOW_MISTAKES = True;
+          SHOW_CORRECTIONS = True;    }
+
+     // Check essential input requirements.
+
+     ForceAssertLe( K0, 16 );
+     ForceAssertLe( K0, K );
+     ForceAssertGe( K, 16 );
+
+     // Check special input requirements, imposed only because code not implemented
+     // for all K.
+
+     ForceAssertEq( K, 20 );
+
+     // Load data.
+
+     String run_dir = PRE + "/" + DATA + "/" + RUN;
+     vecbasevector reads( run_dir + "/" + READS_IN );
+     int nreads = reads.size( );
+     vecbasevector true_reads;
+     if (SHOW_MISTAKES) true_reads.ReadAll( run_dir + "/reads.true.fastb" );
+     vec< kmer_with_count<20> > kmers;
+     BinaryRead2( run_dir + "/" + KMERS, kmers );
+     vec<read_pairing> pairs;
+     ReadPairsFile( run_dir + "/reads.pairto", pairs );
+     vec<int> partner( nreads, -1 );
+     for ( int i = 0; i < pairs.isize( ); i++ )
+     {    partner[ pairs[i].id1 ] = pairs[i].id2;
+          partner[ pairs[i].id2 ] = pairs[i].id1;    }
+
+     // Set up index to kmers using the first K0 bases.
+
+     longlong four_to_K0 = 1;
+     for ( int i = 0; i < K0; i++ )
+          four_to_K0 *= 4;
+     vec<longlong> index( four_to_K0 + 1, -1 );
+     int ishift = 2 * (16 - K0);
+     for ( longlong i = kmers.size( ) - 1; i >= 0; i-- )
+     {    static basevector b(K0);
+          unsigned int x = *kmers[i].Ints( );
+          index[ x >> ishift ] = i;    }
+     index[four_to_K0] = kmers.size( );
+     for ( longlong i = four_to_K0 - 1; i >= 0; i-- )
+          if ( index[i] == -1 ) index[i] = index[i+1];
+
+// =================================================================================
+// =================================================================================
+// =================================================================================
+// =================================================================================
+
+     /*
+     {
+     vecbasevector creads( run_dir + "/" + READS_IN );
+     double clock = -1.0;
+     for ( int i = 0; i < nreads; i++ )
+     {    basevector& r = creads[i];
+          if ( i % 100000 == 0 ) 
+          {    if ( i > 0 )
+               {    double time_used = WallClockTime( ) - clock;
+                    cout << "i = " << i << " of " << nreads
+                         << ", time used = " << setprecision(3) 
+                         << time_used << " seconds" << endl;    }
+               clock = WallClockTime( );    }
+          if ( r.isize( ) < K ) continue;
+
+          vec< pair<int,unsigned char> > perturbations;
+          PerturbBases( r, K, index, ishift, i, true_reads, kmers, MIN_MULT,
+               perturbations );
+          UniqueSort(perturbations);
+          cout << "\nexploring secondary perturbations:\n";
+          for ( int u = 0; u < perturbations.isize( ); u++ )
+          {    cout << "from change of base " << perturbations[u].first
+                    << " to " << as_base(perturbations[u].second) << ":\n";
+               static basevector s;
+               s = r;
+               s.Set( perturbations[u].first, perturbations[u].second );
+               vec< pair<int,unsigned char> > perturbations2;
+               PerturbBases( s, K, index, ishift, i, true_reads, kmers, MIN_MULT,
+                    perturbations2 );
+               UniqueSort(perturbations2);
+               cout << "\nexploring tertiary perturbations:\n";
+               for ( int u = 0; u < perturbations2.isize( ); u++ )
+               {    cout << "from change of base " << perturbations2[u].first
+                         << " to " << as_base(perturbations2[u].second) << ":\n";
+                    static basevector t;
+                    t = s;
+                    t.Set( perturbations2[u].first, perturbations2[u].second );
+                    vec< pair<int,unsigned char> > perturbations3;
+                    PerturbBases( t, K, index, ishift, i, true_reads, kmers, 
+                         MIN_MULT, perturbations3 );    }    }
+          cout << "\n";    }
+
+     if ( READS_OUT != "" ) creads.WriteAll( run_dir + "/" + READS_OUT );
+     }
+     exit(0);
+     */
+
+// =================================================================================
+// =================================================================================
+// =================================================================================
+// =================================================================================
+
+     // Make provisional changes.
+
+     vecbasevector creads( run_dir + "/" + READS_IN );
+     double clock = -1.0;
+     for ( int i = 0; i < nreads; i++ )
+     {    basevector& r = creads[i];
+          if ( i % 100000 == 0 ) 
+          {    if ( i > 0 )
+               {    double time_used = WallClockTime( ) - clock;
+                    cout << "i = " << i << " of " << nreads
+                         << ", time used = " << setprecision(3) 
+                         << time_used << " seconds" << endl;    }
+               clock = WallClockTime( );    }
+          if ( r.isize( ) < K ) continue;
+          static vec<int> ji;
+          ji.clear( );
+          for ( int j = 0; j <= r.isize( ) - K; j++ )
+               ji.push_back(j);
+          for ( int j = r.isize( ) - K; j >= 0; j-- )
+               ji.push_back(j);
+          for ( int jix = 0; jix < ji.isize( ); jix++ )
+          {    int j = ji[jix];
+          /*
+          for ( int j = 0; j <= r.isize( ) - K; j++ )
+          {    
+          */
+               static basevector b, m;
+               b.SetToSubOf( r, j, K );
+               m = b;
+               CanonicalizeKmer(m);
+               kmer_with_count<20> x( m, 0 );
+               longlong pos = GetPos( x, kmers, index, ishift );
+               if ( pos == kmers.isize( ) ) continue;
+               if ( eq_kmer( x, kmers[pos] ) ) continue;
+               int uhit = -1, vhit = -1, counthit = -1;
+               for ( int u = 0; u < K; u++ )
+               {    for ( int v = 0; v < 4; v++ )
+                    {    if ( b[u] == v ) continue;
+                         m = b;
+                         m.Set( u, v );
+                         CanonicalizeKmer(m);
+                         kmer_with_count<20> y( m, 0 );
+                         longlong mpos = GetPos( y, kmers, index, ishift );
+                         if ( mpos == kmers.isize( ) ) continue;
+                         if ( !eq_kmer( y, kmers[mpos] ) ) continue;
+                         int count = kmers[mpos].Count( );
+                         if ( count < MIN_MULT || uhit >= 0 ) goto next_pos;
+                         uhit = u;
+                         vhit = v;    
+                         counthit = count;    }    }
+               if ( uhit >= 0 ) 
+               {    r.Set( j + uhit, vhit );
+                    if ( jix == 0 || j > ji[jix-1] ) j += uhit;    
+                    else j = j + uhit - K + 1;    }
+               next_pos: continue;    }    }
+
+     // Find alignments between reads.
+
+     Bool big_read = False;
+     for ( int i = 0; i < nreads; i++ )
+          if ( reads[i].size( ) >= 1024 ) big_read = True;
+     vec< vec< pair<int,int> > > aligns;
+     vecbitvector frequent;
+     Mimic( reads, frequent );
+     if ( K == 20 )
+     {    if ( !big_read )
+          {    FindReadAlignments<1,20>( reads, reads, MAXCLIQ, MAX_ERROR_PERCENT, 
+                    aligns, True, frequent );
+               FindReadAlignments<1,20>( reads, creads, MAXCLIQ, MAX_ERROR_PERCENT, 
+                    aligns, False, frequent );    }
+          else 
+          {    FindReadAlignments<2,20>( reads, reads, MAXCLIQ, MAX_ERROR_PERCENT, 
+                    aligns, True, frequent );
+               FindReadAlignments<2,20>( reads, creads, MAXCLIQ, MAX_ERROR_PERCENT, 
+                    aligns, False, frequent );    }    }
+     for ( int i = 0; i < nreads; i++ )
+          creads[i] = reads[i];
+
+     // If two reads align, and bases on one are frequent, then declare the 
+     // corresponding bases on the other to be frequent as well.
+
+     /*
+     for ( int id1 = 0; id1 < nreads; id1++ )
+     {    int len1 = reads[id1].size( );
+          for ( int r = 0; r < aligns[id1].isize( ); r++ )
+          {    int id2 = aligns[id1][r].first, offset = aligns[id1][r].second;
+               Bool rc2 = ( id2 < 0 );
+               int id2x = ( !rc2 ? id2 : -id2-1 );
+               int len2 = reads[id2x].size( );
+               int start = Max( 0, offset ), stop = Min( len1, offset + len2 );
+               for ( int j = start; j < stop; j++ )
+               {    Bool f2 = ( !rc2 ? frequent[id2x][j-offset]
+                         : frequent[id2x][ len2 - (j-offset) - 1 ] );
+                    if (f2) frequent[id1].Set( j, True );    }    }    }
+     */
+
+     // Identify reads which are completely covered by frequent kmers.
+
+     vec<Bool> all_high( nreads, False );
+     for ( int i = 0; i < nreads; i++ )
+     {    Bool have_low = False;
+          for ( int j = 0; j < (int) frequent[i].size( ); j++ )
+          {    if ( !frequent[i][j] )
+               {    have_low = True;
+                    break;    }    }
+          if ( !have_low ) all_high[i] = True;    }
+
+     // Add alignments by transitivity.
+
+     AddAlignsByTransitivity( reads, aligns, MAX_ALIGNS, MAX_ERROR_PERCENT,
+          K, all_high );
+
+     // Correct errors.
+
+     cout << "\nCORRECTING ERRORS USING READS:\n";
+     CorrectFromAligns( 1, reads, true_reads, creads, partner, frequent, aligns, 
+          ACTUAL_ERROR_PERCENT, BINOMIAL_BOUND, MIN_MULT, SHOW_MISTAKES, 
+          SHOW_CORRECTIONS, SHOW_LOTS, MAX_ALIGNS );
+
+     // Find read pair alignments.
+
+     vec< vec< pair<int,int> > > aligns_save;
+     aligns_save = aligns;
+     for ( int i = 0; i < nreads; i++ )
+          reads[i] = creads[i];
+     for ( int id1 = 0; id1 < aligns.isize( ); id1++ )
+     {    static vec< pair<int,int> > a;
+          a.clear( );
+          for ( int j = 0; j < aligns[id1].isize( ); j++ )
+               if ( aligns[id1][j].first >= 0 ) a.push_back( aligns[id1][j] );
+          aligns[id1] = a;    }
+     vec< vec< pair<int,int> > > aligns2;
+     if ( K == 20 )
+     {    if ( !big_read )
+          {    FindReadPairAlignments<1,20>( reads, partner, MAXCLIQ,
+                    MAX_ERROR_PERCENT, aligns, aligns2 );     }
+          else
+          {    FindReadPairAlignments<2,20>( reads, partner, MAXCLIQ,
+                    MAX_ERROR_PERCENT, aligns, aligns2 );    }    }
+
+     // Add to aligns2 alignments from aligns for which partners align too.
+
+     for ( int id1 = 0; id1 < nreads; id1++ )
+     {    int id1p = partner[id1];
+          for ( int j = 0; j < aligns[id1].isize( ); j++ )
+          {    int id2 = aligns[id1][j].first;
+               int id2p = partner[id2];
+               if ( id1p < 0 || id2p < 0 ) continue;
+               Bool partners_align = False, already_have = False;
+               for ( int jp = 0; jp < aligns[id1p].isize( ); jp++ )
+               {    if ( aligns[id1p][jp].first == id2p )
+                    {    partners_align = True;
+                         break;    }    }
+               if ( !partners_align ) continue;
+               for ( int u = 0; u < aligns2[id1].isize( ); u++ )
+               {    if ( aligns2[id1][u].first == id2 )
+                    {    already_have = True;
+                         break;    }    }
+               if (already_have) continue;
+               aligns2[id1].push_back( aligns[id1][j] );    }    }
+
+     // Add alignments by transitivity.
+
+     all_high.clear( );
+     AddAlignsByTransitivity( reads, aligns2, MAX_ALIGNS, MAX_ERROR_PERCENT,
+          K, all_high );
+
+     // Correct errors using read pairs.
+
+     vecbitvector frequent_null;
+     cout << "CORRECTING ERRORS USING READ PAIRS:\n";
+     // double binomial_bound = 0.0;
+     CorrectFromAligns( 1, reads, true_reads, creads, partner, frequent_null, 
+          aligns2, ACTUAL_ERROR_PERCENT, BINOMIAL_BOUND, MIN_MULT, SHOW_MISTAKES, 
+          SHOW_CORRECTIONS, SHOW_LOTS, MAX_ALIGNS2 );
+
+     // Output results.
+
+     if ( READS_OUT != "" ) creads.WriteAll( run_dir + "/" + READS_OUT );    }

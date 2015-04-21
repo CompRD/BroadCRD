@@ -1,0 +1,63 @@
+Extended fasta format.
+
+Prolog.  Here we define a DRAFT 'extended fasta format' which extends fasta 
+nucleic acid format (Pearson) by allowing choices.  For example,
+AAA{C,CC}TTT
+represents either AAACTTT or AAACCTTT.
+To avoid mixing two systems, we do not allow fasta ambiguity codes 
+(e.g. S = C or G).
+
+Definition.  A file in extended fasta format (*.efasta) consists of one or
+more lines of the form
+
+>[name1][comments1]
+[bases1.1]
+...
+[bases1.n1]
+>[name2][comments2]
+...
+[bases2.1]
+...
+[bases2.n2]
+...
+
+where 
+
+* [namei] is a nonempty string from the alphabet of "printable white-space-free
+characters", ASCII codes 33-126 (in decimal notation)
+
+* [commentsi] is any string of printable characters (33-126 or blank or tab),
+that is either empty or starts with a blank or tab
+
+* ni >= 0
+
+* ni >= 1 and each [basesi.j] is a nonempty string
+
+* [basesi] is defined to be the concatenation of [basesi.1]...[basesi.ni], after
+removal of the trailing newline for each
+
+* [basesi] must then be a string from the character set "ACGTN{,}", 
+which is a concatenation of atoms A, C, G, T, N, and "choose" expressions 
+{x1,...,xn}, where n >= 2, and x1,...,xn are distinct strings from the 
+alphabet ACGT.  It is allowed for one of the xi to be empty.
+
+Semantically, each "choose" expression "{x1,...,xn} is treated as 
+"either x1 or x2 or ... or xn", and each sequence of one or more Ns is treated 
+as a gap of that approximate size.
+
+Note that lower-case nucleotides acgtn are not allowed.
+
+Formally there is no restriction on line length however lines of 80 or less
+characters are customary, and extremely long lines will tend to break people's 
+code.
+
+Examples.
+
+[1] GGGGAT{C,}
+    denotes either GGGGATC or GGGGAT
+
+[2] AAA{C,G}TTT{C,G}AAA
+    denotes either AAACTTTCAAA or AAACTTTGAAA or AAAGTTTCAAA or AAAGTTTGAAA
+
+Note.  One could argue that this format should be called "extended fasta 
+nucleic acid" and that files of it should have suffix .efna.

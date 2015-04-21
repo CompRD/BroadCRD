@@ -1,0 +1,239 @@
+#!/bin/csh -f
+
+# build_micro_assemblathon: take a genomic region, simulate reads and assemble them
+#
+# usage: paths/build_micro genome region_name range extra1...extra7
+#
+# where
+#
+# - genome is the 'codename' for a genome/dataset
+#   * currently the allowed values are ecoli, human, mouse, stick, plasmo and rhody
+#
+# - region_name is the name you choose for the region 
+#   * the case where region_name begins with / is treated as a special case: in that
+#     case it is expected to be the absolute path of a directory you will own
+#
+# - range are the coordinates that define the region, in one of three formats:
+#   * for example, 1:10000-11000, referring to the given range of coordinates on the
+#     given 'chromosome number' - note that this may involve rejiggering of indices
+#   * a list of chromosomes separated by commas
+#   * 'all'.
+#
+# - extra1...extra7 are extra arguments that are to be passed to RunAllPathsLG,
+#
+# WARNING: THIS WIPES OUT A DIRECTORY AND REBUILDS IT.
+#
+# Note on genome records:
+#
+# * ecoli.  At present the only allowed option for range is 'all'.
+#
+# * human = 1-22 (in genome.fasta as chr1-chr22).  There are other records in the
+#   file but it's not clear what this code would do with them.  Note that the
+#   reference sequence is not exactly the same as the reference sequence used by
+#   Picard.
+#
+# * mouse = 1-19 (in genome.fasta as chr1-chr19).  There are other records 
+#   in the file but it's not clear what this code would do with them.
+#
+# * stick = 0-1934
+#
+# * plasmo = 1-14 (in genome.fasta as MAL1-MAL14), of sizes 643292 947102 1060087 
+#   1204112 1343552 1418244 1501719 1419563 1541723 1694445 2035250 2271477 2895605 
+#   3291006, respectively.  Note that the records in genome.fasta are in a crazy 
+#   order.
+#
+# * rhody.  At present the only allowed option for range is 'all'.
+
+# Set up.
+
+if ($# == 0 || $1 == "-h" || $1 == "--help") then
+    echo "Usage: build_micro NAME RANGE POLY [ARGS]..."
+    echo "Build and assemble a set of reads from a genomic region."
+    echo "Example: build_micro stick myassembly 17:100000-300000"
+    exit
+endif 
+
+set tmp = `dirname $0`
+set scriptdir = `readlink -f $tmp`
+
+echo "`date`: Running paths/build_micro_speciesB $1 $2 $3 $4 $5 $6 $7 $8 $9 $10"
+set genome = SpeciesB
+set region = $1
+set range = `echo $2 | tr ',' ' '`
+set poly = $3
+
+set data_only = false;
+if ($4 == data_only) then
+    echo "Data only!"
+    set data_only = true;
+endif 
+
+# Unpack extra arguments.
+
+set extra1 = $4
+set extra2 = $5
+set extra3 = $6
+set extra4 = $7
+set extra5 = $8
+set extra6 = $9
+set extra7 = $10
+
+# default (haploid) coverage.
+set frag_cov = 40;
+set jump_cov = 20;   # 2x = 40
+if ( $poly != haploid ) then
+    set frag_cov = 20;
+    set jump_cov = 10;
+endif
+
+# Check for valid genome.
+
+set ass_root = "/wga/scr1/ALLPATHS/Assemblathon"
+
+# Define directories.
+set root = /wga/scr1/ALLPATHS/Assemblathon/SpeciesB
+
+set ref = $ass_root/$genome/$region
+set data = $ref/data
+set run = $data/run
+echo "RUN = $run"
+
+# More set up.
+
+/bin/rm -rf $ref
+mkdir $ref
+mkdir $data
+echo $range > $ref/region
+
+# Define header for chromosome names.
+
+set chr_head = chr
+
+# Create mini-genome in its own reference dir.  Also create a version with its
+# ends extended by 1kb to allow for assembly of stuff that reaches off the ends.
+
+if ($poly == haploid) then
+    set genome_ref = genome
+else if ($poly == diploid) then
+    set genome_ref = genome.diploid
+else
+    set genome_ref = genome
+endif
+
+
+if ( $range == "all" ) then
+    ln -s ../$genome_ref.fasta $ref/genome.fasta 
+    ln -s ../$genome_ref.fastb $ref/genome.fastb 
+    ln -s ../genome.fasta $ref/genome.half.fasta 
+    MakeLookupTable SOURCE=$ref/genome.half.fasta LO=True \
+        OUT_HEAD=$ref/genome.half
+else 
+     set qtig = `echo $range | tr ':' ' ' | Col 1`
+     set start = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 2`
+     set stop = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 3`
+     if ($poly == diploid) then
+        echo "`date`: Creating diploid mini-genome..."
+	SelectDiploidAssemblathon FASTB_IN= $root/$genome_ref.fastb FASTB_OUT= $ref/genome.fastb RANGE=$range
+	Fastb2Fasta IN= $ref/genome.fastb OUT= $ref/genome.fasta
+        SelectB PRE=$ref IN_HEAD=genome OUT_HEAD=genome.half PRE_OUT=True IDS=0
+        MakeLookupTable SOURCE=$ref/genome.half.fasta LO=True \
+             OUT_HEAD=$ref/genome.half
+     else if ($poly == haploid) then 
+        echo "`date`: Creating haploid mini-genome..."
+	SelectBases PRE=/ INPUT=$root/$genome_ref.fasta CONTIG=$qtig \
+             START=$start STOP=$stop UPCASE=True OUTPUT=$ref/genome.fasta
+     else 
+        echo "`date`: Creating simulated diploid mini-genome..."
+     	SelectBases PRE=/ INPUT=$root/$genome_ref.fasta CONTIG=$qtig \
+             START=$start STOP=$stop UPCASE=True OUTPUT=$ref/genome.haploid.fasta
+	Fasta2Fastb IN=$ref/genome.haploid.fasta
+	MutateReference FASTB_IN= $ref/genome.haploid.fastb FASTB_OUT= $ref/genome.fastb  SUB_RATE=$poly
+	Fastb2Fasta IN= $ref/genome.fastb OUT= $ref/genome.fasta
+     endif
+     if ( $status != 0 ) then
+          echo "Base selection failed:"
+          cat $ref/genome.fasta
+          exit
+     endif
+endif
+
+ln -s $ref/genome.fastb $ref/data
+
+# Make some auxiliary files.
+
+( cd $ref; MakeLookupTable SOURCE=genome.fasta OUT_HEAD=genome LOOKUP_ONLY=True )
+MakeLookupTable SOURCE=$ref/genome.fasta OUT_HEAD=$ref/genome
+if ( $status != 0 ) exit
+if ($poly == diploid ) then
+     cp $ref/genome.half.fasta $data
+     cp $ref/genome.half.lookup $data
+endif
+cp $ref/genome.fastamb $data
+FastbSizes FILE=$ref/genome.fastb TOTAL_ONLY=True REPORT=$ref/genome.size
+if ( $status != 0 ) exit
+GenomeUnipathStats GENOME=$ref/genome K=96 DOT=$ref/genome.dot
+if ( $status != 0 ) exit
+cp $root/ploidy $data
+
+# Simulate fragment pairs.
+
+$scriptdir/simulate_assemblathon_library $ref data frag $frag_cov
+
+# Simulate 3k jumps pairs.
+
+$scriptdir/simulate_assemblathon_library $ref data 3k_jump $jump_cov
+
+# Simulate 10k jumps pairs.
+
+$scriptdir/simulate_assemblathon_library $ref data 10k_jump $jump_cov
+
+
+# Reverse jumps.
+
+FastbQualbTrimReverse IN_HEAD= $ref/data/3k_jump OUT_HEAD= $ref/data/3k_jump_rev REVERSE=True
+ln -s 3k_jump.pairs $ref/data/3k_jump_rev.pairs
+
+FastbQualbTrimReverse IN_HEAD= $ref/data/10k_jump OUT_HEAD= $ref/data/10k_jump_rev REVERSE=True
+ln -s 10k_jump.pairs $ref/data/10k_jump_rev.pairs
+
+# Merge jumps
+
+MergeReadSets DIR= $ref/data READS_IN="{3k_jump_rev,10k_jump_rev}"  READS_OUT=jump_reads_orig
+
+# Sym link frags
+
+ln -s frag.fastb $ref/data/frag_reads_orig.fastb 
+ln -s frag.qualb $ref/data/frag_reads_orig.qualb 
+ln -s frag.pairs $ref/data/frag_reads_orig.pairs 
+
+if ($data_only == true ) then
+    echo ""
+    echo "`date`: done"
+    exit
+endif
+
+# Set up to run the assembly.
+
+set refname = Assemblathon/$genome/$region
+     set pre = /wga/dev/WGAdata
+     set base = projects/ALLPATHS
+     set dataname = data
+     set runname = run
+set aa_refname = genome
+set sa_refname = genome
+if ($poly == diploid) set sa_refname = genome.half
+
+# Run the assembly.
+
+RunAllPathsLG PRE=$pre ALLPATHS_BASE=$base REFERENCE_NAME=$refname \
+     DATA_SUBDIR=$dataname RUN=$runname OVERWRITE=True TARGETS=small_genome \
+     AA_REFNAME=$aa_refname EVALUATION=FULL ADD_UNIBASE_JUNCTIONS=True \
+     SA_REFNAME=$sa_refname $extra1 $extra2 $extra3 $extra4 $extra5 $extra6 $extra7
+if ( $status != 0 ) exit
+     MakeReadInfo PRE=/ DATA=$data RUN=run
+     if ( $status != 0 ) exit
+
+# Done.
+
+echo ""
+echo "`date`: done"

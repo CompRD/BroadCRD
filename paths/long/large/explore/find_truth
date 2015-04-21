@@ -1,0 +1,20 @@
+
+Here's a way to find an approximation to the truth for a hard region in NA12878,
+and the reads that might go there:
+
+1. Let's say you have a gap between two edges in an NA12878 assembly and you want to 
+   know what's in the middle.
+
+2. Run SearchPB (possibly de-hardcoding first) to find some NA12878 PacBio reads that
+   bridge the gap.  This is terribly inefficient.  Of course we could align all 
+   the PacBio reads to the reference sequence (or even to hg19, grch38 and 
+   PB-Chin-CHM1).
+
+3. Now align the reads to the reference sequences.  One reference sequence might
+   give a better alignment.  Had this happen with PB-Chin-CHM1.
+
+4. Find perfect stretches in these alignments.  These sequences are presumably
+   true sequences present in NA12878.
+
+5. Now run SearchFastb on your favorite read set to fetch reads that match these
+   true sequences. (terribly inefficient)

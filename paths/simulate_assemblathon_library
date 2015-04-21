@@ -1,0 +1,147 @@
+#!/bin/csh -f
+
+if ($# == 0 || $1 == "-h" || $1 == "--help") then
+    echo "Usage: build_assemblathon REF DATA TYPE COVERAGEW"
+    echo "Simulates data for Assembathon from GENOME/genome.fasta."
+    echo "Example: simulate 20mb_dexter mydata frag 40"
+    echo "additional options"
+    #echo " -m,--mate_pair                   Perform mate-pair rather than paired"
+    #echo "                                  end run."
+    echo " --mate_frag <arg>                If using a mate-pair library, what is"
+    echo "                                  your desired loop fragmentation size?"
+    echo "                                  Default: 500"
+    echo " --mate_frag_stdev <arg>          If using a mate-pair library, what is"
+    echo "                                  your desired loop fragmentation size"
+    echo "                                  standard deviation? Default: 50"
+    echo " --mate_pulldown_error_p <arg>    If using a mate-pair library, what is"
+    echo "                                  the probability that a read does not"
+    echo "                                  include the biotin marker? Default: 0.25"
+    echo " -s,--insert_stdev <arg>          mean library insert stdev for either"
+    echo "                                  mate-paired or paired-end. Default: 10% of insert_size"
+    echo " -u,--duplicate_probability <arg> probability of generating a duplicate."
+    echo "                                  Default: 0.0"
+    exit
+endif 
+# extract the additional options
+set temp=(`getopt -s csh -o s:u: --long mate_frag:,mate_frag_stdev:,mate_pulldown_error_p:,insert_stdev:,duplicate_probability: -- $argv:q `)
+if ($? != 0) then 
+  echo "Wrong options ..." >/dev/stderr
+  exit 1
+endif
+
+eval set argv=\($temp:q\)
+# default values
+set mate_frag = 500
+set mate_frag_stdev = 50
+set mate_pulldown_error_p = 0.25
+#set insert_stdev = 0.0
+#set duplicate_probability = 0.0
+# default value of insert_stdev will be 10% of insert_size
+# default value of duplicate_probability will be 0.005 for frag, 0.02 for 3k_jump and 10k_jump
+
+while (1)
+    switch($1:q)
+    case -m:
+    case --mate_pair:
+	set flag_mate_pair = 1; shift;
+	breaksw
+    case --mate_frag:
+	set mate_frag = $2; shift; shift;
+	breaksw
+    case --mate_frag_stdev:
+	set mate_frag_stdev = $2; shift; shift;
+	breaksw
+    case --mate_pulldown_error_p:
+	set mate_pulldown_error_p = $2; shift; shift;
+	breaksw
+    case -s:
+    case --insert_stdev:
+	set insert_stdev = $2; shift; shift;
+	breaksw
+    case -u:
+    case --duplicate_probability:
+	set duplicate_probability = $2; shift; shift;
+	breaksw
+    case --:
+	shift;
+	break
+    endsw
+end
+
+
+set ref = $1
+set data = $2
+set type = $3
+set coverage = $4
+
+alias MATH 'set \!:1 = `echo "\!:3-$" | bc`'
+
+set genome_size = `cat $ref/genome.size`
+MATH read_count = ($coverage * $genome_size) / 200
+
+echo "`date`: Assemblathon data simulator"
+
+if ($type == "frag") then
+    set sep = "0"
+    set dev = "20"
+    set libname = "SimSeq-200+-20"
+    #set args = "--insert_size 200 --insert_stdev 20 --duplicate_probability 0.005"
+    if ! $?insert_stdev then
+	set insert_stdev = 20
+    endif
+    if ! $?duplicate_probability then
+	set duplicate_probability = 0.005
+    endif
+    set args = "--insert_size 200 --insert_stdev $insert_stdev --duplicate_probability $duplicate_probability"
+else if ($type == "3k_jump") then
+    set sep = "2500"
+    set dev = "300"
+    set libname = "SimSeq-3000+-300"
+    #set args = "--insert_size 3000 --insert_stdev 300 --mate_pair --mate_frag 500 --mate_frag_stdev 50 --mate_pulldown_error_p 0.25 --duplicate_probability 0.02"
+    if ! $?insert_stdev then
+	set insert_stdev = 300
+    endif
+    if ! $?duplicate_probability then
+	set duplicate_probability = 0.02
+    endif
+    set args = "--insert_size 3000 --insert_stdev $insert_stdev --mate_pair --mate_frag $mate_frag --mate_frag_stdev $mate_frag_stdev --mate_pulldown_error_p $mate_pulldown_error_p --duplicate_probability $duplicate_probability"
+else if ($type == "10k_jump") then
+    set sep = "9500"
+    set dev = "1000"
+    set libname = "SimSeq-10000+-1000"
+    #set args = "--insert_size 10000 --insert_stdev 1000  --mate_pair --mate_frag 500 --mate_frag_stdev 50 --mate_pulldown_error_p 0.25 --duplicate_probability 0.02"
+    if ! $?insert_stdev then
+	set insert_stdev = 1000
+    endif
+    if ! $?duplicate_probability then
+	set duplicate_probability = 0.02
+    endif
+    set args = "--insert_size 10000 --insert_stdev $insert_stdev --mate_pair --mate_frag $mate_frag --mate_frag_stdev $mate_frag_stdev --mate_pulldown_error_p $mate_pulldown_error_p --duplicate_probability $duplicate_probability"
+endif
+
+# What are we going to do?
+
+echo "`date`: Reference: $ref"
+echo "`date`: Genome size: $genome_size"
+echo "`date`: Read coverage: $coverage  ($read_count pairs)"
+echo "`date`: Type: $type  (sep=$sep, dev=$dev)"
+echo "`date`: Library name: $libname"
+
+echo "`date`: Output directory: $ref/$data"
+if (! -e $ref/$data) then
+    mkdir $ref/$data
+endif
+
+
+#Generate simulated data
+
+echo "`date`: Simulating reads"
+java -jar -Xmx2048m /home/radon00/iainm/SimSeq.jar -1 100 -2 100 --error /home/radon00/iainm/hiseq_mito_default_bwa_mapping_mq10_1.txt --error2 /home/radon00/iainm/hiseq_mito_default_bwa_mapping_mq10_2.txt --read_number $read_count --read_prefix $type --reference $ref/genome.fasta --out $ref/$data/$type.sam $args
+
+echo "`date`: Converting to ALLPATHS format"
+
+SAM2CRDDump SAM= $ref/$data/$type.sam OUT_HEAD= $ref/$data/$type SEP=$sep DEV=$dev LIB_NAME=$libname PAIRTO=False
+
+
+echo ""
+echo "`date`: Simulation complete"

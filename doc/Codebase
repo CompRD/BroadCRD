@@ -1,0 +1,181 @@
+// Copyright (c) 2004 Broad Institute/Massachusetts Institute of Technology
+
+A brief introduction to the Arachne codebase and Broad environment
+(degenerating into an outline at the end)
+
+This manual is an introduction to the Arachne codebase and its use at the Broad
+Institute.  It is only an outline, and much of it is sufficiently sketchy
+that you will need assistance to interpret it.
+
+I. Source code control
+
+Arachne is under source code control via cvs.  Although cvs has hundreds
+of features, for almost all purposes, you need to know only the following:
+
+(a) Declare the location of the cvs repository.
+
+Here, this is done by putting a line 
+     setenv CVSROOT /wga/devel/ArachneCVS
+in your .my.cshrc file.
+
+(b) Check out Arachne.
+
+Change to a directory in which you wish to have an "Arachne" subdirectory.
+Then type "cvs checkout Arachne".  You know have a local copy of the
+repository, which you can modify at will.
+
+(c) Check in new files which you create.  
+
+Suppose you create a file Gromit.cc.  To insert it in the repository,
+you type "cvs add Gromit.cc" followed by "cvs commit Gromit.cc".  When
+you do the latter, you'll be prompted for comments.
+
+(d) Update your local copy of Arachne to reflect others' changes.
+
+This is done by "cvs update" or "cvs update -Pd".  The latter will build
+new subdirectories which others have created and delete empty subdirectories.
+
+(e) Check in modifications to existing files.
+
+If you modify an existing file Woof.cc, you can insert the modifications in the
+archive by typing "cvs commit Woof.cc" (you will be prompted for comments,
+which should if possible describe what you've changed).  If someone else has 
+modified the file in the interim, you will have to "cvs update" or at least 
+"cvs update Woof.cc" first.  Normally cvs is able to merge independent changes, 
+but occasionally it gets confused and the file has to be patched by hand.  
+
+If you check in a .cc file, it should compile.  If you modify an existing
+file, be extremely careful.  In particular, modifications which could affect
+assemblies (etc.) need to be stringently tested.
+
+(f) Get on the Arachne-cvs e-mail list.
+
+Doing so means that you will be notified whenever anyone does a commit on
+the Arachne codebase.
+
+II. Arachne C++ core classes and files.
+
+Generally, an Arachne .cc file is in one of two states.  Either it is in
+"debugging" mode (in which case various run-time checks are performed,
+most notably on array references), or else it is in "production" mode, in
+which case they are not.  As debugging mode is slower, we switch to production
+mode once a file is believed bug free (although occasionally files are left
+permanently in debugging mode, if the cost is deemed negligible).
+
+To put a .cc file in production mode, add the following three lines at the top:
+#ifndef FORCE_DEBUG
+     #define NDEBUG
+#endif
+
+The files "Assert.h" defines a suite of macros:
+     Assert    AssertLt    AssertGe    etc.
+     ForceAssert     ForceAssertLt     etc.
+A line like "AssertLt( x, y );" is only checked in debugging mode, whereas
+a line like "ForceAssertLt( x, y );" is always checked.  In debugging mode,
+all vec references (see below) are checked.
+
+The file "Vec.h" defines a class "vec" which is derived from the STL
+vector class, but when in debugging mode, checks all array references.
+In practice, almost all bugs lead rapidly to out of range array references,
+so this is a very powerful way to catch errors.
+
+Failed assertions and failed vec references all induce a traceback, followed
+by exit.  Some other errors (e.g. failed call to "new") will also induce a
+traceback.
+
+Even if a file is in production mode, you can override by e.g.
+     touch Woof.cc
+     make FORCE_DEBUG=yes Woof
+but you will want to restore the default compilation state when you are done.
+Note that there is a more thorough version of this, in which you compile
+every file with FORCE_DEBUG=yes.
+
+There are some restrictions on the order in which include files are included.
+
+Inclusion of the file CoreTools.h causes the inclusion of various other "core" 
+include files (including System.h, unistd.h, etc.), which may or may not be
+needed for a given .cc file, but which should always be in the right order.
+
+III. Use of make.
+
+The Arachne codebase has a system which is designed to minimize manual modification
+of the Makefile.  This uses a file MakeDepend.cc to automatically maintain
+dependencies between source files.
+
+If Gromit.cc is a C++ main program, then "make Gromit" should work.
+
+The option "OPTIM=none" may often be used to tremendously speed up 
+compilation (and thereby speed up the development process).  The downside
+is that it *may* significantly affect performance, and (more insidiously)
+you may forget that certain modules were compiled without optimization,
+and then run a process for which it really matters.
+
+IV. Hardware
+
+Currently, we do most of our computations on molybdenum and mendelevium 
+(AKA M&M), each of where are 4-processor machines, having 32 GB RAM.  You should
+put the following lines in your .my.cshrc to override low default limits:
+
+if ( `hostname` == "molybdenum.wi.mit.edu" ) then
+     limit datasize 32000000     
+     limit stacksize 100000
+endif
+if ( `hostname` == "mendelevium.wi.mit.edu" ) then
+     limit datasize 32000000
+     limit stacksize 100000
+endif
+
+When using these machines, be careful about resource utilization.  In particular,
+before starting a high-memory process, check to see if there are other 
+high-memory processes, so that the total memory is at most 32 GB.  (It is sometimes
+possible to go over this limit and have the machines work well, but they can also
+get into a state where they are spending most of their time swapping memory pages.
+Also check the load average on the machines.
+
+There is also a blade farm (having ~160 processors) which we use for certain
+types of computations.
+
+V. Copyright
+
+New source code files added to the Arachne repository should start with the
+single line at the top of this file.
+
+===================================================================================
+
+Other:
+
+- filesystems
+
+  - you need to be in group "wga"
+
+  - as in ~jaffe/.my.cshrc --> "stats"
+
+  - cfsmgr /exportfs/wga/... tells you association to M or M (affects efficiency)
+
+  - devel, data*: backed up; scratch*: not backed up.
+
+- directory structure
+
+  - PRE
+
+  This line needs to be in your .my.cshrc:
+
+setenv ARACHNE_PRE /exportfs/wga/data01/WGAdata
+
+  - Arachne and subdirectories
+
+- Brief list of some classes: vec, String, basevector,
+  qualvector, vecbasevector, vecqualvector,
+  align/packalign/alignment/alignment_plus.
+
+- READ THE MANUAL (Arachne/doc/Manual.html)
+
+- READ THE TWO ARACHNE PAPERS (skim over incomprehensible details)
+
+- Learn how to assemble mouse_example.  Experiment with options.  Look at the
+  output, including mergedcontigs.summary and mergedcontigs_orig.humanlocs.
+
+- Look at Assemble.cc and see how it works.
+
+- Read a simple ("stupid") piece of code and figure out how it works.
+  Example: util/ReadsToContigs.cc.

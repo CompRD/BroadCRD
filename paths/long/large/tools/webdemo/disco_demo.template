@@ -1,0 +1,104 @@
+<html>
+<head>
+<title>Discovar de novo NA12878 Demo</title>
+<base href="@proxypath" >
+@include:icon-headers.txt
+<script type="text/javascript" src="@javascript"></script>
+</head>
+
+<body onload="startup();" TEXT="#000000" LINK="#DD7755" VLINK="#DD7755" ALINK="#993300" bgcolor=white>
+
+<font face=arial>
+
+<br><br><b><big><font color=red>Visualizing a human genome</font></big></b>
+
+<!--
+say where the html for this actually goes
+-->
+
+<!--
+text intended to be accessible to a general audience insofar as possible
+-->
+
+<br><br> Here you can visually probe a 
+<a href="http://www.broadinstitute.org/software/discovar/blog">DISCOVAR</a>
+<i>de novo</i> assembly of a human genome.  The DNA for this demo comes from the
+GM12878 immortalized cell line, from a woman of European ancestory who lived in
+Utah.
+
+<br><br> To see part of the assembly graph, enter a command in the box below.  
+For example
+<br><br><b><big>H</big></b> &nbsp; &nbsp;
+will get you help and &nbsp; &nbsp;
+<b><big>S=11:90.26M D=1</big></b>
+<br><br>
+will get you the part of the assembly aligning to the
+<a href="http://www.ncbi.nlm.nih.gov/projects/genome/assembly/grc/data.shtml">
+human reference sequence</a>
+at position 90.26 megabases on chromosome 11, and 
+extending into the graph to depth 1.  This example exhibits a 31 kb sequence that is 
+present on <i>one</i> copy of chr 11 in GM12878 but not present in the reference.
+
+<br><br> DISCOVAR <i>de novo</i> is work in progress that we'll gradually roll out.
+This demo is for revision 50090 of the code.
+
+<br><br><u><b>Understanding the graphs</b></u>. Each edge represents one 
+strand of a DNA sequence.  The sequences themselves are
+<a href="ftp://ftp.broadinstitute.org/pub/crd/Discovar/NA12878/50194">here</a>.
+Edges are color-coded by length: gray &lt; black &lt; red &lt; magenta.
+Brown edges represent captured gaps.  Edges are labeled by index, length 
+(for longer edges), aligned position on the reference, and the approximate copy 
+number where known = 'number of molecular loci', so for most of a normal human 
+genome, ~2x, corresponding to two homologous chromosomes at one locus.
+Red vertices denote points that 'continue on' in the full graph.
+
+<br><br><u><b>Technical note</b></u>. The reference sequence used here is the 
+entire GRCh38 assembly.
+
+<br><br><hr>
+<form id="subform" method="get" action="req" onsubmit="showloading();" >
+<input name="sel" id="selvalue" type="hidden" />
+<b>command</b>&nbsp;
+<!-- input value="@value" size="40" name="n" id="value" -->
+<input style="width:60em;" name="n" id="value" onkeypress="keypressClear();" />
+&nbsp;
+<a style="text-decoration: none;" href="javascript: submitform()"> Submit </a>
+&nbsp;
+<a style="text-decoration: none;" href="javascript: defaultform()"> Reset </a>
+<br/>
+<b>or try this</b>
+&nbsp;
+<select id='selector' onchange="setAndMaybeSubmit(value, this.selectedIndex);"> 
+    <option value="">select a region of interest: </option>
+    <option value="S=11:90.26M D=1">
+    a 31 kb heterozygous insertion (default)
+    </option>
+    <option value="S=7:12.985M D=1">
+    a 6 kb heterozygous deletion
+    </option>
+    <option value="S=14:18.53M D=2 EXT=True">
+    a long region combining chr14+22 parts
+    </option>
+    <option value="S=GGAGTGAAATGCAGTGGCATGGA D=1 EXT=True">
+    a long region not in reference
+    </option>
+    <option value="S=11:70.955M-71.056M D=4">
+    100 kb reference gap closed by 2 kb sequence
+    </option>
+</select>
+
+&nbsp;
+<div id="loading" style="display: none">Loading...</div>
+
+</form>
+<hr>
+
+<div id="results">
+<br/>@textoutput<br/>
+<!-- zoom: <a style="text-decoration: none;" href="javascript: scalehack()">(+)</a>&nbsp;&nbsp;<a style="text-decoration: none;" >(-)</a> <br/> -->
+<img id="imageout" src="@imagefile" border=0 onload="scalehack()" style="border:1px solid black; padding: 25 25 25 25; border-radius: 15px ">
+<!-- embed id="imageout" src="@imagefile" border=0 onload="scalehack()" style="border:2px solid black; padding: 25 25 25 25; " -->
+</div>
+</font>
+</body>
+</html>

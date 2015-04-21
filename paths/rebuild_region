@@ -1,0 +1,68 @@
+#!/bin/csh -f
+
+# Unpack arguments.
+
+echo "`date`: Running paths/build_micro $1 $2 $3 $4 $5 $6 $7 $8 $9 $10 $11 $12 $13"
+set ref_dir=$1
+set data_run=$2
+set scaffold_id=$3
+set begin=$4
+set count=$5
+set extra1 = $6; set extra2 = $7; set extra3 = $8; set extra4 = $9
+
+# Decode special arguments.
+
+set TARGETS = full_eval
+set EVALUATION = FULL
+foreach i ( 1 2 3 4 )
+     set extrai = `eval echo \$extra$i`
+     set delete = false
+     set value = `echo $extrai | Substitute FROM="=" TO=" " NH=True | Col 2`
+     foreach tag (TARGETS EVALUATION)
+          if ( `echo $extrai | grep $tag` != "" ) then
+               set $tag = $value
+               set delete = true
+               break
+          endif
+     end
+     if ( $delete == true ) eval set extra$i =
+end
+
+set run_dir=$ref_dir/$data_run
+set sub_dir=$run_dir/ASSEMBLIES/test
+set rebuild_data=rebuilt/scaffold_${scaffold_id}_contig_${begin}_count_${count}
+set rebuild_data_dir=$ref_dir/$rebuild_data
+
+
+BuildLocalDataset ALIGNS_IN=$sub_dir/linear_scaffolds0.clean.applied.readlocs \
+                  SCAFFOLDS_IN=$sub_dir/linear_scaffolds0.clean.applied.superb \
+		  HEAD_OUT=$rebuild_data_dir/rebuild \
+                  SCAFFOLD_ID=$scaffold_id \
+		  CGPOS_BEGIN= $begin CGPOS_COUNT=$count
+
+SelectPairedReads READS_IN=$run_dir/frag_reads_filt_cpd \
+		  READS_OUT=$rebuild_data_dir/frag_reads_orig \
+ 	          READ_IDS=$rebuild_data_dir/rebuild.frag.ids 
+
+SelectPairedReads READS_IN=$run_dir/jump_reads_filt_cpd \
+                  READS_OUT=$rebuild_data_dir/jump_reads_orig \
+ 	          READ_IDS=$rebuild_data_dir/rebuild.jump.ids 
+
+#SelectPairedReads READS_IN=$run_dir/long_jump_reads_filt_cpd \
+#                  READS_OUT=$rebuild_data_dir/long_jump_reads_orig \
+#                  READ_IDS=$rebuild_data_dir/rebuild.long_jump.ids 
+
+# Run the assembly.
+
+set aa_refname = genome
+
+cp $run_dir/../ploidy $rebuild_data_dir/
+
+RunAllPathsLG PRE= REFERENCE_NAME=$ref_dir DATA_SUBDIR=$rebuild_data RUN=run \
+     OVERWRITE=True AA_REFNAME=$aa_refname TARGETS=$TARGETS EVALUATION=$EVALUATION \
+     $extra1 $extra2 $extra3 $extra4
+if ( $status != 0 ) exit 1
+
+# Done.
+
+echo "\n`date`: done"

@@ -1,0 +1,27 @@
+#!/bin/csh
+
+# Assemble bacteria for which we have reference sequences.
+#
+# Need to run this on a 0.5 TB machine because evaluation hogs memory
+
+set rev = 50671
+
+foreach sample ( rhody tbHaarlem ecoli12 )
+
+     echo $sample
+
+     set global = /wga/scr4/$user/GapToy/bugs/$sample
+
+     mkdir -p $global
+
+     GapToy.$rev X=all SAMPLE=$sample INSTANCE=bugs/$sample KEEP_NAMES=True
+
+     if ( $status != 0 ) break
+
+     MakeLookupTable SOURCE=$global/genome.fastb OUT_HEAD=$global/genome LO=True
+
+     QueryLookupTable K=12 MM=12 MC=0.15 SEQS=$global/a.final/a.fastb \
+          L=$global/genome.lookup VISUAL=True MIN_QUERY_LENGTH=2K \
+          FW_ONLY=True IGNORE_PERFECTS=True >& $global/a.final/a.aligns_to_ref
+
+end

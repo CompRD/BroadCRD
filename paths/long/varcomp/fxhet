@@ -1,0 +1,37 @@
+#!/bin/csh
+
+# Compute number of het sites in female X 10-110 Mb.
+
+cp paths/long/varcomp/test_xhet ftxh
+
+( ftxh 1 1 >& test_xhet1.report; echo $status > test_xhet1.status ) &
+( ftxh 2 1 >& test_xhet2.report; echo $status > test_xhet2.status ) &
+( ftxh 3 1 >& test_xhet3.report; echo $status > test_xhet3.status ) &
+( ftxh 4 1 >& test_xhet4.report; echo $status > test_xhet4.status ) &
+
+wait
+
+/bin/rm -f fxhet.report
+if ( `cat test_xhet1.status` != 0 ) echo "test_xhet 1 failed" >> fxhet.report
+if ( `cat test_xhet2.status` != 0 ) echo "test_xhet 2 failed" >> fxhet.report
+if ( `cat test_xhet3.status` != 0 ) echo "test_xhet 3 failed" >> fxhet.report
+if ( `cat test_xhet4.status` != 0 ) echo "test_xhet 4 failed" >> fxhet.report
+
+set step = 50000
+set start = 10000000
+set final = 110000000
+set total_funk = 0
+set orig = $start
+while(1)
+     set stop = `expr $start + $step`
+     set range = $start-$stop
+     if ( -f tmp.dad/aaa.$range.funky ) then
+          set funk = `cat tmp.dad/aaa.$range.funky | grep -c "\] X"`
+          set total_funk = `expr $total_funk + $funk`
+     endif
+     set start = $stop
+     if ( $start == $final ) break
+end
+set rsize = `expr $final - $orig`
+echo "region size = $rsize" >> fxhet.report
+echo "total funk = $total_funk" >> fxhet.report

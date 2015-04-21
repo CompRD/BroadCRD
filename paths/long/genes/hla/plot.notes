@@ -1,0 +1,37 @@
+
+Notes on how to generate a coverage plot for a region.
+
+LongProto SAMPLE=human READS=#picard TMP=tmp.xxx X=6:32.54M-32.56M LOGGING=KEEP_LOCS=True
+
+Generate file "points":
+#include "MainTools.h"
+#include "lookup/LookAlign.h"
+int main( )
+{    vec<look_align> aligns;
+     int start = 32540000;
+     int len = 20000;
+     int stop = start + len;
+     vec<int> cov(len, 0);
+     LoadLookAligns( "tmp.xxx/0.qltout", aligns );
+     for ( int i = 0; i < aligns.isize( ); i++ )
+     {    const look_align& la = aligns[i];
+          for ( int j = la.pos2( ); j < la.Pos2( ); j++ )
+               if ( j >= start && j < stop ) cov[j-start]++;    }
+     LoadLookAligns( "tmp.xxx/0.qltout", aligns );
+     for ( int i = 0; i < aligns.isize( ); i++ )
+     {    const look_align& la = aligns[i];
+          for ( int j = la.pos2( ); j < la.Pos2( ); j++ )
+               if ( j >= start && j < stop ) cov[j-start]++;    }
+     const int window = 100;
+     for ( int j = 0; j < cov.isize( ); j++ )
+     {    double sum = 0;
+          int count = 0;
+          for ( int l = -window/2; l <= window/2; l++ )
+          {    if ( j+l >= 0 && j+l < cov.isize( ) )
+               {    count++;
+                    sum += cov[j+l];    }    }
+          cout << j << " " << sum/count << endl;    }    }
+
+PlotPoints IN= ~/lcrd/points OUT=cov.png CONNECT=True PR=1 POINTSIZE=0.1 MAX_Y=60 \
+     X_AXIS_EXTEND=0 Y_AXIS_EXTEND=0 X_AXIS_OFFSET=0 XMAX=20000 MIN_Y=0 YHEIGHT=80 \
+     Y_MINOR_TICS=False

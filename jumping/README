@@ -1,0 +1,37 @@
+Programs to analyze jumping libraries and direct selection
+experiments, in the context of Sanger and 454 reads.  There is more
+recent code for analyzing Solexa direct selection experiments in the
+solexa directory.
+
+See basic454jumpstats.csh for a fairly recent analysis of 454 jumping
+reads.  However, you'll want to put together an analogous script for
+any particular library that needs analyzing, rather than trying to use
+that verbatim.  
+
+The idea of the jumping analysis code here is that we create / update
+an annotations file, in parallel with the reads.  Each read has a set
+of annotations -- commentary on a portion of the read -- that together
+span the read, and ideally do not overlap.  
+
+FindJumpingAlignments kicks off the process by creating an annotation
+file with stuffer and/or linker alignments.  The stuffer is the known
+sequence that separates the two parts of the jumping read; in some
+libraries there should be a linker sequence on each side of the
+stuffer.
+
+AlignUnknowns takes the "unknown" parts of the reads and attempts to
+account for them by aligning to the genome.  It can also be used to
+align to vector.  (In some cases the read may include vector sequence
+on each side of the intended sequence, which needs to be detected and
+removed.)  I just changed this over to use ShortQueryLookup, because
+that works well for short query sequences, but there may be a problem
+because it doesn't support partial alignments.  When vector is an
+issue it's probably advisable to either (a) trim it off the reads
+before starting this process; or (b) go back to the QueryLookupTable
+version of AlignUnknowns.
+
+ExtractJumpingReads examines an annotation file and writes a fasta
+file of the paired reads indicated.  It also puts on stdout a summary
+of the reads that look like useful jumps, along with jump size if
+genome alignments are available.
+

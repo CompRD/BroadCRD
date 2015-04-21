@@ -1,0 +1,578 @@
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+2 10 10.1 14,17,47,51,82,92,97,98     8 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #3):
+//
+//                      *
+// CACACCACACACAGCACACACCACACACACTGCACACCACACCACACACCA assembly
+// CACACCACACACAGCACACACGACACACACTGCACACCACACCACACACCA reference
+//
+// Not sure, would require further investigation.  Problem did not occur in
+// the single-Fosmid assembly.
+
+// Of the errors in the test below, 2 are as follows (from Fosmid #3):
+//
+//                           ||
+// TGTAGCAGAGTGACATTGAGAGAGAC  AAAAAAAAAAAAAAAAAAAAAAGAAAAGAAAAGAAAAGAAA assembly
+// TGTAGCAGAGTGACATTGAGAGAGACAAAAAAAAAAAAAAAAAAAAAAAAGAAAAGAAAAGAAAAGAAA reference
+//
+// Not sure, would require further investigation.  Problem did not occur in
+// the single-Fosmid assembly.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #5):
+//
+//                               *                             
+// CACACAGCACACACCACACACAGCACACACCACACACACTGCACACCACACCACACACCA assembly
+// CACACAGCACACACCACACACAGCACACACGACACACACTGCACACCACACCACACACCA reference
+//
+// Probably an assembly defect, but not 100% sure.
+
+3 10 10.1 1,3,4,5,7,8,10,12           4 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// Of the errors in the test below, 20 are as follows (from Fosmid #18):
+//
+//                          ||||||||||||||||||||
+// CAAGGTATATTCAGGCCACAATATT                    CCTCCCTCCCTCCCTCCCTCCCTC assembly
+// CAAGGTATATTCAGGCCACAATATTCCTCCCTCCCTCCCTCCCTCCCTCCCTCCCTCCCTCCCTCCCTC reference
+//
+// Not clear if this is an assembly error.  Further analysis required.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #41):
+//
+//                        |
+// TGACAAGAGCAAGGCTCCATCTC AAAAAAAAAAAAAAAAAATTAGTCTGGCGTGGTGGCACACA assembly
+// TGACAAGAGCAAGGCTCCATCTCAAAAAAAAAAAAAAAAAAATTAGTCTGGCGTGGTGGCACACA reference
+//
+// Might be a variant site, might be fixable.
+
+4 10 10.1 18,21,23,25,26,30,39,41     21 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// The error in the test below is as follows (from Fosmid #45):
+//
+//                                  *
+// AGGAGACTAGAGGCCAGGACGTCTTCCATGTAGACAGGGCCACTTGGCCAGCCTCCCTCTGACCCGTTGC assembly
+// AGGAGACTAGAGGCCAGGACGTCTTCCATGTAGCCAGGGCCACTTGGCCAGCCTCCCTCTGACCCGTTGC reference
+//
+// This is in the assembly, but as part of a two-SNP bubble.  To examine further.
+
+5 10 10.1 42,45,46,50,54,55,56,57     1 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #59):
+//
+//                               *
+// TATATATATATATATATATATATATATATAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGA assembly
+// TATATATATATATATATATATATATATATATAGAGAGAGAGAGAGAGAGAGAGAGAGAGA reference
+//
+// Not clear if this is an assembly error.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #69):
+//
+//                          |
+// GCTGCGCCCAGCCTGGAAATCAGTATTTTTTTTTTTTTTTTTTTTTGAGATGGATACTCGCACTGTTACC assembly
+// GCTGCGCCCAGCCTGGAAATCAGTA TTTTTTTTTTTTTTTTTTTTGAGATGGATACTCGCACTGTTACC reference
+//
+// This looks like it might be an error in the Fosmid reference.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #73):
+//
+//                               *
+// GCCCAAGGTAATTTACAGATTCAATGCCATACCCATCAAGCTACCAATGACTTTCTTCAC assembly
+// GCCCAAGGTAATTTACAGATTCAATGCCATCCCCATCAAGCTACCAATGACTTTCTTCAC reference
+//
+// This looks like a variant site.  It is present in the assembly, as part of
+// a larger bubble, so perhaps we made an incorrect bubble join.  Further 
+// examination needed.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #74):
+//
+//                                                      *
+// GTGCCAAGATTACAACTGTTTCCTTCTGCTCCTGGTTCTTAGAGTTTTTTTTTAAAAAAAATATATAAAT assembly
+// GTGCCAAGATTACAACTGTTTCCTTCTGCTCCTGGTTCTTAGAGTTTTTTTTTTAAAAAAATATATAAAT reference
+//
+// This appears to be a variant site.  It has some support from the reads and 
+// might be fixable.
+
+6 10 10.1 58,59,66,69,72,73,74,77     4 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// Of the errors in the test below, 2 are as follows (from Fosmid #80):
+//
+//       ||
+// CTAATC  TGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTTGAGATGGCA assembly
+// CTAATCTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTGTTGAGATGGCA reference
+//
+// It's not at all clear whether this is an actual error.
+
+// Of the errors in the test below, 2 are as follows (from Fosmid #101):
+//
+//                                       ||
+// GCCTGGCAAGAAGAGTGTCAAAAAAAAAAAAAAAAAAAATAGCTGGGACAATTGAGGTACAAAGATGA assembly
+// GCCTGGCAAGAAGAGTGTCAAAAAAAAAAAAAAAAAAA  AGCTGGGACAATTGAGGTACAAAGATGA reference
+//
+// This looks like a variant site and looks like it might be possible to get it
+// right.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #101):
+//
+//                               *
+// AGACCAGCCTGGCCAGCATGGCAAAACCCCACCTCTACTAAAAATACAAAAATTAGCCAG assembly
+// AGACCAGCCTGGCCAGCATGGCAAAACCCCGCCTCTACTAAAAATACAAAAATTAGCCAG reference
+//
+// This appears to be a variant site, with 8 copies of the assembly allele in
+// the assembly data set, and 0 copies of the reference allele.  The reference
+// allele is present but under-represented in the other NA12878 WGS dataset. An 
+// alternative but unlikely hypothesis is that this event is due to a cell-line 
+// difference.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #101):
+//
+//                                |
+// GGCCTGGGTGACAAGAGCAAGACTCTGTATT AAAAAAAAAAAAAAAAAAGTGTTGGGGCCGTGCG assembly
+// GGCCTGGGTGACAAGAGCAAGACTCTGTATTAAAAAAAAAAAAAAAAAAAGTGTTGGGGCCGTGCG reference
+//
+// This looks like a variant site, where we're missing an allele, and looks like
+// we might be able to get it right, possibly by aligning reads back to the 
+// assembly.
+
+// Of the 12 errors in the test below, 6 are as follows (from Fosmid #101):
+//
+//                    ||||||
+// TGGACAGCCAGACCCTGTC      TTTTTTTTTTTTTTTTTTTTTTTGAGATGGAGTCTCTCTCT assembly
+// TGGACAGCCAGACCCTGTCTTTTTTTTTTTTTTTTTTTTTTTTTTTTTGAGATGGAGTCTCTCTCT reference
+//
+// The evidence suggest that this is a variant site, and that the assembly is 
+// representing the other allele.  It would be very difficult if not impossible to
+// get this right.
+
+7 10 10.1 78,80,84,88,96,101,105      12 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #40):
+//
+//                               *
+// CAGGCGTGAGCTACCGCACCTGGCCTATATTTTTTTTTTTTTTTTTTTTTGAGACAGAGT  assembly
+// CAGGCGTGAGCTACCGCACCTGGCCTATATATTTTTTTTTTTTTTTTTTTGAGACAGAGT  reference
+//
+// The evidence suggest that this is a variant site, and that the assembly is 
+// representing the other allele.
+// There are ~5 reads that support the reference, but it would be very difficult
+// to get this right.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #40):
+//
+//                            *
+// CTTGAGGTGGGGAGTTTGAGACCAGCCCGGCCAACTTGGTGAAACCCCACCTCTAC assembly
+// CTTGAGGTGGGGAGTTTGAGACCAGCCTGGCCAACTTGGTGAAACCCCACCTCTAC reference
+//
+// Did not occur in an earlier version of this test so perhaps fixable.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #76):
+//
+//               |
+// GGCTAATTTTTGTA TTTTTTTTTTTTTTTTTTTAGTAGAGATGGGGTTTCTCCATATTGGCCAG assembly
+// GGCTAATTTTTGTATTTTTTTTTTTTTTTTTTTTAGTAGAGATGGGGTTTCTCCATATTGGCCAG reference
+//
+// Does not occur in Fosmid-only assembly so may be fixable.
+
+// Of the errors in the test below, 7 are as follows (from Fosmid #76):
+//
+//                     |||||||
+// ACAGAATGAGACGCTGTCTC       AAAAAAAAAAAAAAAAAAAAAAAAGGCGGTCCCGATCCA assembly
+// ACAGAATGAGACGCTGTCTCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGGCGGTCCCGATCCA reference
+//
+// Not investigated.
+
+8 10 10.1 40,70,71,75,76,89,90,94    11 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #65):
+//
+//                                       *
+// CGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCAAGGCGGGCGGATCACGA assembly
+// CGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGAGAGGCCAAGGCGGGCGGATCACGA reference
+//
+// Not investigated.
+
+// Of the errors in the test below, 5 are as follows (from Fosmid #61):
+// (top = assembly, bottom = reference):
+//
+//                *                                ||
+// GTAAAGCCATTTAATCCTTTCAGTTTGGGACGGAGTAAGGCCTGCCTC  TTTTTTTTTTTTTTTTTTTTTTTTT
+// GTAAAGCCATTTAATTCTTTCAGTTTGGGACGGAGTAAGGCCTGCCTCTTTTTTTTTTTTTTTTTTTTTTTTTTT
+// 
+//                                      *
+// TTGAGACCGAGTCTTGCTCTGTCGCCCAGGCTGGAGTACAGTGGTGCGATCTTGGC
+// TTGAGACCGAGTCTTGCTCTGTCGCCCAGGCTGGAGTGCAGTGGTGCGATCTTGGC
+//
+//                     *
+// TCACTGCAACCTCTTCCCGCCGGGTTCACGCCATTCTCCTGCCTCAGCCTTCCGGGTAGCT
+// TCACTGCAACCTCTTCCCGCTGGGTTCACGCCATTCTCCTGCCTCAGCCTTCCGGGTAGCT
+//
+// Not investigated.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #61):
+//
+//                          *
+// TTTTTTTTTGAGACGGAGTCTCGGTCGCCCAGGCTGAAGTGTAAGGGTGCGATCTTGGCTCACTGCA assembly
+// TTTTTTTTTGAGACGGAGTCTCGGTTGCCCAGGCTGAAGTGTAAGGGTGCGATCTTGGCTCACTGCA reference
+//
+// Not investigated.
+
+// Of the errors in the test below, 1 is as follows (from Fosmid #28):
+//
+//                                        *
+// AGAAAAAAAAAAAGTACAAGAAATTCATAGCTTAATTATGAATCAAAACTTGGCTATGGTATGCA assembly
+// AGAAAAAAAAAAAGTACAAGAAATTCATAGCTTAATTATAAATCAAAACTTGGCTATGGTATGCA reference
+//
+// Not investigated.
+
+9 10 10.1 6,28,53,60,61,63,65,95      11 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// NO - both of these are out of date.
+// Of the errors in the test below, 1 is as follows (from Fosmid #32):
+//
+//                          |
+// GAGCGACAGAGCAAGTCTCCGTCTC AAAAAAAAAAAAAAAAAAAAAAAAAGACTGTTTCAAAAAA assembly
+// GAGCGACAGAGCAAGTCTCCGTCTCAAAAAAAAAAAAAAAAAAAAAAAAAAGACTGTTTCAAAAAA reference
+//
+// Not investigated.
+//
+// Of the errors in the test below, 1 is as follows (from Fosmid #32):
+//
+//                               *
+// ATATGTTATGTCGGCGGCGGTGGCGGGGGGGGGGTGGGGAGGAAGCAGAGGCTAGAGTGT assembly
+// ATATGTTATGTCGGCGGCGGTGGCGGGGGGTGGGTGGGGAGGAAGCAGAGGCTAGAGTGT reference
+//
+// Not investigated.
+
+10 10 10.1 13,27,31,32,43,86,100,102   18 errors and 0 gaps
+
+# ===================================================================================
+# travc tests
+# ===================================================================================
+
+13 10 10.1 15,19,48,52,64,68,91,103   17 errors and 1 gaps
+14 10 10.1 104                        2 errors and 0 gaps
+
+# ===================================================================================
+# travc test
+# ===================================================================================
+
+// Here are the reported errors in the following test.  The five substitutions
+// are bona fide errors in the wgs assembly of a tandem repeat.  Haven't looked
+// at the indel.
+// No - these are the results of Fosmid #93 are run alone.  In this context only
+// get two substitutions (plus the indel).
+//
+//                          |
+// TTGGGTGACAGCAAGACTCCGTCTCAAAAAAAAAAAAAAAAAAACCCTGTCTCCAGGGAGGAGGTAATTG assembly
+// TTGGGTGACAGCAAGACTCCGTCTC AAAAAAAAAAAAAAAAAACCCTGTCTCCAGGGAGGAGGTAATTG reference
+// 
+//                               *
+// GCAGGGGAGGATGGAGGGCATTTCTGCAGGAGGGGCAGTGGGATCTCAGACACAGCAGAG assembly
+// GCAGGGGAGGATGGAGGGCATTTCTGCAGGGGGGGCAGTGGGATCTCAGACACAGCAGAG reference
+// 
+//                               *         *
+// GGGATCTCAGACACAGCAGAGGCTGCAGGGGAGGATGGAGGGCATTTCTGCAGGAGGGGCAGTGGGATCT assembly
+// GGGATCTCAGACACAGCAGAGGCTGCAGGGAAGGATGGAGCGCATTTCTGCAGGAGGGGCAGTGGGATCT reference
+// 
+//                          *                       *
+// CTCAGACACAGCAGAGGCTGCAGGGGAGGATGGAGGGCATTTCTGCAGGAGGGGCAGTGGGATCTCAGAC assembly
+// CTCAGACACAGCAGAGGCTGCAGGGAAGGATGGAGGGCATTTCTGCAGGGGGGGCAGTGGGATCTCAGAC reference
+
+11 10 10.1 93                         3 errors and 0 gaps
+
+# ===================================================================================
+# travc tests
+# ===================================================================================
+
+-1 -1 -1 11                          63 errors and 0 gaps
+-1 -1 -1 49                           5 errors and 0 gaps
+-1 -1 -1 85                          35 errors and 0 gaps
+
+# ===================================================================================
+# travc tests where wgs assembly has a gap (or had one)
+# ===================================================================================
+
+-1 -1 -1 0                           15 errors and 1 gaps
+-1 -1 -1 2                            2 errors and 1 gaps
+-1 -1 -1 9                            1 errors and 1 gaps // not a real gap
+-1 -1 -1 20                          15 errors and 1 gaps // not a real gap
+-1 -1 -1 22                           2 errors and 1 gaps
+-1 -1 -1 24                           0 errors and 2 gaps // should have one read gap
+-1 -1 -1 29                           2 errors and 2 gaps
+-1 -1 -1 34                           0 errors and 1 gaps // not a real gap
+-1 -1 -1 35                         183 errors and 1 gaps // should have one real gap
+-1 -1 -1 37                          38 errors and 1 gaps
+-1 -1 -1 44                           1 errors and 1 gaps
+-1 -1 -1 62                           0 errors and 0 gaps
+-1 -1 -1 67                           6 errors and 1 gaps
+-1 -1 -1 79                          13 errors and 1 gaps
+-1 -1 -1 81                          13 errors and 1 gaps
+-1 -1 -1 83                          87 errors and 0 gaps
+-1 -1 -1 87                          42 errors and 1 gaps
+-1 -1 -1 99                           0 errors and 1 gaps // not a real gap
+-1 -1 -1 106                          1 errors and 1 gaps
+
+# ==================================================================================
+# stuff
+# ==================================================================================
+
+12 11 11.05        2 favor ref
+12 11.05 11.2      validates
+12 11.2 11.3       gap
+12 11.29 11.46     3 extra edges      // was 3 favor ref
+12 11.43 11.5      validates
+12 11.5 11.55      24 extra edges
+12 11.55 12.451    4 favor ref
+
+# ==================================================================================
+# gap
+# ==================================================================================
+
+// This gap appears to be a case where very high GC sequence is completely missing
+// from the reads.  When last examined gap was as follows:
+//
+// [left flank in assembly]
+// GTCATGCCACTGCACTCCAGCCTGCACAACAGAGTGATGAAAGAAAGG
+// ...
+// [missing sequence, copied from reference]
+// AAGGGAGGGAGGGAGGGAGGGAGGGGGAGGGGAGGGGAGGGGAAGGGGAAGGGAGAAGGGAGGGGGAGGGGAGGAGAGGG
+// GGAGGGGAGGGGAGGGGGAGGGGAGGAGGGGGGGGAGGGGGGAGGGGAGGAGAGGGGGAGGGGAGGGGGGAGGGAGGGGA
+// GGGAGAAAGAAAGGAAGGGAGGGAGGAGGAGGGGAGGGGGAGGGGAGGGGGAGGGGAGGGGAGGGGGAGGGGAGGGGGAG
+// GGGAAGGGAGGGGGATGGGAGGGGA
+// [SearchHuman S=AAGGGGAAGGGAGAAGGGAGGGGGAGGGGAGGA: nothing]
+// ...
+// [right flank in assembly]
+// GAGGAGGGGGAGGGGAGCGGGATGGGAGGGGAGGGGGGAGGGAGGGGAGGGAAGGGAGAAAGGAAGGAAGGAAGGAAGGG
+// AGAGAAAGCAAGGGAAAGAAGGAAAGAAAGAAAGGGAAAATAATCAAAAAT
+
+12 12.45 12.5      gap
+
+# ==================================================================================
+# more
+# ==================================================================================
+
+12 12.5 12.551     validates
+
+# ==================================================================================
+# gap
+# ==================================================================================
+
+// Old notes:
+//
+// gap in 81% GC region
+//
+// See gap2.story.  (David has this file.)
+//
+// r44209: closable with CP_MIN_GLUE=-100 CP_MINQ_FLOOR=2 CP_MAX_QDIFF=25
+// PRECORRECT_SEQ="{16,24,40}" K2frac=0.17 WORDIFY=False
+//
+// leaving favors ref = 5.
+//
+// Critical points:
+// (1) Precorrection needs to fix read 5284.  Pretty close now.  Three bases in con
+// (gap2.story) marked lower-case because not sure.
+// (2) 5284/5285 closed, probably correctly.
+// (3) 5285 matches #1.112, appears gone in #2.
+
+12 12.55 12.6      gap
+
+# ==================================================================================
+# more
+# ==================================================================================
+
+12 12.6 12.8       2 favor ref
+
+# ==================================================================================
+# gap
+# ==================================================================================
+
+// This gap appears to be a case where a few kb is missing from the reference.
+// Here is the relevant part of the pnas summary file, showing the position of
+// assembly when last examined:
+// -- (-18 +/- 12) --> 315071 (l = 4410)     left flank of our gap stops at 681
+// -- (1057 +/- 16) --> 252304 (l = 11186)   right flank of our gap starts at 0
+
+12 12.8 12.85      gap
+
+12 12.84 13.1      3 favor ref            // 3 probably in long T run handled badly
+12 13.1 13.15      gap                    // notes suggest that this was an inversion
+12 13.12 13.35     2 favor ref
+
+# ===================================================================================
+# gap
+# ===================================================================================
+
+// gap is
+// 
+// GCCCCACCCCTCCAATTCGTCTTTTACCAGTCATTCCTCAC
+// ...
+// CTCCTCTCCCCTCCCCTCCCCTCGCCTTCTTTCCCTTTCTTTCTGACAGGGTCTCACTCTGTCTCCCA
+//
+// Is gap in pnas.  Looks potentially closable but very little to work with.
+
+12 13.35 13.4      gap
+
+# ==================================================================================
+# more
+# ==================================================================================
+
+// TCTTTTTTTTTTTTTTAA   orig=6   mod0=5   mod=2   missing, in #2 but not #3
+// 
+// orig but not mod:
+// ALIGN 0 717 - 43 61         no offsets (717 is complete trash)
+// ALIGN 0 18299 - 140 158     no offsets (18299 quality looks horrendous)
+// ALIGN 0 20965 + 50 68       preclosed, converted to other allele
+//
+// not 100% obvious that this is real
+
+12 13.39 13.51     2 favor ref
+
+# ===================================================================================
+# gap
+# ===================================================================================
+
+// 45585-45768 on region
+// see region.story (David has this file)
+// solved with (r44193): CP_MINQ_FLOOR=0 CP_MAX_QDIFF=40 CP_MIN_GLUE=-100
+// but this does terrible things to other regions
+
+12 13.5 13.55      gap
+
+# ===================================================================================
+# more
+# ===================================================================================
+
+12 13.548 14.3     inversion              // inversion new, but appears sort of real
+                                          // supporting reads:
+                                          // 30075, 37973, 49701, 74439, 161349
+12 14.3 14.4501    12 favor ref
+
+# ===================================================================================
+# gap
+# ===================================================================================
+
+// This gap appears in a repeat element.  Reference discrepancy likely prevents
+// closure.  Possibility of chunk missing from reference suggested by pnas contigs
+// 162742,...,162501.
+
+12 14.45 14.5      gap
+
+# ===================================================================================
+# long contiguous stretch
+# ===================================================================================
+
+12 14.499 16.4     6 favor ref
+12 16.4 17.3       4 favor ref
+12 17.3 17.85      7 favor ref
+12 17.85 17.95     4 favor ref
+12 17.95 19        2 favor ref
+12 19 19.7         6 favor ref
+12 19.7 19.8       validates
+
+# ===================================================================================
+# gap
+# ===================================================================================
+
+// The following gap is at a sequence GGGCGGGGGCGGGGGGGGGTGGGGTGGGTGGG in the
+// reference.  Need to check reads to see if they go through it.  From PNAS, no
+// evidence of an insertion in the sample relative to the reference.  It has a
+// gap at the same place.
+
+12 19.8 19.85      gap
+
+# ===================================================================================
+# more stuff
+# ===================================================================================
+
+12 19.85 19.92     validates
+
+# ===================================================================================
+# gap
+# ===================================================================================
+
+// The following gap is present because of a ~600-base insertion in NA12878 relative 
+// to the reference.  The inserted sequence is present in the PNAS assembly.  The
+// gap is at ~19.94.
+
+12 19.92 19.96     gap
+
+# ===================================================================================
+# more stuff
+# ===================================================================================
+
+12 19.96 20.36     validates
+12 20.35 20.4      gap
+12 20.39 20.7      2 favor ref
+12 20.695 20.9     2 favor ref
+12 20.9 20.95      gap
+12 20.95 21.36     validates
+12 21.35 21.5      validates
+12 21.49 21.56     validates
+12 21.55 21.6      2 extra edges
+12 21.6 21.85      2 favor ref
+12 21.85 22.1      validates
+12 22.1 22.15      2 gaps
+12 22.15 23.05     7 favor ref
+12 23.05 23.1      gap
+12 23.1 23.4       validates
+12 23.4 24.4       15 favor ref
+12 24.4 24.5       gap
+12 24.5 25.3       2 favor ref
+12 25.3 25.4       2 extra edges
+12 25.4 25.5       gap
+12 25.5 26.3       20 favor ref
+
+12 26.3 26.4       gap                   // gap gone in dataset 2
+                                         // caused by (G^6)A(G^6)A(G^6)A(G^6)A(G^6)
+
+12 26.4 26.5       gap
+12 26.5 26.71      gap
+12 26.7 26.8       23 favor ref
+12 26.8 26.9       8 favor ref
+12 26.9 27         gap
+
+# ===================================================================================
+# rhodobacter tests
+# ===================================================================================
+
+r1     17-edge perfect circle plus 3 other edges
+r2     4-edge perfect circle plus 1 other edges
+r3     1-edge perfect circle plus 0 other edges
+r4     1-edge perfect circle plus 1 other edges
+r5     18-edge perfect circle plus 3 other edges
+r6     3-edge perfect circle plus 3 other edges

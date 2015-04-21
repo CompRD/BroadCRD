@@ -1,0 +1,89 @@
+#!/bin/csh -f
+
+# usage: build_micro_baby_better-supers bam-version region first_super last_super
+
+# At present this only creates unipaths.
+
+# THIS WIPES OUT THE DIRECTORY AND REBUILDS IT.
+
+echo "running build_micro_baby_better-supers $1 $2 $3 $4"
+
+# first argument is BAM version, either 1 or 2
+
+set bam = $1
+
+# second argument is the name of the region, e.g region1 or whatever you want
+
+set region = $2
+
+set first_super = $3
+set last_super = $4
+
+# define the bushbaby directory, and create the region inside it
+
+# REF:  O.garnettii/babies/microbaby_$region
+# DATA: $region
+# RUN:  run
+
+echo "`date`: starting"
+set baby = /wga/scr1/ALLPATHS/O.garnettii/babies
+set ref = $baby/microbaby_$region
+set data = $ref/$region
+set run = $data/run
+
+/bin/rm -rf $ref
+mkdir $ref
+mkdir $data
+echo "results are in $run"
+
+set sup = $first_super
+set supers_list = super_{$sup}
+while(1)
+     set sup = `expr $sup + 1`
+     set supers_list = "$supers_list super_{$sup}"
+     if ( $sup == $last_super ) break
+end
+
+# create mini-genome in it's own reference dir
+
+SelectB PRE=/ IN_HEAD=$baby/../genome OUT_HEAD=$ref/genome \
+     IDS="[$first_super,$last_super]"
+Fastb PRE=/ FILE=$ref/genome.fasta
+MakeLookupTable SOURCE=$ref/genome.fasta OUT_HEAD=$ref/genome LOOKUP_ONLY=True
+
+# copy ploidy file to data dir
+
+( cd $baby/..; cp ploidy $data )
+
+# extract the fragment data and build assembly input files
+
+set samtools = /seq/dirseq/samtools/current/samtools
+set bamdir = /wga/scr1/ALLPATHS/O.garnettii/bam
+$samtools view $bamdir/bushbaby.frag.assembly{$bam}.bam \
+     $supers_list | SAM2CRDDump \
+     OUT_HEAD=$data/frag_reads_orig SEP=-15 DEV=10 USE_OQ=True NH=True
+
+# extract jumpers generate and build assembly input files
+# (SEP and DEV are wrong)
+
+$samtools view $bamdir/bushbaby.sheared_jump.assembly2.bam $supers_list \
+     | SAM2CRDDump OUT_HEAD=$data/jump_reads_orig SEP=2090 DEV=230 USE_OQ=True \
+     NH=True
+
+# run the assembly that generates unipaths
+
+# changed TARGETS_RUN from filled_reads... to gap_closed....
+
+RunAllPathsLG PRE=/ ALLPATHS_BASE=/wga/scr1/ALLPATHS \
+     REFERENCE_NAME=O.garnettii/babies/microbaby_$region \
+     DATA_SUBDIR=$region RUN=run OVERWRITE=True \
+     TARGETS= TARGETS_RUN="{all_reads.unibases.k96}"
+
+UnipathPatcher PRE=/ DATA=$data RUN=run K=96
+
+echo ""
+HyperToReftigs PRE=/ DATA=$data RUN=run K=96 READS=all_reads
+HyperToReftigs PRE=/ DATA=$data RUN=run K=96 READS=all_reads.patched
+
+echo ""
+echo "`date`: done"

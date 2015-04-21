@@ -1,0 +1,412 @@
+#!/bin/csh
+
+# fosgo: assemble and analyze NA12878 Fosmid assemblies
+#
+# usage: fosgo vcf-nickname stage ids
+#        where vcf-nickname = nickname of vcf and prefix for some output files
+#              current standards gatk, platinum and cortex (to add complete)
+#              you can also provide a quoted list, e.g. "gatk platinum"
+#              stage = begin or copy or vcf or vcfx
+#                      begin: start from the beginning
+#                      copy: use the reference copy of Fosmid assembly
+#                      vcf: suppose begin has already been run, jump to vcf evaluation
+#                      vcfx: use reference copy of Fosmid assembly, jump to vcf
+#              ids = list of one or more Fosmid ids (default = all)
+#                    if "goods" then use the "good" set of ids
+#
+# special usage: fosgo make
+#         to make all executables required by this program, then exit
+#
+# current standard command line: fosgo "gatk platinum complete" begin goods
+#
+# you must setenv FOSGO_OUT_DIR to a directory of your choice
+#
+# output:
+#      local files (partial list)
+#      - tmp.fos: directory for Fosmid assembly
+#      - tmp.wgs: directory for WGS assembly
+#      - {fos,wgs,vcf}.final.fasta
+#      - fos.final.lookup
+#      - crt.out: verbose output of CallRefTrace
+#      files in FOSGO_OUT_DIR
+#      - fos.$id.fasta = Fosmid reference sequence
+#      - fos.$id.dot = Fosmid reference dot
+#      - fos.$id.marked.dot = Fosmid reference dot (with markup)
+#      - wgs.$id.dot = WGS assembly dot
+#      - wgs.$id.marked.dot = WGS assembly (with markup)
+#      - vcf-nickname.$id.dot = VCF assembly dot
+#      - vcf-nickname.delta.$id: diffs between VCF assembly and Fosmid reference
+
+# Make.
+
+if ( "$1" == "make" ) then
+     set makelist = "LongProto GenomeVCFToHyperBaseVector CallRefTrace Comma Col"
+     set makelist = "$makelist MakeLookupTable Substitute AssessBestAlign DiffHbv"
+     set makelist = "$makelist FetchExonLocs ListFosmids"
+     crdMake -j50 $makelist
+     exit
+endif
+
+# Define variables.
+
+set vcfs = "$1"
+if ( "$vcfs" == "" ) then
+     echo "usage: fosgo <vcf-list> <begin or vcf> <id list or goods>"
+     exit
+endif
+set stage = $2
+set fgd = $FOSGO_OUT_DIR
+set all = "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55"
+set goods = "`ListFosmids CLASS=goods NH=True`"
+if ( $3 == "goods" ) then
+     set ids = "$goods"
+else
+     set ids = "$3 $4 $5 $6 $7 $8 $9 $10 $11 $12 $13 $14 $15 $16 $17"
+     if ( "$ids" == "" ) set ids = "$all"
+endif
+set CRT_ARGS = "MAX_OFFSET_DIFF=30,250,10 MAX_ERROR_RATE=0.31,0.31,0.5 OFFSET_ADD=5 "
+set CRT_ARGS = "$CRT_ARGS MIN_GROUP_FRAC=0.1,0.75,0.1 MAX_TWIDDLE=5,120,250"
+
+# Track global stats.
+
+set fosmids = 0
+set bases = 0
+set warnings = 0
+set nvcfs = `echo $vcfs | wc -w`
+if ( $nvcfs == 1 ) then
+     set meta = {0}
+     set indels = {0}
+     set subs = {0}
+else if ( $nvcfs == 2 ) then
+     set meta = {0,0}
+     set indels = {0,0}
+     set subs = {0,0}
+else if ( $nvcfs == 3 ) then
+     set meta = {0,0,0}
+     set indels = {0,0,0}
+     set subs = {0,0,0}
+else if ( $nvcfs == 4 ) then
+     set meta = {0,0,0,0}
+     set indels = {0,0,0,0}
+     set subs = {0,0,0,0}
+else echo "TOO MANY VCFS!!"
+endif
+set meta_wgs = 0
+set indels_wgs = 0
+set subs_wgs = 0
+
+# Go through the ids.
+
+echo
+foreach id ($ids)
+
+     # Define some variables.
+
+     set in_genome = fos.hbv
+     set fdir = /wga/dev/references/Homo_sapiens/NA12878_Fosmid_Pool.regions.fin
+     if ( $stage == "copy" || $stage == "vcfx" ) then
+          set in_genome = $fdir/fos.$id.fasta
+          set asize = `cat $in_genome | grep -v ">" | tr -d '\n' | wc --bytes`
+          set bases = `expr $bases + $asize`
+     endif
+     set pool = hpool2
+     if ( $id > 55 ) set pool = hpool3
+     set fosmids = `expr $fosmids + 1`
+     echo -n "===================================================================="
+     echo "=============\n"
+     if ( $stage == "vcf" || $stage == "vcfx" || $stage == "copy" ) echo "#$id"
+
+     # Generate Fosmid assembly.
+
+     if ( $stage == "vcf" ) goto vcf
+     if ( $stage == "vcfx" ) goto vcfx
+     if ( $stage == "copy" ) goto copy
+     LongProto SAMPLE=$pool READS=\#picard X=$id TMP=tmp.fos OUT_INT_HEAD=fos \
+          OUT_HEAD=fos >& fos.out
+     if ( $status != 0 ) then
+          echo "Warning: LongProto failed"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+     cp fos.final.dot $fgd/fos.$id.dot
+     cp fos.final.marked.dot $fgd/fos.$id.marked.dot
+     cp fos.final.fasta $fgd/fos.$id.fasta
+     MakeLookupTable SOURCE=fos.final.fasta OUT_HEAD=fos.final LO=True >& /dev/null
+     echo -n "#$id = "
+     cat fos.out | grep "using region" | Col 8
+     echo "\n1. LongProto Fosmid assembly\n"
+     cat fos.out | grep "has size" | Substitute FROM=": " TO="\n" NH=True | grep size
+     set asize = `cat fos.final.fasta | grep -v ">" | tr -d '\n' | wc --bytes`
+     echo "assembly has $asize bases"
+     set bases = `expr $bases + $asize`
+     cat fos.out | grep "coverage =" | Substitute FROM=": " TO="\n" | grep cov
+     cat fos.out | egrep "edges|components|cycl|favor|excess" | grep -v ":"
+     cat fos.out | grep "cycl" > /dev/null
+     if ( $status == 0 ) then
+          echo "\nFosmid reference has cycle, giving up.\n"
+          continue
+     endif
+     cat fos.out | grep "has 1 components" > /dev/null
+     if ( $status != 0 ) then
+          echo "\nFosmid reference has gap, giving up.\n"
+          continue
+     endif
+
+     # Generate diploid assembly.
+
+     copy:
+     echo -n "\n2. LongProto diploid assembly, evaluated versus "
+     echo "Fosmid assembly as reference\n"
+     LongProto SAMPLE=human.$pool READS=\#picard X=$id TMP=tmp.wgs \
+          OUT_INT_HEAD=wgs IN_GENOME=$in_genome LOGGING=REFTRACE=True OUT_HEAD=wgs \
+          >& wgs.out
+     if ( $status != 0 ) then
+          echo "Warning: LongProto failed"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+     cat wgs.out | egrep "penalty|errors|edges|components|cycl|favor|excess" | \
+          grep -v ":"
+     cp wgs.final.dot $fgd/wgs.$id.dot
+     cp wgs.final.marked.dot $fgd/wgs.$id.marked.dot
+
+     # To generate 'full' read sets.  This is useful if you want to examine all the
+     # evidence that could support a given call.
+
+     vcfx:
+     LongProto SAMPLE=$pool READS=\#picard X=$id TMP=tmp.fos \
+          DATA_SPEC=SELECT_FRAC=1 EXIT=NOMINAL_COV >& /dev/null
+     if ( $status != 0 ) then
+          echo "Warning: LongProto failed"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+     LongProto SAMPLE=human.$pool READS=\#picard X=$id TMP=tmp.wgs DATASET="1,2" \
+          EXIT=NOMINAL_COV IN_GENOME=$in_genome >& /dev/null
+     if ( $status != 0 ) then
+          echo "Warning: LongProto failed"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+     if ( $stage == "vcfx" ) goto vcf
+
+     # Fetch exon locations.
+
+     FetchExonLocs ID=$id NH=True >& exons.locs
+     if ( $status != 0 ) then
+          echo "Warning: FetchExonLocs failed"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+
+     # Assess wgs assembly.
+
+     CallRefTrace HBV_ASSEMBLY=wgs.hbv REF=$in_genome $CRT_ARGS FIX_BUG=True \
+          VERBOSITY=4 BEST_GLOBAL_OUT=global.fastb > crt.out
+     if ( $status != 0 ) then
+          echo "Warning: CallRefTrace 1 failed"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+     cat crt.out | grep "total gaps = 0," >& /dev/null
+     if ( $status != 0 ) then
+          echo "Warning: There's a gap, you need to fix it.\n"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+     AssessBestAlign BEST_GLOBAL=global.fastb TMP1=tmp.fos TMP2=tmp.wgs \
+          NAME1=Fosmid NAME2=WGS ANNOTATIONS=exons.locs X=$id > $fgd/wgs.delta.$id
+     if ( $status != 0 ) then
+          echo "\nWarning: AssessBestAlign FAILED\n"
+          set warnings = `expr $warnings + 1`
+          continue
+     endif
+     echo "\ncomparison of wgs assembly to Fosmid reference:"
+     set this_meta = `cat $fgd/wgs.delta.$id | grep -c META`
+     set this_indels = `cat $fgd/wgs.delta.$id | grep indel | Col 4`
+     set this_subs = `cat $fgd/wgs.delta.$id | grep subst | Col 4`
+     echo "total meta-events: $this_meta"
+     echo "total indel events: $this_indels"
+     echo "total substitution events: $this_subs"
+     set meta_wgs = `expr $meta_wgs + $this_meta`
+     set indels_wgs = `expr $indels_wgs + $this_indels`
+     set subs_wgs = `expr $subs_wgs + $this_subs`
+
+     # Process vcfs.
+
+     vcf:
+     set vcf_dir = /wga/scr4/NA12878_calls
+     set srf = "snps.recalibrated.filtered"
+     set vid = 0
+
+     foreach vcfnn ($vcfs)
+
+          echo "\ncomparison of $vcfnn vcf to Fosmid reference:"
+          set vid = `expr $vid + 1`
+
+          # Vcf locations.  Notes: 
+          # - platinum.phased may not actually be phased;
+          # - cortex* are broken because they're mapped against hg18;
+
+          if ( $vcfnn == "trio" ) then
+               set vcf = trio/2.3.vcf
+          else if ( $vcfnn == "trio.phased" ) then
+               set vcf = trio/2.3.vcf
+          else if ( $vcfnn == "cortex" ) then
+               set vcf = cortex/NA12878_BC_calls.raw.submission.vcf
+          else if ( $vcfnn == "cortex.phased" ) then
+               set vcf = cortex/NA12878_BC_calls.raw.submission.vcf
+          else if ( $vcfnn == "platinum" ) then
+               set vcf = platinum/NA12878_S1.genome.vcf
+          else if ( $vcfnn == "platinum.phased" ) then
+               set vcf = platinum/NA12878_S1.genome.vcf
+          else if ( $vcfnn == "complete" ) then
+               set vcf = complete/Complete_Public_Genomes_69genomes_B37_mkvcf.fosmid.vcf
+          else if ( $vcfnn == "complete.phased" ) then
+               set vcf = complete/Complete_Public_Genomes_69genomes_B37_mkvcf.fosmid.vcf
+          else if ( $vcfnn == "small.250" ) then
+               set vcf = H01UJADXX/fosmids.only/$srf.vcf
+          else if ( $vcfnn == "gatk" || $vcfnn == "large.250" ) then
+               set vcf = H01UJADXX/whole.genome/$srf.vcf
+          else if ( $vcfnn == "gatk.mem" ) then
+               set vcf = mem1/$srf.vcf
+          else if ( $vcfnn == "gatk2" ) then
+               set vcf = mem4/haplotype-caller-pcr-none/reverted.12.aligned.wholegenome.sorted.indel_cleaned_local.recal.unfiltered.recal_snp_recal_indel.vcf
+          else if ( $vcfnn == "small.250.phased" ) then
+               set vcf = H01UJADXX/fosmids.only/$srf.phased.vcf
+          else if ( $vcfnn == "large.250.phased" ) then
+               set vcf = H01UJADXX/whole.genome/$srf.phased.vcf
+          else if ( $vcfnn == "small.100" ) then
+               set vcf = 20FUKAAXX+20GAVAAXX/fosmids.only/$srf.vcf
+          else if ( $vcfnn == "small.100.phased" ) then
+               set vcf = 20FUKAAXX+20GAVAAXX/fosmids.only/$srf.phased.vcf
+          # large vcf from 100 base reads
+          # COMING
+          # large phased vcf from 100 base reads
+          # COMING
+          else echo "ILLEGAL VCF NICKNAME!"
+          endif
+
+          # For the following, set FILTERS= to get all calls instead of just passing
+          # ones.  Should we use a much larger K?
+
+          # set FILTERS = "{PASS,VQSRTrancheBOTH99.90to100.00}"
+          set FILTERS = PASS
+          # set K = 80
+          set K = 200
+          set phasing = false
+          if ( $vcfnn =~ "*.phased" ) set phasing = true
+          set prefix =
+          if ( $vcf =~ "platinum*" ) set prefix = "VCF_CHR_PREFIX=chr"
+
+          # First we try a small K.  If the graph is acyclic, we're good.
+          # Otherwise, try a larger K.
+
+          set SAMPLE_NAME =
+          if ( $vcf =~ "complete*" ) then
+               set FILTERS =
+               set SAMPLE_NAME = NA12878-200-37-ASM
+          endif
+          foreach K (80 200)
+               GenomeVCFToHyperBaseVector VCF_FILE=$vcf_dir/$vcf K=$K HBV=vcf.hbv \
+                    DOT=$fgd/$vcfnn.$id.dot RANGE=$id FASTA_OUT=vcf.final.fasta \
+                    FILTERS=$FILTERS VCF_OUT=vcf.raw PHASING=$phasing \
+                    $prefix >& vth.out
+               if ( $status != 0 ) then
+                    echo "GenomeVCFToHyperBaseVector failed"
+                    exit 1
+               endif
+               cat vth.out | grep Warning >& /dev/null
+               if ( $status != 0 ) break
+          end
+          cat vth.out | grep Warning
+          set vth_warnings = `cat vth.out | grep -c Warning`
+          set warnings = `expr $warnings + $vth_warnings`
+
+          # Compare the vcf assembly to the Fosmid reference.
+
+          CallRefTrace HBV_ASSEMBLY=vcf.hbv REF=$in_genome $CRT_ARGS FIX_BUG=True \
+               VERBOSITY=4 BEST_GLOBAL_OUT=global.fastb > crt.out
+          if ( $status != 0 ) then
+               echo "Warning: CallRefTrace 2 failed"
+               set warnings = `expr $warnings + 1`
+               continue
+          endif
+          cat crt.out | grep "total gaps = 0," >& /dev/null
+          if ( $status != 0 ) then
+               echo "Warning: There's a gap, you need to fix it.\n"
+               set warnings = `expr $warnings + 1`
+               continue
+          endif
+          AssessBestAlign BEST_GLOBAL=global.fastb TMP1=tmp.fos TMP2=tmp.wgs \
+               NAME1=Fosmid NAME2=WGS ANNOTATIONS=exons.locs X=$id \
+               > $fgd/$vcfnn.delta.$id
+          if ( $status != 0 ) then
+               echo "\nWarning: AssessBestAlign FAILED\n"
+               set warnings = `expr $warnings + 1`
+               continue
+          endif
+
+          set this_meta = `cat $fgd/$vcfnn.delta.$id | grep -c META`
+          set this_indels = `cat $fgd/$vcfnn.delta.$id | grep indel | Col 4`
+          set this_subs = `cat $fgd/$vcfnn.delta.$id | grep subst | Col 4`
+          echo "total meta-events: $this_meta"
+          echo "total indel events: $this_indels"
+          echo "total substitution events: $this_subs"
+          set meta_vid = $meta[$vid]
+          set indels_vid = $indels[$vid]
+          set subs_vid = $subs[$vid]
+          set meta[$vid] = `expr $meta_vid + $this_meta`
+          set indels[$vid] = `expr $indels_vid + $this_indels`
+          set subs[$vid] = `expr $subs_vid + $this_subs`
+
+          # Compare wgs and vcf assemblies.  This requires K = 80.   Turned off
+          # for now.
+
+          if ( $K == 80 && $stage != "vcfx" ) then
+               DiffHbv SHB1=wgs.final.shbv HB2=vcf.hbv > diffs.short
+               DiffHbv SHB1=wgs.final.shbv HB2=vcf.hbv PRINT_BASES=True > diffs.long
+          else
+          /bin/rm -f diffs.short diffs.long
+          endif
+
+     end
+
+end
+
+# Summary stats.
+
+echo "\nSUMMARY"
+echo "warnings: $warnings"
+echo "total number of fosmids: $fosmids"
+echo "total reference bases: `echo $bases | Comma`"
+if ( $stage != "vcf" && $stage != "vcfx" ) then
+     echo "results for wgs"
+     set rate = infinity
+     if ( $indels_wgs > 0 || $subs_wgs > 0 ) then
+          set rate = `echo "$bases / ( $indels_wgs + $subs_wgs )" | bc`
+          set rate = `echo $rate | Comma`
+     endif
+     echo "     grand total meta-events: $meta_wgs"
+     echo "     grand total indel events: $indels_wgs"
+     echo "     grand total substitution events: $subs_wgs"
+     echo "     one event per $rate reference bases"
+endif
+set vid = 0
+foreach vcfnn ($vcfs)
+     echo "results for $vcfnn"
+     set vid = `expr $vid + 1`
+     set meta_vid = $meta[$vid]
+     set indels_vid = $indels[$vid]
+     set subs_vid = $subs[$vid]
+     set rate = infinity
+     if ( $indels_vid > 0 || $subs_vid > 0 ) then
+          set rate = `echo "$bases / ( $indels_vid + $subs_vid )" | bc`
+          set rate = `echo $rate | Comma`
+     endif
+     echo "     grand total meta-events: $meta_vid"
+     echo "     grand total indel events: $indels_vid"
+     echo "     grand total substitution events: $subs_vid"
+     echo "     one event per $rate reference bases"
+end
+echo

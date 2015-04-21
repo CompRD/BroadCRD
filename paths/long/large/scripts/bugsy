@@ -1,0 +1,19 @@
+#!/bin/csh
+
+# Create synchronized LongProto and GapToy assemblies of Rhodobacter.
+
+foreach sample ( rhody )
+
+     echo $sample
+
+     set global = /wga/scr4/$user/GapToy/bugsy/$sample
+
+     mkdir -p $global/LP
+
+     LongProto SAMPLE=$sample READS=\#picard OUT_INT_HEAD=$global/LP/aaa \
+          TMP=$global/tmp.xxx HEURISTICS=INJECT_REF=False
+
+     GapToy X=all SAMPLE=$sample INSTANCE=bugsy/$sample \
+          BHEAD=$global/tmp.xxx/frag_reads_orig
+
+end

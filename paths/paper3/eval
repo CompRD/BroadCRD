@@ -1,0 +1,119 @@
+#!/bin/csh
+
+set human = /wga/scr1/ALLPATHS/H.sapiens.NA12878
+set mouse = /wga/scr1/ALLPATHS/M.musculus
+set other = $human/other_ref
+set human_refhead = $human/other_ref/build19.mito.female.nonrandom
+set mouse_refhead = $mouse/female.nonrandom
+set human_ALLPATHS = $human/fullhuman/fullhuman_v1.1/iainm.22jul/ASSEMBLIES/test
+set mouse_ALLPATHS = $mouse/fullmouse/fullmouse_v2.4/iainm.12aug2010/ASSEMBLIES/test
+
+foreach A ($human_ALLPATHS/linear_scaffolds.assembly.efasta)
+     ScaffoldAccuracy ASSEMBLY=$A REFHEAD=$human_refhead SAMPLE=40K \
+          >& $A.ScaffoldAccuracy.for_paper.out
+     echo $A.ScaffoldAccuracy.for_paper.out
+end
+
+foreach A ($other/YH/YH2.fasta $other/bang_gubi/BangGubi.assembly.fasta $other/HuRef/HuRef.fasta)
+     ScaffoldAccuracy ASSEMBLY=$A REFHEAD=$human_refhead SAMPLE=40K ALLOW_N=True \
+          >& $A.ScaffoldAccuracy.for_paper.out
+     echo $A.ScaffoldAccuracy.for_paper.out
+end
+
+foreach A ($mouse_ALLPATHS/linear_scaffolds.assembly.efasta $mouse/SOAP/SOAP.efasta $mouse/ABI3730/scaffolds.fasta)
+     ScaffoldAccuracy ASSEMBLY=$A REFHEAD=$mouse_refhead SAMPLE=40K \
+          >& $A.ScaffoldAccuracy.for_paper.out
+     echo $A.ScaffoldAccuracy.for_paper.out
+end
+
+foreach A ($human_ALLPATHS/linear_scaffolds.assembly.efasta $other/YH/YH2.fasta $other/bang_gubi/BangGubi.assembly.fasta $other/HuRef/HuRef.fasta)
+     AssemblyAccuracy ASSEMBLY=$A REF={$human_refhead}.fasta CHUNK_SIZE=1K \
+          EFASTA=True >& $A.AssemblyAccuracy.for_paper.out
+     echo $A.AssemblyAccuracy.for_paper.out
+end
+
+# this may be superceded by what follows it
+foreach A ($human_ALLPATHS/linear_scaffolds.assembly.efasta)
+     AssemblyAccuracy ASSEMBLY=$A REF=$human/genome.fasta CHUNK_SIZE=1K \
+          EFASTA=True >& $A.AssemblyAccuracy.vs_NA12878.for_paper.out
+     echo $A.AssemblyAccuracy.vs_NA12878.for_paper.out
+end
+
+foreach A ($human_ALLPATHS/assembly.fixed_indels.efasta)
+     AssemblyAccuracy ASSEMBLY=$A REF=$human/genome.fasta CHUNK_SIZE=1K \
+          EFASTA=True >& $A.AssemblyAccuracy.vs_NA12878.for_paper.out
+     echo $A.AssemblyAccuracy.vs_NA12878.for_paper.out
+end
+
+foreach A ($mouse_ALLPATHS/linear_scaffolds.assembly.efasta $mouse/SOAP/SOAP.efasta $mouse/ABI3730/scaffolds.fasta)
+     AssemblyAccuracy ASSEMBLY=$A REF={$mouse_refhead}.fasta CHUNK_SIZE=1K \
+          >& $A.AssemblyAccuracy.for_paper.out
+     echo $A.AssemblyAccuracy.for_paper.out
+end
+
+# this may supercede the first A in the previous
+foreach A ($mouse_ALLPATHS/assembly.fixed_indels.efasta)
+     AssemblyAccuracy ASSEMBLY=$A REF={$mouse_refhead}.fasta CHUNK_SIZE=1K \
+          >& $A.AssemblyAccuracy.for_paper.out
+     echo $A.AssemblyAccuracy.for_paper.out
+end
+
+foreach A ($human_ALLPATHS/linear_scaffolds.assembly.efasta)
+     AlignScaffolds IN=$A REF_HEAD=$human_refhead OUT_HEAD=$A.vs_ref \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/H.sapiens.NA12878/annotation/annotations \
+          COV_OUT=$human_ALLPATHS/linear_scaffolds.assembly.efasta.coverage \
+          >& $A.AlignScaffolds.for_paper.out
+     echo $A.AlignScaffolds.for_paper.out
+end
+
+foreach A ($other/YH/YH2.fasta $other/bang_gubi/BangGubi.assembly.fasta $other/HuRef/HuRef.fasta)
+     AlignScaffolds IN=$A REF_HEAD=$human_refhead OUT_HEAD=$A.vs_ref \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/H.sapiens.NA12878/annotation/annotations \
+          >& $A.AlignScaffolds.for_paper.out
+     echo $A.AlignScaffolds.for_paper.out
+end
+
+foreach A ($human_ALLPATHS/linear_scaffolds.assembly.efasta $other/YH/YH2.fasta $other/bang_gubi/BangGubi.assembly.fasta $other/HuRef/HuRef.fasta)
+     AlignScaffolds IN=$A REF_HEAD=$human/other_ref/build18 OUT_HEAD=$A.vs_build18 \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/H.sapiens.NA12878/annotation/annotations_segdup \
+          >& $A.AlignScaffolds.vs_build18.for_paper.out
+     echo $A.AlignScaffolds.vs_build18.for_paper.out
+end
+
+foreach A ($other/HuRef/HuRef.fasta)
+     AlignScaffolds IN=$A REF_HEAD=$human_refhead OUT_HEAD=$A.vs_ref \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/H.sapiens.NA12878/annotation/annotations \
+          COV_IN_MASK=$human_ALLPATHS/linear_scaffolds.assembly.efasta.coverage \
+          >& $A.AlignScaffolds.with_ALLPATHS_mask.for_paper.out
+     echo $A.AlignScaffolds.with_ALLPATHS_mask.for_paper.out
+end
+
+foreach A ($mouse_ALLPATHS/linear_scaffolds.assembly.efasta)
+     AlignScaffolds IN=$A REF_HEAD=$mouse_refhead OUT_HEAD=$A.vs_ref \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/M.musculus/annotation/annotations \
+          COV_OUT=$mouse_ALLPATHS/linear_scaffolds.assembly.efasta.coverage \
+          >& $A.AlignScaffolds.for_paper.out
+     echo $A.AlignScaffolds.for_paper.out
+end
+
+foreach A ($mouse/SOAP/SOAP.efasta $mouse/ABI3730/scaffolds.efasta)
+     AlignScaffolds IN=$A REF_HEAD=$mouse_refhead OUT_HEAD=$A.vs_ref \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/M.musculus/annotation/annotations \
+          >& $A.AlignScaffolds.for_paper.out
+     echo $A.AlignScaffolds.for_paper.out
+end
+
+foreach A ($mouse/ABI3730/scaffolds.efasta)
+     AlignScaffolds IN=$A REF_HEAD=$mouse_refhead OUT_HEAD=$A.vs_ref \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/M.musculus/annotation/annotations \
+          COV_IN_MASK=$mouse_ALLPATHS/linear_scaffolds.assembly.efasta.coverage \
+          >& $A.AlignScaffolds.with_ALLPATHS_mask.for_paper.out
+     echo $A.AlignScaffolds.with_ALLPATHS_mask.for_paper.out
+end
+
+foreach A ($mouse_ALLPATHS/linear_scaffolds.assembly.efasta $mouse/SOAP/SOAP.efasta $mouse/ABI3730/scaffolds.efasta)
+     AlignScaffolds IN=$A REF_HEAD=$mouse/mm8 OUT_HEAD=$A.vs_mm8 \
+          ANNOT_FILE=/wga/scr1/ALLPATHS/M.musculus/annotation/annotations_segdup \
+          >& $A.AlignScaffolds.vs_mm8.for_paper.out
+     echo $A.AlignScaffolds.vs_mm8.for_paper.out
+end

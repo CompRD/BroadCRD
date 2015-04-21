@@ -1,0 +1,53 @@
+#!/bin/csh
+
+# Test RemodelGaps.  Note that this messes with svn!
+
+set nlines = 19
+set gaptest = /wga/scr1/gaptest
+
+svn update >& /dev/null
+echo "\nusing revision `svn info | grep Revision | Col 2`"
+
+echo "\nTEST #1\n"
+RemodelGaps PRE=/ DATA=$gaptest/Hybrid_assembly_of_Rhodobacter/data \
+     RUN=run SCAFFOLDS_IN=linear_scaffolds0.clean VALIDATE=True |& tail -$nlines
+
+echo -n ===========================================================================
+echo -n ===========================================================================
+echo ========
+
+echo "\nTEST #2\n"
+RemodelGaps PRE=/ DATA=$gaptest/Hybrid_assembly_of_Rhodobacter/data \
+     RUN=run SCAFFOLDS_IN=linear_scaffolds0.clean.applied.fixed.kpatch.local.tpunch.recover.swiss_cheese VALIDATE=True |& tail -$nlines
+
+echo -n ===========================================================================
+echo -n ===========================================================================
+echo ========
+
+echo "\nTEST #3\n"
+RemodelGaps PRE=/ DATA=$gaptest/Hybrid_assembly_of_E._coli/data \
+     RUN=run SCAFFOLDS_IN=linear_scaffolds0.clean VALIDATE=True |& tail -$nlines
+
+echo -n ===========================================================================
+echo -n ===========================================================================
+echo ========
+
+echo "\nTEST #4\n"
+RemodelGaps PRE=/ DATA=$gaptest/Hybrid_assembly_of_E._coli/data \
+     RUN=run SCAFFOLDS_IN=linear_scaffolds0.clean.applied VALIDATE=True |& tail -$nlines
+
+echo -n ===========================================================================
+echo -n ===========================================================================
+echo ========
+
+echo "\nTEST #5\n"
+RemodelGaps PRE=/ DATA=$gaptest/Assembly_of_the_five_largest_Plasmodium_falciparum_chromosomes/data \
+     RUN=run SCAFFOLDS_IN=linear_scaffolds0.clean VALIDATE=True |& tail -$nlines
+
+echo -n ===========================================================================
+echo -n ===========================================================================
+echo ========
+
+echo "\nTEST #6\n"
+RemodelGaps PRE=/ DATA=$gaptest/Assembly_of_110_Mb_mouse_region/data \
+     RUN=run SCAFFOLDS_IN=linear_scaffolds0.clean.applied TIGS="[0,2000)" VALIDATE=True |& tail -$nlines

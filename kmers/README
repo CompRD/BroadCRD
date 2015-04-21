@@ -1,0 +1,3 @@
+The kmers/ directory contains tools for processing a dataset (e.g., a set of reads) as a set of kmers.  A kmer is simply a base sequence with a fixed length K; there are 4^K possible K-mers.  Any sequence of length l >= K can be described as a sequence of kmers rather than of bases.
+
+Currently (as of September 2009) the most useful module in this directory is ParcelKmers, which breaks up a dataset into all of its kmers and returns each kmer along with a list of its appearances.  ParcelKmers is well optimized to handle huge datasets and fit them into available memory.  SortKmers performs an older, deprecated version of the same task.

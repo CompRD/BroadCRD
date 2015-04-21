@@ -1,0 +1,9 @@
+Possible next steps:
+
+* change how long inserts are chosen
+* combining long inserts that hit the same short closures
+* acyclic graphs
+* missed mergers
+* revelations about analysis/evaluation
+* axiomatic graph merger
+* error correction revisited (SNP preservation)

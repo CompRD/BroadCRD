@@ -1,0 +1,102 @@
+#! /usr/bin/tcsh -f
+
+##
+# build_diploid
+#
+# Simulate a diploid dataset based on real reads. It runs the script
+# paths/build_micro to generate the appropriate data, and then it
+# modifies both reference and reads by "adding" random polymorphism at
+# a base of sub_rate. Run as:
+#
+#   paths/build_diploid genome region_name range sub_rate
+#
+# where the first three arguments are the same as in the script
+# paths/build_micro, and sub_rate is the required polymorphism rate.
+#
+# Dependencies:
+#   paths/build_micro
+#   Fastb
+#   MutateReference
+#   SelectFastbRanges
+
+
+# Arguments.
+set genome    = $1   # eg "mouse"
+set name      = $2   # eg "sante/1_10M_plus100k"
+set range     = $3   # eg "1:10000000-10100000"
+set sub_rate  = $4   # eg "0.005" (ie 1/200 bp polymorphism)
+
+
+# Root genome name.
+if ( $genome == mouse ) set GENOME_ROOT = "M.musculus"
+else
+    echo "unknown genome"
+    exit 1
+endif
+
+
+# Assembly directory tree, and original reference head.
+set PRE  = "$ARACHNE_PRE"
+set REF  = /wga/scr4/$user/babies/$genome/diploid_simulations/$name
+set DATA = "data"
+set RUN  = "run"
+
+set REF_ORIG = "$PRE/projects/ALLPATHS/$GENOME_ROOT/genome"
+
+
+# Create DATA dir.
+set full_ref   = "$REF"
+set full_data  = "$full_ref/$DATA"
+mkdir -p $full_data
+
+
+# Run build_macro to generate data.
+~/BroadCRD/paths/build_micro $genome standard diploid_simulations/$name $range DATA_ONLY GET_ALIGNS
+if ( $status != 0 ) then
+     echo "Importing sequencing data failed"
+     exit 1
+endif
+
+# Generate mutated reference.
+set sel_range = $full_ref/selected.range
+set sel_fasta = $full_ref/selected.fasta
+set sel_fastb = $full_ref/selected.fastb
+
+rm -f $sel_range
+echo $range >> $sel_range
+perl -p -i -e "s/:|-/ /g" $sel_range
+
+SelectFastbRanges \
+    BASES=$REF_ORIG.fastb RANGES=$sel_range FASTA_OUT=$sel_fasta
+if ( $status != 0 ) then
+     echo "Importing reference genome region failed"
+     exit 1
+endif
+
+Fastb \
+    PRE= FILE=$sel_fasta FASTAMB=True
+
+MutateReference \
+    SUB_RATE=$sub_rate \
+    FASTB_IN=$sel_fastb \
+    FASTB_OUT=$REF/genome_diploid.fastb
+if ( $status != 0 ) then
+     echo "Mutating reference genome failed"
+     exit 1
+endif
+
+# Save original reads into data_orig.
+mv $full_data $full_data.orig
+cp -r $full_data.orig $full_data
+echo "2" | cat > $full_data/ploidy 
+
+SimulatePolymorphicReads \
+    PRE= REFERENCE_NAME=$REF DATA_IN=$DATA.orig DATA_OUT=$DATA RANGE=$range
+if ( $status != 0 ) then
+     echo "Simulating polymorphic reads failed"
+     exit 1
+endif
+
+# Done
+echo ""
+echo "`date`: build_diploid done"

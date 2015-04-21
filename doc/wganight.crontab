@@ -1,0 +1,2 @@
+59 22 * * * /wga/scr6/BugTests/solexaNightly/testSolexaPipeline.csh
+0 5 * * 6 /wga/dev/Nightly/createDocs.sh

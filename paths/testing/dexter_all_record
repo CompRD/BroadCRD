@@ -1,0 +1,8 @@
+#!/bin/csh
+
+# Report the total dexter run time, for all existing dexter runs.
+#
+# Usage: paths/testing/dexter_all_record
+
+grep "Run lasted" /wga/scr2/dexter/nightly/*/nightly-logs/dexter-report-log.txt \
+     | tr '/' ' ' | Col 5 8 9 10 11 12 13 14 | sort -t '-' -k 3.1,3.2 -k 1 -k 2

@@ -1,0 +1,31 @@
+AllPaths2 Installation
+======================
+
+We recommend a 64-bit Linux system with over 8 GBs of RAM to run AllPaths2.
+Although it may work on other platforms, it is currently untested.  If you have
+questions about installing AllPaths2 on your specific system, please mail us at
+
+The `configure' shell script attempts to guess correct values for various
+system-dependent variables used during compilation.  It uses those values to
+create a `Makefile'.  The one option you should provide configure is a prefix
+for the AllPaths2 installation.  We recommend you install this in your home
+directory, using a path like $HOME/local/allpaths2.
+
+The simplest way to compile AllPaths2 is:
+
+  1. `cd' to the directory containing this README file, and type
+     `./configure --prefix=$HOME/local/allpaths2' to configure 
+     AllPaths2 for your system.
+
+     Running `configure' takes awhile.  While running, it prints some
+     messages telling which features it is checking for.
+
+  2. Type `make' to compile the package.
+
+  3. Type `make install' to install the programs, data files and
+     documentation.
+
+  4. Add $HOME/local/allpaths2/bin to your $PATH.
+
+For more substantial documentation, please see the manual located in the
+doc directory.

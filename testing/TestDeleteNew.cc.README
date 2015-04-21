@@ -1,0 +1,125 @@
+// This code shows how some crazy memory allocations/deallocations
+// can wreck havoc and cause hanging at runtime on the Itanium.
+// 
+// When run with   unsetenv MALLOC_CHECK_           the code hangs at Step 5.
+// When run with   setenv MALLOC_CHECK_ 0,1, or 2,  the code hangs at Step 2.
+
+
+// #include "CoreTools.h"
+//
+// NB: CoreTools.h is not included, so this rules out hanging due to
+//     interrupt signal handlers
+
+
+#include <iostream>
+#include <iomanip>
+#include <new>
+
+using namespace std;
+
+class Aclass
+{
+public:
+  Aclass();
+  ~Aclass();
+
+  static void* operator new(size_t size) throw (std::bad_alloc);
+  static void  operator delete(void* ptr);
+  static void* operator new[](size_t size) throw (std::bad_alloc);
+  static void  operator delete[](void* ptr);
+
+private:
+  int stuff; // to take up some memory
+};
+
+
+
+Aclass::Aclass()
+{
+  // Removing this empty constructor yields a different behavior!
+}
+
+
+Aclass::~Aclass()
+{
+  // Removing this empty destructor yields a different behavior!
+}
+
+
+void*
+Aclass::operator new(size_t size)
+  throw (std::bad_alloc)
+{
+  void* ptr = ::operator new(size);
+  cout.fill('0');
+  cout.setf(ios::internal);
+  cout << "Aclass::operator new(" << dec << size << ") = 0x"
+       << hex << setw(16) 
+       << reinterpret_cast<long>(ptr) << endl;
+  return ptr;
+}
+
+void*
+Aclass::operator new[](size_t size)
+  throw (std::bad_alloc)
+{
+  void* ptr = ::operator new[](size);
+  cout.fill('0');
+  cout.setf(ios::internal);
+  cout << "Aclass::operator new[](" << dec << size << ") = 0x"
+       << hex << setw(16) 
+       << reinterpret_cast<long>(ptr) << endl;
+  return ptr;
+}
+
+void
+Aclass::operator delete(void* ptr)
+{
+  cout.fill('0');
+  cout.setf(ios::internal);
+  cout << "Aclass::operator delete(0x" 
+       << hex << setw(16) 
+       << reinterpret_cast<long>(ptr) << ")" << endl;
+  ::delete ptr;
+}
+
+void
+Aclass::operator delete[](void* ptr)
+{
+  cout.fill('0');
+  cout.setf(ios::internal);
+  cout << "Aclass::operator delete[](0x" 
+       << hex << setw(16) 
+       << reinterpret_cast<long>(ptr) << ")" << endl;
+  ::delete[] ptr;
+}
+
+
+
+int main()
+{
+  cout << "Step 0" << endl;
+  Aclass* array = new Aclass[4];
+
+  cout << "Step 1" << endl;
+  Aclass* ptr = new Aclass;
+
+  cout << "Step 2" << endl;
+  delete[] (ptr+2);
+  // the +2 is needed so that the call to operator delete[] here
+  // will be passed the same address
+  // as the call to operator delete in Step 3 below
+
+  cout << "Step 3" << endl;
+  delete ptr;
+
+  cout << "Step 4" << endl;
+  delete (array-2);
+  // the -2 is needed so that the call to operator delete here
+  // will be passed the same address
+  // as the call to operator delete[ in Step 5 below
+
+  cout << "Step 5" << endl;
+  delete[] array;
+
+}

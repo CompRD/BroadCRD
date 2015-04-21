@@ -1,0 +1,59 @@
+Server hardware
+===============
+
+| Name  | Memory | Sockets | Cores | Clock | Processor    | Product name      | Disk | Temp | Mount Point | OS         | Rebuilt | Notes                    | Name  |
+|       |     GB |       # |     # |   Ghz |              |                   |   Tb |   Gb |             |            |         |                          |       |
+|-------+--------+---------+-------+-------+--------------+-------------------+------+------+-------------+------------+---------+--------------------------+-------|
+| wga7  |     64 |       4 |     8 |   2.4 | AMD8216      | PowerEdge 6950    |  0.1 |  0.1 | scratch     | RH 6.6     | Yes     |                          | wga7  |
+| wga8  |     64 |       4 |     8 |   2.4 | AMD8216      | PowerEdge 6950    |  0.1 |  0.1 | scratch     | RH 6.6     | Yes     |                          | wga8  |
+| wga9  |    128 |       4 |     8 |   1.0 | AMD8218      | ProLiant DL585 G2 |  0.1 |  0.1 | local       | CentOS 5.5 |         | RH6 incompatible         | wga9  |
+|       |        |         |       |       |              |                   |      |      |             |            |         |                          |       |
+| crd5  |    512 |       8 |    48 |   2.8 | AMD8439      | ProLiant DL785 G6 |  2.3 |  2.0 | scratch     | RH 6.6     | Yes     | disk partially unmounted | crd5  |
+| crd6  |    512 |       8 |    32 |   2.2 | AMD8454      | ProLiant DL785 G5 |  2.4 |  2.0 | scratch     | RH 6.6 !   | Yes     | disk partially unmounted | crd6  |
+| crd7  |    512 |       8 |    48 |   2.8 | AMD8439      | ProLiant DL785 G6 |  2.2 |  2.0 | scratch     | RH 6.6     | Yes     | disk partially unmounted | crd7  |
+| crd8  |    512 |       8 |    48 |   2.8 | AMD8439      | ProLiant DL785 G6 |  2.2 |  2.0 | scratch     | RH 6.6     | Yes     | disk partially unmounted | crd8  |
+| crd9  |    512 |       4 |    48 |   2.2 | AMD6174      | PowerEdge R815    |  1.7 |  1.8 | scratch     | RH 6.6     | Yes     |                          | crd9  |
+| crd10 |    512 |       4 |    48 |   2.2 | AMD6174      | PowerEdge R815    |  1.7 |  1.8 | scratch     | RH 6.6     | Yes     |                          | crd10 |
+| crd11 |    512 |       4 |    48 |   2.2 | AMD6174      | PowerEdge R815    |  1.7 |  1.8 | scratch     | RH 6.6     | Yes     |                          | crd11 |
+| crd12 |    128 |       4 |    24 |   2.5 | AMD6180      | Unknown           |  5.2 |  1.8 | scratch     | RH 6.6     | Yes-old | disks unmounted          | crd12 |
+| crd13 |    256 |       8 |    32 |   2.2 | AMD8454      | ProLiant DL785 G5 |  0.9 |  0.9 | scratch     | RH 6.6 !   | Yes     | was crd1                 | crd13 |
+| crd14 |    512 |       4 |    64 |   2.1 | AMD6272      | PowerEdge R815    |  3.3 |  3.3 | scratch     | RH 6.6     | Yes     |                          | crd14 |
+| crd15 |    512 |       4 |    64 |   2.1 | AMD6272      | PowerEdge R815    |  3.3 |  3.1 | scratch     | RH 6.6     | Yes     |                          | crd15 |
+| crd16 |    512 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  2.2 |  2.1 | scratch     | RH 6.6     | Yes     |                          | crd16 |
+| crd17 |    512 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  2.2 |  2.1 | scratch     | RH 6.6     | Yes     |                          | crd17 |
+| crd18 |    256 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  1.1 |  1.1 | scratch     | RH 6.6     | Yes     |                          | crd18 |
+| crd19 |    256 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  1.1 |  1.1 | scratch     | RH 6.5     | Yes     |                          | crd19 |
+| crd20 |    256 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  1.1 |  1.1 | scratch     | RH 6.6     | Yes     |                          | crd20 |
+| crd21 |    256 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  1.1 |  1.1 | scratch     | RH 6.6     | Yes     |                          | crd21 |
+| crd22 |    256 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  1.1 |  1.1 | scratch     | RH 6.6     | Yes     |                          | crd22 |
+| crd23 |    256 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  1.1 |  1.1 | scratch     | RH 6.6     | Yes     |                          | crd23 |
+| crd24 |    256 |       4 |    48 |   2.8 | AMD6348      | PowerEdge R815    |  1.1 |  1.1 | scratch     | RH 6.6     | Yes     |                          | crd24 |
+| crd25 |    128 |       4 |    16 |   1.0 | AMD8350      | PowerEdge R905    |  0.3 |  0.3 | scratch     | RH 6.6     | Yes     | was crd2                 | crd25 |
+| crd26 |   1024 |       4 |    32 |   2.7 | XEON E7-8837 | Cisco UCS C460 M2 |  6.5 |  6.1 | scratch     | RH 6.6     | Yes     |                          | crd26 |
+| crd27 |   1024 |       4 |    32 |   2.7 | XEON E7-8837 | Cisco UCS C460 M2 |  6.5 |  6.1 | scratch     | RH 6.6     | Yes     |                          | crd27 |
+| crd28 |   1024 |       4 |    32 |   2.7 | XEON E7-8837 | Cisco UCS C460 M2 |  6.5 |  6.1 | scratch     | RH 6.6     | Yes     |                          | crd28 |
+| crd29 |   1024 |       4 |    32 |   2.7 | XEON E7-8837 | Cisco UCS C460 M2 |  6.5 |  6.1 | scratch     | RH 6.6     | Yes     |                          | crd29 |
+
+WARNING! This table may contain errors, or may be out of date. Use the following commands to check:
+
+NOTES:
+crd1 and crd06 are supposed to be RH6 incompatible, but systems managed to update them for us.
+
+
+Major machine classes (2 or more examples)
+
+| class | count | machines | memory | cores | clock | name                |
+|-------+-------+----------+--------+-------+-------+---------------------|
+|     1 |     3 | 5,7,8    |    512 |    48 |   2.8 | ProLiant DL785 G6   |
+|     2 |     3 | 9,10,11  |    512 |    48 |   2.2 | Dell PowerEdge R815 |
+|     3 |     2 | 14,15    |    512 |    64 |   2.1 | Dell PowerEdge R815 |
+|    4A |     2 | 16,17    |    512 |    48 |   2.8 | Dell PowerEdge R815 |
+|    4B |     7 | 18-24    |    256 |    48 |   2.8 | Dell PowerEdge R815 |
+|     5 |     4 | 26-29    |   1024 |    32 |   2.7 | Cisco UCS C460 M2   |
+
+Useful commands:
+lsblk
+lscpu
+cat /etc/issue
+cat /proc/partitions
+uname -a

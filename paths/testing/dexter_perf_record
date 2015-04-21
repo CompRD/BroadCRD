@@ -1,0 +1,26 @@
+#!/bin/csh
+
+# Report the computational performance of a module, for all existing dexter runs.
+#
+# Usage: paths/testing/dexter_perf_record <module> <species>
+# where species is one of human, mouse, plasmo, ecoli, rhody.
+#
+# This does some grepping that may need to be tuned.
+
+set module = $1
+set species = $2
+if ( $species == rhody ) set species = Rhodo
+if ( $species == plasmo ) set species = Plasmo
+if ( $species == ecoli ) set species = E._coli
+
+if ( $module == "" ) then
+     echo "Usage: paths/testing/dexter_perf_record <module> <species>"
+     echo "where species is one of human, mouse, plasmo, ecoli, rhody."
+     exit
+endif
+
+echo "DATE       \tSECONDS\tMB"
+cd /wga/scr2/dexter/nightly
+grep $module */nightly-logs/*$species* | egrep ":[0-9]" | grep -v "(" \
+     | grep -v "\[" | grep -v "\/\/" | egrep -v ":[A-Z]" | tr '/' ' ' \
+     | ColTab 1 5 7 | sort -t '-' -k 3.1,3.2 -k 1 -k 2

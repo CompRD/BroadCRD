@@ -1,0 +1,5 @@
+Assembly class: object-oriented management of assembly information.
+
+The Assembly class and its appurtenances evolved from a desire for a
+simple, efficient, object-oriented means of managing the information
+associated with an assembly.  

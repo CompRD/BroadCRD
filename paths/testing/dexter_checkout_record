@@ -1,0 +1,8 @@
+#!/bin/csh
+
+# Report the computational performance of svn checkout, for all existing dexter runs.
+#
+# Usage: paths/testing/dexter_checkout_record
+
+grep runtime /wga/scr2/dexter/stage/*/nightly/nightly-logs/svn_checkout_BroadCRD-log.txt \
+     | tr '/' ' ' | Col 5 8 9 10 11 12 13 14 | sort -t '-' -k 3.1,3.2 -k 1 -k 2

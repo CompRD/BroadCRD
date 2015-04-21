@@ -1,0 +1,126 @@
+
+General viewer notes:
+
+There are five frames.  Upper-left shows list of contigs.  Lower-left
+shows list of interesting events.  Upper-right shows how trusted paths
+run along the selected contig.  Lowest-right has two frames: the 
+left one shows how trusted paths
+captured by the selected contig run along the reference ("local legend); the right one
+shows for each genome part how trusted paths from all contigs run
+along it, on both strands ("global legend").
+
+Hyperlinks:
+
+Clicking on a trusted path name in the local legend or global legend
+frame shows the beginning of that trusted path; you may need to zoom
+in to see it.
+
+Troubleshooting the viewer:
+
+Increase the memory available to Java applets (configure your OS
+and/or browser).
+
+If you click on contig number on the left and the contig graph isn't
+displayed, wait a bit -- sometimes it takes a while.
+
+If that doesn't help, you can use the standalone ZGRViewer instead of
+the applet version (go to /wga/dev/ilya/zgrviewer and run run.sh)
+to view the contigN.dot file in your showTrusted/ directory.
+The corresponding legend file (normally shown in the lower frame of
+the viewer) is contigN.dot.legend.html .
+
+Sometimes the contig graph initially won't appear -- you have to
+move the mouse into the graph window, and possibly click there,
+to make it appear.
+
+Finding features/events in the assembly:
+
+Hidden labels are added to the graph at the location of various
+features.  Use the search box on the right to find the next/previous
+feature.  Note that the number of matches through which you're
+stepping is shown at the bottom-left of the graph viewer.
+
+    Search for... to find...
+
+        src - sources
+        snk - sinks
+        zp - edges through which no trusted paths pass (sorted
+	   from longest to shortest)
+	mp - edges through which multiple trusted paths pass
+	   ( sorted from longest to shortest )
+	[A - beginning of trusted path A
+	A] - end of trusted path A
+
+
+Also, there is a global list of events (mulpaths and nopaths) in the
+lower-left frame.  You see the length of the edge with the event,
+the link to the contig page, and the hidden text label for which
+to search to find that edge.
+
+
+Tooltips:
+
+   Hover over...    to see...
+
+       end of edge (the arrow) - edge length
+       trusted path name on an edge - the alignment of that trusted
+           path segment to the reference,
+	   and the length of the overall trusted path.  If the
+	   trusted path passes over the edge multiple
+	   times, the range shown is the smallest range on the
+	   reference that contains the alignments to the reference
+	   of all segments of this trusted path that pass over
+	   this contig edge.
+
+
+General useful viewer commands:
+
+ Moving around:
+
+    left-click somewhere in the graph, and drag a line in any
+    direction -- the view moves in that direction.
+    the longer the line, the faster it moves.
+
+    also, the arrow keys and the controls in the viewer upper-right
+    corner work for moving.
+    
+
+ Zoom/unzoom:
+
+    press shift & drag a bounding box to zoom in on a region
+    
+    press shift, press left mouse button and drag up to zoom in,
+    down to zoom out.  the further you drag from where you pressed the
+    button, the faster it zooms in/out.
+
+    also PgDn zooms, PgUp unzooms, and there are zoom/unzoom controls
+    (magnifying glass with + and -) in the upper-right of the viewer.
+
+Showing alignment of pairs to the assembly ("bridges" between edges):
+ 
+( see also paths/WritePairAligns.cc, paths/PrintPairAligns.cc and
+  paths/PrintPairAlignsAsDot.cc for alternate displays of the same
+  information ).
+
+Above each edge to which some reads were aligned, there is a star
+("*") symbol that is a "handle" for this edge.  Toggle whether the
+edge is selected by clicking on the handle (it's green when selected).
+A line will be drawn between two handles if there are at least some
+pairs bridging the two handles' edges, and
+either both handles are selected, or one handle is selected and the
+"show bridges only if both ends selected" checkbox on the right
+is unchecked.  Also, if you type a minimal bridge thickness 
+(number of aligned pairs in a link between two edges) in the
+text field at the bottom-right, only bridges at least this thick
+will be shown.
+
+In the middle of each bridge there's an orange octagon -- its tooltip
+gives information about the bridge.
+
+The tooltip for the "*" symbol shows the edge id.  The bridges
+and their thicknesses for contig N are in the file
+contigN.svg.xml in the showTrusted/ subdir.
+
+The pairs are currently taken from hyper.pair_aligns in the dir above
+showTrusted/ .
+

@@ -1,0 +1,156 @@
+// Copyright (c) 2004 Broad Institute/Massachusetts Institute of Technology
+//
+// KmerSampler.h
+
+#include "CoreTools.h"
+#include "Basevector.h"
+#include "Bitvector.h"
+
+
+// class SampleLocation
+//
+// Data structure for a location to be sampled.
+//
+
+class SampleLocation
+{
+private:
+  // data
+  int contig_;
+  int offset_;
+
+public:
+  SampleLocation(int contig, int offset) :
+    contig_(contig), offset_(offset)
+  {};
+
+  // accessors
+  int Contig() const { return contig_; };
+  int Offset() const { return offset_; };
+};
+
+
+
+// class HashNode
+//
+// Data structure for a node in the hash table, to contain
+// the id_value for a kmer and the frequency count for that kmer.
+//
+
+class HashNode
+{
+private:
+  // data
+  longlong id_val_;
+  unsigned int freq_;
+
+  // comparison operators, for sorting and searching 
+  friend inline bool operator<  (const HashNode& left,
+				 const HashNode& right)
+  { return left.id_val_ < right.id_val_; };
+  friend inline bool operator== (const HashNode& left,
+				 const HashNode& right)
+  { return left.id_val_ == right.id_val_; };
+
+public:
+  HashNode() {};
+
+  HashNode(longlong id_val) :
+    id_val_(id_val),
+    freq_(0)
+  {};
+
+  // increment the frequency count
+  void IncFreq() { freq_++; };
+
+  // is this kmer a unique kmer
+  Bool IsUnique() const { return (freq_ == 1) ? True : False; };
+};
+
+
+
+// class HashEntry
+//
+// Data structure for an entry in the hash table, to contain
+// a sorted list of HashNode's.
+//
+
+class HashEntry
+{
+private:
+  vec< HashNode > list_;
+
+public:
+  // Call this method to allow a kmer belonging to this hash entry
+  // to be sampled; kmers which are not Register-ed will not be counted!
+  void Register(longlong id_val);
+
+  // Call this method whenever a kmer belonging to this hash entry
+  // is seen as the contigs are parsed.
+  void Mark(longlong id_val);
+
+  // Method to return the number of unique kmers within this hash entry.
+  void ComputeStatistics(longlong& num_unique_kmers) const;
+};
+
+
+
+
+// class KmerSampler
+//
+// Provides the means to efficiently (in terms of memory and runtime)
+// parse contigs and count the frequency of occurrences of kmers.
+//
+
+class KmerSampler
+{
+private:
+  // hash table for storing frequency counts
+  vec< HashEntry > hash_tbl_;
+
+  // parameters about the hash table,
+  // initialized by the constructor once and for all
+  unsigned int hash_size_;
+  const int kmer_size_;
+  int bases_to_hash_;
+  unsigned int most_sig_hash_weight_;
+  longlong most_sig_id_weight_;
+
+  // temporary storage for a contig to be parsed
+  vec< unsigned char > contig_bases_;
+  // temporary storage for the ambiguous base bits of a contig to be parsed
+  vec< unsigned char > amb_bases_;
+
+  // internal counter
+  longlong num_kmers_parsed_;
+
+  // Routine to efficiently parse the kmers appearing in contig_bases_
+  void ParseForKmers();
+
+  void ParseForKmers_withAmb();
+
+public:
+  KmerSampler(const int kmer_size,
+	      const int bases_to_hash);
+
+  // Method to pick kmers from a given list of locations
+  // and register them for frequency-counting;
+  longlong RegisterKmers(const vecbasevector& vecbv,
+			 const vec< SampleLocation >& vecloc);
+
+  longlong RegisterKmers(const vecbasevector& vecbv,
+			 const vecbitvector& vecamb,
+			 const vec< SampleLocation >& vecloc);
+
+  // Method to efficiently parse a contig (in both forward and
+  // reverse-complemented directions) and update the frequency counts
+  // of registered kmers
+  void ParseContig(const basevector& bv);
+
+  void ParseContig(const basevector& bv,
+		   const bitvector& amb);
+
+  // Method to compute the statistics of kmer frequencies
+  void ComputeStatistics(longlong& num_kmers_parsed,
+			 longlong& num_unique_kmers) const;
+};

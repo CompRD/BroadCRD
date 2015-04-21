@@ -1,0 +1,129 @@
+<html>
+
+  <head>
+    <title>Arachne - FAQ</title>
+    <link rel=stylesheet type="text/css" href="/int.css">
+    <!--#include virtual="/intnav.txt" -->
+  </head>
+
+
+  
+  <body class="bodybg" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" rightmargin="0">
+    
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr><td>
+	  
+	  <!--#include virtual="/header.txt" -->
+
+	  
+
+	  <!-- breadcrumb trail -->
+	  <table width="100%" border="0" cellspacing="0" cellpadding="4" height="25" class="breadbg">
+	    <tr> 
+	      <td><img src="/images/shim.gif" width="2" height="1"></td>
+	      <td><a href="/" class="bread">genome center home</a> <font class="bread">&gt;</font> <a href="/wga/" class="bread">arachne</a> <font class="bread">&gt;</font> <font class="bread_here">FAQ</font></td>
+	      <td><img src="/images/shim.gif" width="2" height="1"></td>
+	    </tr>
+	  </table> 
+
+	  
+	  
+
+	  <!-- image/caption -->
+	  <table width="100%" border="0" cellspacing="0" cellpadding="10" class="captionbg">
+	    <tr> 
+	      <td width="5%"><img src="/images/shim.gif" width="2" height="1"></td>
+	      <td valign="top" align="left"><img name="photo" src="/images/array.gif" border="0"></td>
+	      <td valign="top" align="left"><font class="caption">&nbsp;</font></td>
+	      <td width="5%"><img src="/images/shim.gif" width="2" height="1"></td>
+	    </tr>
+	  </table>
+
+	  <BR>
+
+
+	  <!--intro/body text -->
+	  <table width="100%" border="0" cellspacing="0" cellpadding="6">
+	    <tr> 
+	      <td width="2"><img src="/images/shim.gif" width="2" height="1"></td>
+	      <td><h2>Arachne:  A Whole Genome Assembly Software Package</h2>
+		<p><font class="introtext">&nbsp;</font></p>
+		<h3>Frequently Asked Questions</h3>
+		<p><font class="bodytext">
+
+		<P><B>1. Can I install Arachne on a Linux/Intel platform?</B>
+
+		<P>Yes. This is possible, but unsupported. To the
+		  best of our 
+		  knowledge, it works fine: we compiled and ran
+		  Arachne on a standard Linux/Intel box 
+		  (Debian 3.0 "Woody"),
+		  and the binaries are available on-line.
+		  However, we have not thoroughly tested it, and at
+		  this time we are too busy to support more than one
+		  platform.  What we can do is maintain a list of
+		  people who have successfully installed on the
+		  Linux/Intel platform and are willing to share their
+		  expertise: </P>
+		  
+		<ul>
+		  <li>Vince Forgetta (<a href="mailto:vince.forgetta@mail.mcgill.ca">vince.forgetta@mail.mcgill.ca</a>).</li>
+		</ul>
+
+		<P> Intel Linux binaries are available at:
+		  <A
+ 		    HREF="ftp://ftp.broad.mit.edu/pub/wga/unsupported/Arachne_v2.0.1_Linux/"> 
+		    ftp://ftp.broad.mit.edu/pub/wga/unsupported/Arachne_v2.0.1_Linux/</A>.
+		  
+
+
+		<P><B>2. Can I install Arachne on some other platform?</B>
+
+		<P>To the best of our knowledge, no one has tried.  If the platform does
+		  not support gcc 2.95.2 or has a big endian architecture, significant
+		  reengineering may be required.
+
+		<P><B>3. I get the following error when I run Assemble:</B>
+		<P>
+		<blockquote></font><tt><font size=2>
+<pre>Welcome to Arachne!
+Copyright (c) 2000, 2001 Whitehead Institute for Biomedical Research.
+See LICENSE.txt for details.
+
+Mon Jun 24 16:04:53 2002.  Segmentation violation.
+
+Generating a backtrace...
+
+Dump of stack:
+
+2. String::String(char const *), in String.cc:218
+3. String::String(char const *), in String.cc:218
+4. main, in Assemble.cc:416</pre>
+		</blockquote></font></tt><font class="bodytext">
+		<P><B>What can I do?</B>
+
+		<P>You've found a bug that only appears if your environment does not contain the variable
+		LD_LIBRARY_PATH.  To fix it, set that variable to some value, such as "/usr/lib".
+
+		</font></p></td>
+	      <td width="2"><img src="/images/shim.gif" width="2" height="1"></td>
+	    </tr>
+	  </table>
+
+	  <br><br><br>
+
+	  <!--bottom text links - OPTIONAL (use if you have imagemapped areas) -->
+	  <table border="0" cellpadding="6" cellspacing="0" width="100%">
+	    <TR><TD><img src="/images/shim.gif" height="70"></TD></TR>
+	    <tr><td align="center">
+		<!-- <table border="0" cellpadding="10" cellspacing="0"><tr><td align="center"><font class="small"><A href="#">Text Link</a> &nbsp;&nbsp;|&nbsp;&nbsp;  <A href="#">Text Link</a> &nbsp;&nbsp;|&nbsp;&nbsp; <A href="#">Text Link</a> &nbsp;&nbsp;|&nbsp;&nbsp; <A href="#">Text Link</a>  &nbsp;&nbsp;|&nbsp;&nbsp; <A href="#">Text Link</a> &nbsp;&nbsp;|&nbsp;&nbsp; <A href="#">Text Link</a> &nbsp;&nbsp;|&nbsp;&nbsp; <A href="#">Text Link</a></font></td></tr></table> -->
+	      </td></tr>
+	  </table>
+
+	  
+	  <!--#include virtual="/footer.txt" -->
+
+	</td></tr></table>
+
+  </body>
+</html>

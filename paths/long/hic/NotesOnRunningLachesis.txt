@@ -1,0 +1,51 @@
+I built boost_1_55_0 and lachesis with gnu C++ version 4.7.2.
+
+You can see my envionment for building lachesis in the script build.sh.  Note that I pointed to boost/include for my boost dir.
+I had to dink with the main lachesis makefile to get the lachesis main program to compile -- it needed the boost include.
+I also had to dink with the boost build by adding a soft link to the include subdir like this:
+ln -s .. stage
+Josh appears to have assumed an older default boost layout.
+
+I'm using BWA 0.7.4
+I'm using samtools 0.1.19
+I'm using bedtools 2.16.2
+I'm using R 3.0
+I'm using perl 5.10.1
+Restriction site is GATC (for MboI).
+
+I've added Lachesis's home dir to my PATH and the boost libs to LD_LIBRARY_PATH.
+
+Here's a sketch of the process I followed:
+
+#!/bin/csh
+use .bwa-0.7.4
+use .samtools-0.1.19
+use .bedtools-version-2.16.2
+use R-3.0
+setenv PATH /wga/dev/local/shendurelab-LACHESIS-2151de9:$PATH
+setenv LD_LIBRARY_PATH /wga/dev/local/boost/lib:$LD_LIBRARY_PATH
+
+bwa index -a bwtsw contigs.fasta
+bwa aln -t48 contigs.fasta HIC117_R1.fastq > R1.sai
+bwa aln -t48 contigs.fasta HIC117_R2.fastq > R2.sai
+bwa samse contigs.fasta R1.sai HIC117_R1.fastq > R1.sam
+bwa samse contigs.fasta R2.sai HIC117_R2.fastq > R2.sam
+CombineSAMs R1.sam R2.sam > combined.sam
+samtools view -Sb combined.sam > combined.bam
+#(edit PreprocessSAMs.pl so it knows where samtools and bedtools live)
+PreprocessSAMs.pl combined.bam contigs.fasta
+Lachesis lachesis.ini
+
+
+Here's my lachesis.ini:
+SPECIES = other
+OUTPUT_DIR = lachesisout
+DRAFT_ASSEMBLY_FASTA = contigs.fasta
+SAM_DIR = .
+SAM_FILES = combined.REduced.paired_only.bam
+RE_SITE_SEQ = GATC
+USE_REFERENCE = 0
+SIM_BIN_SIZE = 0
+REF_ASSEMBLY_FASTA = noref.fa
+BLAST_FILE_HEAD = none
+(remainder of lachesis.ini, starting with "WHICH ALGORITHMIC STEPS" section, unaltered)

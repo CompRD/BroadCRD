@@ -1,0 +1,55 @@
+    -------------------------------------------------------------------------------
+    Instructions for reproducing the ALLPATHS-LG assemblathon entry for M.undulatus.
+    --------------------------------------------------------------------------------
+
+    Files required:
+    ---------------
+    Files containing BGI Illumina data for 220, 2000, 5000, 10000, 20000, and 40000 insert sizes. See parrot_groups.csv below for filenames.
+
+    parrot_libs.csv file
+    ====================
+    library_name,      project_name,            organism_name,               type, paired, frag_size, frag_stddev, insert_size, insert_stddev, read_orientation, genomic_start, genomic_end
+    PARprgDAPDCAAPE,         Parrot,  Melopsittacus undulatus,           fragment,      1,       220,          33,            ,              ,           inward,              ,
+    PARprgDAPDWAAPE,         Parrot,  Melopsittacus undulatus,  jumping (sheared),      1,          ,            ,        2000,           200,          outward,              ,
+    PARprgDAPDWBAPE,         Parrot,  Melopsittacus undulatus,  jumping (sheared),      1,          ,            ,        2000,           200,          outward,              ,
+    PARprgDABDLBAPE,         Parrot,  Melopsittacus undulatus,  jumping (sheared),      1,          ,            ,        5000,           500,          outward,              ,
+    PARprgDABDLAAPE,         Parrot,  Melopsittacus undulatus,  jumping (sheared),      1,          ,            ,        5000,           500,          outward,              ,
+    PARprgDAADTAAPE,         Parrot,  Melopsittacus undulatus,  jumping (sheared),      1,          ,            ,       10000,          1000,          outward,              ,
+    PARprgDAPDUAAPEI-12,     Parrot,  Melopsittacus undulatus,  jumping (sheared),      1,          ,            ,       20000,          2000,          outward,              ,
+    PARprgDABDVAAPEI-6,      Parrot,  Melopsittacus undulatus,  jumping (sheared),      1,          ,            ,       40000,          4000,          outward,              ,
+
+    parrot_groups.csv file
+    ======================
+    file_name,                                              library_name,        group_name
+    110428_I327_FCB00D2ACXX_L2_PARprgDAPDCAAPE_*.fq.gz,     PARprgDAPDCAAPE,     110428_I327_FCB00D2ACXX_L2_PARprgDAPDCAAPE
+    110503_I266_FCB05AKABXX_L5_PARprgDAPDWBAPE_*.fq.gz,     PARprgDAPDWBAPE,     110503_I266_FCB05AKABXX_L5_PARprgDAPDWBAPE
+    110503_I266_FCC00ADABXX_L5_PARprgDAPDWAAPE_*.fq.gz,     PARprgDAPDWAAPE,     110503_I266_FCC00ADABXX_L5_PARprgDAPDWAAPE
+    110514_I247_FC81MVPABXX_L5_PARprgDABDLAAPE_*.fq.gz,     PARprgDABDLAAPE,     110514_I247_FC81MVPABXX_L5_PARprgDABDLAAPE
+    110514_I263_FC81P81ABXX_L5_PARprgDAADTAAPE_*.fq.gz,     PARprgDAADTAAPE,     110514_I263_FC81P81ABXX_L5_PARprgDAADTAAPE
+    110514_I263_FC81PACABXX_L5_PARprgDABDLBAPE_*.fq.gz,     PARprgDABDLBAPE,     110514_I263_FC81PACABXX_L5_PARprgDABDLBAPE
+    110515_I260_FCB0618ABXX_L5_PARprgDAPDWBAPE_*.fq.gz,     PARprgDAPDWBAPE,     110515_I260_FCB0618ABXX_L5_PARprgDAPDWBAPE
+    110531_I232_FCB05V6ABXX_L8_PARprgDAPDUAAPEI-12_*.fq.gz, PARprgDAPDUAAPEI-12, 110531_I232_FCB05V6ABXX_L8_PARprgDAPDUAAPEI-12
+    110531_I277_FCB06B9ABXX_L7_PARprgDABDVAAPEI-6_*.fq.gz,  PARprgDABDVAAPEI-6,  110531_I277_FCB06B9ABXX_L7_PARprgDABDVAAPEI-6
+
+    
+    To prepare the data for assembly:
+    ---------------------------------
+    mkdir -p Assemblathon/M.undulatus/attempt_1
+    Using revision 37666 (or later)
+    CacheLibs.pl ACTION=Add CACHE_DIR=Assemblathon/M.undulatus/cache IN_LIBS_CSV=parrot_libs.csv
+    CacheGroups.pl ACTION=Add CACHE_DIR=Assemblathon/M.undulatus/cache IN_GROUPS_CSV=parrot_groups.csv PHRED_64=1
+    CacheToReads.pl CACHE_DIR=Assemblathon/M.undulatus/cache OUT_HEAD=Assemblathon/M.undulatus/attempt_1/frag_reads_orig GROUPS="{110428_I327_FCB00D2ACXX_L2_PARprgDAPDCAAPE}"
+    CacheToReads.pl CACHE_DIR=Assemblathon/M.undulatus/cache OUT_HEAD=Assemblathon/M.undulatus/attempt_1/jump_reads_orig GROUPS="{110503_I266_FCC00ADABXX_L5_PARprgDAPDWAAPE,110503_I266_FCB05AKABXX_L5_PARprgDAPDWBAPE,110514_I247_FC81MVPABXX_L5_PARprgDABDLAAPE,110514_I263_FC81PACABXX_L5_PARprgDABDLBAPE,110515_I260_FCB0618ABXX_L5_PARprgDAPDWBAPE,110514_I263_FC81P81ABXX_L5_PARprgDAADTAAPE}"
+    CacheToReads.pl CACHE_DIR=Assemblathon/M.undulatus/cache OUT_HEAD=Assemblathon/M.undulatus/attempt_1/long_jump_reads_orig GROUPS="{110531_I232_FCB05V6ABXX_L8_PARprgDAPDUAAPEI-12,110531_I277_FCB06B9ABXX_L7_PARprgDABDVAAPEI-6}"
+    echo 2 > Assemblathon/M.undulatus/attempt_1/ploidy
+
+    To reproduce the Assemblathon 2 assembly:
+    -----------------------------------------
+    Using revision 38588
+    RunAllPathsLG PRE=Assemblathon REFERENCE_NAME=M.undulatus DATA_SUBDIR=attempt_1 RUN=run_1 OVERWRITE=True
+    Using revision 38737 - restarting pipeline with new module FixLocal.
+    RunAllPathsLG PRE=Assemblathon REFERENCE_NAME=M.undulatus DATA_SUBDIR=attempt_1 RUN=run_1 TARGETS=standard FORCE_TARGETS_OF="{FixLocal}" DONT_UPDATE_TARGETS_OF="{CleanAssembly}" REMODEL=False
+
+    To generate a fresh assembly with latest version of ALLPATHS-LG:
+    ----------------------------------------------------------------
+    RunAllPathsLG PRE=Assemblathon REFERENCE_NAME=M.undulatus DATA_SUBDIR=attempt_1 RUN=run_1

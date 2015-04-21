@@ -1,0 +1,28 @@
+Code for ALLPATHS 3 paper on human and mouse assemblies.
+
+The final ALLPATHS assemblies are in:
+
+/wga/scr1/ALLPATHS/H.sapiens.NA12878/fullhuman/fullhuman_v1.1/iainm.22jul
+/wga/scr1/ALLPATHS/M.musculus/fullmouse/fullmouse_v2.4/iainm.12aug2010
+
+in both cases the assembly itself is in the subdirectory ASSEMBLIES/test.
+
+FixSomeIndels manually run, output to assembly.fixed_indels.efasta
+
+Programs run (with obviously labeled output in ASSEMBLIES/test):
+- BuildHumanReference
+- eval
+
+To investigate gap coverage, ran:
+
+EvaluateGapCoverage PRE=/wga/scr1/ALLPATHS DATA=H.sapiens.NA12878/fullhuman/fullhuman_v1.1 RUN=iainm.22jul REF=/wga/scr1/ALLPATHS/H.sapiens.NA12878/other_ref/build18 COV=/wga/scr1/ALLPATHS/H.sapiens.NA12878/bams/human.frag.cov TIGS=random:1000
+
+EvaluateGapCoverage PRE=/wga/scr1/ALLPATHS DATA=M.musculus/fullmouse/fullmouse_v2.4 RUN=iainm.12aug2010 REF=/wga/scr1/ALLPATHS/M.musculus/genome COV=/wga/scr1/ALLPATHS/M.musculus/bams/mouse.frag.cov TIGS=random:1000
+
+Origin of files in /web/ftp/distribution/papers/assembly/Gnerre2010:
+
+/wga/scr1/ALLPATHS/H.sapiens.NA12878/fullhuman/fullhuman_v1.1/iainm.22jul/ASSEMBLIES/test/linear_scaffolds0.patched.fixed.assembly.efasta
+
+/wga/scr1/ALLPATHS/M.musculus/fullmouse/fullmouse_v2.4/iainm.12aug2010/ASSEMBLIES/test/linear_scaffolds0.patched.fixed.assembly.efasta
+
+SOAP.pre.fasta (mouse)

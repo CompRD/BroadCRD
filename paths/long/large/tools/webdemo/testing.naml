@@ -1,0 +1,10 @@
+port:           8001
+ssl_cert:       dummy-ssl-cert.pem
+assets_dir:     assets
+include_dir:    .
+proxy_path:     /
+input_form:     disco_demo.template
+error_form:     disco_error.template
+default_image:  assets/broad-logo.jpg
+error_image:    assets/DISCO-var.jpg
+javascript:	assets/library.js

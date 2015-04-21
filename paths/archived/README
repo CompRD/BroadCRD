@@ -1,0 +1,10 @@
+This subdirectory holds code that's being shelved at least temporarily,
+and possibly permanently, probably because the experiment was a failure,
+but that we feel we shouldn't just delete, since it might prove useful
+for later development.
+
+Any main() here should contain the exact line
+
+// MakeDepend: archived
+
+so that it does not get routinely compiled.

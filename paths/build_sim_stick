@@ -1,0 +1,297 @@
+#!/bin/csh -f
+
+set not_found = 0
+set mods_str = ""
+
+foreach mod ( SelectBases \
+              Fasta2Fastb \
+              MutateReference \
+              Fastb2Fasta \
+              MakeLookupTable \
+              GenomeUnipathStats \
+              FastbSizes \
+              RunAllPathsLG \
+              PathsToLocs \
+              ParsePathsToLocs \
+              MapSeeds )
+  set which_mod = `which $mod | grep -v "Command not found"`  
+  if ( $which_mod == "" ) then 
+    echo "**** couldn't find '$mod'!"
+    @ not_found++
+  else 
+    echo "---- using '$which_mod'"
+    set mods_str = `printf "%s %s" "$mods_str" "$which_mod"`    
+  endif
+end 
+
+if ( $# < 4 && $1 != "test") then
+  echo
+  echo "usage: $0 "\\ 
+  echo "         <label> "\\
+  echo "         <0:4000000-4010000> "\\
+  echo "         <"\""n=100,N=180,dev=10%,C=40"\""> "\\
+  echo "         <"\""n=100,N=4000,C=25,dev=10%,jmean=205,jdev=0%,fc_freq=0,ic_freq=0.02,rc_avoid=True"\""> "\\
+  echo "         [<error_templates/template_30BCP.8_100>]"
+  echo
+  echo "usage: $0 test"
+  echo
+  exit
+endif
+
+if ($not_found > 0) exit;
+  
+
+set allpaths = /wga/scr4/ALLPATHS
+
+
+if ($1 == "test") then
+  # ---------------------
+  # test run
+  # ---------------------
+  set label = DATA
+  set range = 0:700000-800000
+
+  # ---- define the simulated fragment and jumping libraries 
+  set fraglib = "n=100,N=180,dev=10%,C=40"
+
+  set libsc = "dev=10%,jmean=205,jdev=0%,fc_freq=0,ic_freq=0.02,rc_avoid=True"
+  set jumplib = "n=100,N=4000,C=25,""$libsc"":n=100,N=40000,C=0.2,""$libsc"
+
+  set error_generator_name = error_templates/template_30BCP.8_100
+
+  # ---- define main directory and create it
+  set main      = G.aculeatus.tests/$user
+  set full_main = $allpaths/$main
+  mkdir -p $full_main
+
+    
+  # ---- recover index from file and increment; update index file
+  set index_fn = $full_main/index.txt 
+  @ index = `cat $index_fn` + 1
+  echo $index > $index_fn
+  set index = `printf "%03d" $index`
+   
+
+  # ---- define reference directory and create it 
+  set ref      = $main/$index.`date +"%Y-%m-%d"`
+  set full_ref = $allpaths/$ref
+  mkdir -p $full_ref
+
+else 
+  # ---------------------
+  # simulation run
+  # ---------------------
+
+  # ---- arg 1 is just a label to name your run
+  set label = $1   
+
+  # ---- arg 2 is a range: e.g. 0:1000-5000, standing for this range of bases on super_0
+  set range = $2    
+
+  # ---- arg 3 is the fragment library description: e.g. "n=100,N=180,dev=10%,C=40" 
+  set fraglib = $3
+
+  # ---- arg 4 is the jumping library description: e.g. 
+  #      "n=100,N=4000,C=25,dev=10%,jmean=205,jdev=0%,fc_freq=0,ic_freq=0.02,rc_avoid=True"
+  set jumplib = $4
+
+  # ---- arg 5 is error_generator_name: e.g. "error_templates/template_30BCP.8_100"
+  set error_generator_name = $5 
+
+  # ---- define main directory and create it
+  set main      = G.aculeatus.bearpaw
+  set full_main = $allpaths/$main
+  mkdir -p $full_main
+
+
+  # ---- define reference directory and create it 
+  set ref      = $main/simstick_$label
+  set full_ref = $allpaths/$ref
+  mkdir -p $full_ref
+
+endif 
+
+
+
+# ---- define data directory and create it 
+set data      = $ref/$label
+set full_data = $allpaths/$data
+mkdir -p $full_data
+
+# ---- define run directory
+set run      = $data/find_errors
+set full_run = $allpaths/$run
+
+
+# ---- define the log filename
+set log_fn = $full_ref/stdout  
+
+
+# ---- output the command line for this run and the starting date
+echo "$0 $*"            | tee -a $log_fn
+echo "`date`: starting" | tee -a $log_fn
+echo "results are in $full_run" | tee -a $log_fn
+
+echo | tee -a $log_fn
+echo "using the following executables" | tee -a $log_fn
+echo | tee -a $log_fn
+echo $mods_str | tr " " "\n" | tee -a $log_fn
+echo | tee -a $log_fn
+
+
+
+
+
+
+if ( $error_generator_name == "" ) then
+    echo "Simulation without errors!" | tee -a $log_fn
+else
+    echo "Simulation with errors: error generator = $error_generator_name" | tee -a $log_fn
+endif
+
+
+
+# ---- save the range
+echo $range > $full_ref/range
+
+# ---- and extract tig, start, and stop info from range
+set tig   = `echo $range | cut -f1 -d':'`
+set start = `echo $range | tr ':' '-' | cut -f2 -d'-'`
+set stop  = `echo $range | tr ':' '-' | cut -f3 -d'-'`
+
+
+echo tig   = $tig   | tee -a $log_fn
+echo start = $start | tee -a $log_fn
+echo stop  = $stop  | tee -a $log_fn
+
+
+# ---- extract a reference genome sequence from which to generate simulated reads
+SelectBases \
+  PRE=/ \
+  INPUT=/wga/scr4/ALLPATHS/G.aculeatus.references/scaffolds/scaffolds.fasta \
+  CONTIG=$tig \
+  START=$start \
+  STOP=$stop \
+  OUTPUT=$full_ref/genome.haploid.fasta
+
+Fasta2Fastb \
+  IN=$full_ref/genome.haploid.fasta \
+  OUT=$full_ref/genome.haploid.fastb \
+  NAMES=False \
+    | tee -a $log_fn
+
+# ---- make it diploid
+MutateReference \
+  FASTB_IN=$full_ref/genome.haploid.fastb \
+  FASTB_OUT=$full_ref/genome.diploid.fastb \
+  SUB_RATE=0.0025 \
+    | tee -a $log_fn
+
+ln -s genome.haploid.fastb $full_ref/genome.fastb
+
+Fastb2Fasta \
+  IN=$full_ref/genome.fastb \
+  OUT=$full_ref/genome.fasta \
+    | tee -a $log_fn
+
+# ---- compute some stats and build a lookup table
+pushd $full_ref
+MakeLookupTable \
+  SOURCE=genome.fastb \
+  OUT_HEAD=genome \
+  LOOKUP_ONLY=True \
+    | tee -a $log_fn
+popd
+
+
+GenomeUnipathStats \
+  GENOME=$full_ref/genome \
+  K=96 \
+  DOT=$full_ref/genome.dot \
+    | tee -a $log_fn
+
+# ---- compute genome size - use the haploid version of reference
+FastbSizes \
+  FILE=$full_ref/genome.haploid.fastb \
+  TOTAL_ONLY=True \
+  REPORT=$full_ref/genome.size
+
+
+set genome_size = `head -1 $full_ref/genome.size`
+echo Genome Size: $genome_size | tee -a $log_fn
+
+# ---- FIXED PLOIDY at 2
+echo "2" > $full_data/ploidy
+
+
+# ---- run the assembly that applies FindErrors to the fragment pairs
+
+if ( $error_generator_name == "" ) then
+    echo "Simulation without errors!" | tee -a $log_fn
+    RunAllPathsLG \
+    REFERENCE_NAME=$ref \
+    DATA_SUBDIR=$label \
+    RUN=find_errors \
+    K=96 \
+    EC_K=20 \
+    OVERWRITE=True \
+    MAXPAR=3 \
+    EVALUATION=REFERENCE \
+    FRAG_LIBS=$fraglib \
+    JUMP_LIBS=$jumplib \
+    USE_JUMPS_IN_UNIPATHS=False \
+    ERROR_CORRECTION=False \
+    CORRECT_PAIRS_VIA_ALIGNS=False \
+    ECJ_THREADS=2 \
+    TARGETS=standard \
+    GENOME_SIZE=$genome_size \
+      | tee -a $log_fn
+else
+    echo "Simulation with errors!" | tee -a $log_fn
+    RunAllPathsLG \
+    REFERENCE_NAME=$ref \
+    DATA_SUBDIR=$label \
+    RUN=find_errors \
+    K=96 \
+    EC_K=20 \
+    OVERWRITE=True \
+    MAXPAR=3 \
+    EVALUATION=REFERENCE \
+    FRAG_LIBS=$fraglib \
+    JUMP_LIBS=$jumplib \
+    ERROR_GENERATOR_NAME=$error_generator_name \
+    ERROR_CORRECTION=True \
+    CORRECT_PAIRS_VIA_ALIGNS=True \
+    ECJ_THREADS=2 \
+    TARGETS=standard \
+    GENOME_SIZE=$genome_size \
+      | tee -a $log_fn
+endif
+
+
+# ---- Run PathsToLocs to find unipath placements on the genome
+#      They do not share the same kmer numbers, so set RENUMBER=True
+
+PathsToLocs \
+  DATA=projects/ALLPATHS/$data \
+  RUN=find_errors \
+  K=96 \
+  PATHS=all_reads.unipaths.k96 \
+  RENUMBER=True \
+  UNIPATH=True \
+  READS=all_reads \
+  UNIPATHS_FASTB=all_reads.unibases.k96 \
+  SHOW_PLACEMENTS=True \
+  MATCH_LEN_PERCENT=100 \
+  RC_TOO=True \
+  GENOME=../genome \
+  TIG_OFFSET=$tig \
+  POS_OFFSET=$start \
+    >& $full_data/find_errors/PathsToLocs.out
+
+ParsePathsToLocs \
+  IN=$full_data/find_errors/PathsToLocs.out \
+  UNIBASES=$full_run/all_reads.unibases.k96 \
+    >& $full_data/find_errors/PathsToLocs.out.summary
+
+echo "`date`: done" | tee -a $log_fn

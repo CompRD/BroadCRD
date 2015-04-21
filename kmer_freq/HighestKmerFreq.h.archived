@@ -1,0 +1,16 @@
+// Copyright (c) 2004 Broad Institute of MIT and Harvard
+//
+// HighestKmerFreq.h
+
+#ifndef HIGHEST_KMER_FREQ_H
+#define HIGHEST_KMER_FREQ_H
+
+#include "Basevector.h"
+
+// Given a basevector and a kmer size, returns the frequency of
+// the most frequent kmer of that size in the basevector.
+int
+HighestKmerFreq(const basevector & seq,
+		const int kmer_size);
+
+#endif

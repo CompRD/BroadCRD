@@ -1,0 +1,89 @@
+#!/bin/csh
+
+# Count het's on a region of X for NA12878's dad.  All are false positives.
+# Call with arguments 'instance' = 1 or 2 or 3 or 4 and 'dataset'.
+#
+# Note 58550000 excluded because it has very high coverage and runs for > 3 hours.
+# There is a 3 Mb gap in the reference after that and it is excluded too.
+# Also excluded the two 50 kb regions on the other side which are also bad.
+#
+# Exclude region starting at 67100000, which fails.
+
+if ( $#argv == 2 ) then
+    set step = 50000
+else if ($#argv == 3 ) then
+    set step = $3
+else
+    echo "usage: $0 instance dataset [stepsize]"
+    exit 1
+endif
+
+set instance = $1
+set dataset = $2
+set out = tmp.dad
+set tmp = tmp.run$instance
+
+if ( $instance == 1 ) then
+     set start = 10000000
+     set final = 35000000
+else if ( $instance == 2 ) then
+     set start = 35000000
+     set final = 60000000
+else if ( $instance == 3 ) then
+     set start = 60000000
+     set final = 85000000
+else if ( $instance == 4 ) then
+     set start = 85000000
+     set final = 110000000
+else
+     echo "unknown instance number: $instance"
+     exit 2
+endif
+
+set total_funk = 0
+set orig = $start
+mkdir -p $out $tmp
+set fails = 0
+while(1)
+     set stop = `expr $start + $step`
+     set range = $start-$stop
+
+     # check for crossing of each exclusionary range (based on original 50k) regions
+     # 58500000-61750000
+     # 67100000-67150000
+     # 83400000-83450000
+     # 49200000-49250000        # ostensibly dataset 1, but I've seen it fail with 5 so let's do all
+
+     if ( ((58500000 < $start && 61750000 < $start) || (58500000 >= $stop && 61750000 >= $stop)) &&\
+          ((67100000 < $start && 67150000 < $start) || (67100000 >= $stop && 67150000 >= $stop)) &&\
+          ((83400000 < $start && 83450000 < $start) || (83400000 >= $stop && 83450000 >= $stop)) &&\
+          ((49200000 < $start && 49250000 < $start) || (49200000 >= $stop && 49250000 >= $stop)) ) \
+          then
+          LongProto SAMPLE=human READS=\#picard DATASET=$dataset TMP=$tmp \
+               X=X:$range OUT_INT_HEAD=$out/aaa.$range LOGGING=REFTRACE_VARIANTS=True
+          if ( $status != 0 ) then
+               echo FAIL
+               set fails = `expr $fails + 1`
+          else
+               DetectMaleFunkyHet IN_HEAD=$out/aaa.$range.final \
+                    > $out/aaa.$range.funky
+               if ( $status != 0 ) then
+                    echo FAIL
+                    set fails = `expr $fails + 1`
+               endif
+          endif
+          set funk = `cat $out/aaa.$range.funky | grep -c "\] X"`
+          echo "$range": see $funk false hets
+          set total_funk = `expr $total_funk + $funk`
+     endif
+     set start = $stop
+     if ( $start == $final ) break
+end
+set rsize = `expr $final - $orig`
+echo "region size = $rsize"
+echo "total funk = $total_funk"
+
+if ( $fails > 0 ) then
+     echo "\nThere were $fails failures, so exiting."
+     exit 1
+endif

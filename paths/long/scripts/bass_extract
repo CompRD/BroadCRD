@@ -1,0 +1,80 @@
+#!/usr/bin/tcsh
+
+# Extracts Illumina reads using the BASS framework.
+# Places extracted reads in /wga/scr4/wg_projects/<organism>/<flowcell>
+
+# NOTE: Update version of this script in /BroadCRD/paths/long/scripts
+
+if ($# == 0 || $1 == "-h" || $1 == "--help") then
+    echo "Usage: bass_extract ORGANISM FLOWCELL NICKNAME"
+    echo "Extracts Illumina reads using BASS"
+    echo "Example: prepare_data O.afer H7CRNADXX aardvark"
+    exit 1
+endif 
+
+# Required
+set name = $1
+set flowcell = $2
+set nickname = $3
+
+# setup
+set merged = merged
+set final = frag_reads_orig
+set project_dir = /wga/scr4/wg_projects
+set base_dir = $project_dir/$name/$flowcell
+set prep_dir = $base_dir/data_prep
+set log_dir = $prep_dir/logs
+mkdir -p $base_dir
+mkdir -p $prep_dir
+mkdir -p $log_dir
+
+echo "bass_extract $1 $2 $3 $4 $5 $6" > $log_dir/bass_extract.cmd
+
+# Get some metadata from bass
+
+/seq/pipeline/dmsClient/dmsList -flowcell_barcode $flowcell -report full > $log_dir/dmsList.log
+
+# prepare links to original bam files
+
+/seq/pipeline/dmsClient/dmsRetrieve -destdir $prep_dir -flowcell_barcode $flowcell -custom_name '{flowcell_barcode}.{lane|%1d}.bam' > $log_dir/dmsRetrieve.log
+
+# Extract from BAM using SAM2CRDDump
+
+samtools view $prep_dir/$flowcell.1.bam | SAM2CRDDump OUT_HEAD=$prep_dir/$flowcell.1 SEP=-15 DEV=12 NOMINAL_READ_LEN=251 WRITE_NAMES=False USE_OQ=True LIB_NAME=$flowcell LOG_TO_CERR=False WRITE_ALIGNS=False > $log_dir/SAM2CRDDump.log
+
+samtools view $prep_dir/$flowcell.2.bam | SAM2CRDDump OUT_HEAD=$prep_dir/$flowcell.2 SEP=-15 DEV=12 NOMINAL_READ_LEN=251 WRITE_NAMES=False USE_OQ=True LIB_NAME=$flowcell LOG_TO_CERR=False WRITE_ALIGNS=False >> $log_dir/SAM2CRDDump.log
+
+# Merge
+
+MergeReadSets DIR= $prep_dir READS_IN= "{$flowcell.1,$flowcell.2}" READS_OUT= $merged MERGE_ALIGNS=False > $log_dir/MergeReadSets.log
+
+# Randomize
+
+SelectRandomPairs READS_IN=$prep_dir/$merged READS_OUT=$prep_dir/$final FRAC=1 > $log_dir/SelectRandomPairs.log
+
+# Some stats
+
+FastbStats FASTB= $prep_dir/$final > $prep_dir/$final.stats
+
+# Link the final reads back up to the base directory
+ln -s -t $base_dir data_prep/$final.fastb
+ln -s -t $base_dir data_prep/$final.qualb
+ln -s -t $base_dir data_prep/$final.pairs
+ln -s -t $base_dir data_prep/$final.stats
+
+
+# nickname link
+ln -s ../$name $project_dir/nicknames/$nickname
+
+# Write a little readme file
+cat > $base_dir/README <<EOF
+Organism: $name
+Nickname: $nickname
+Flowcell: $flowcell
+
+In $prep_dir
+Original bams    : $flowcell.*.bam
+Extracted reads  : $flowcell.*.fastb
+Merged reads     : $merged.fastb
+Randomized reads : $final.fastb
+EOF

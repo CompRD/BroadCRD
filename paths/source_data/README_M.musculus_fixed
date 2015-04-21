@@ -1,0 +1,30 @@
+This directory contains genome_fixed.fasta, which was obtained by calling
+variants on the reference sequence, using the fragment reads.  Here is the
+procedure that was used:
+
+% cd /wga/dev/jaffe
+% mkdir GATK
+% cd GATK
+% svn co https://svnrepos.broadinstitute.org/Sting/trunk Sting
+... revision 4844 (external revision 288) ...
+% use Java-1.6
+% use Ant-1.8
+% ant 
+% cd /wga/scr1/ALLPATHS/M.musculus/fixed
+% java -jar /wga/dev/jaffe/GATK/Sting/dist/GenomeAnalysisTK.jar \
+     -R /seq/references/Mus_musculus_assembly9/v1/Mus_musculus_assembly9.fasta \
+     -T UnifiedGenotyper -I /wga/scr1/ALLPATHS/M.musculus/bams/frag.list \
+     -o raw.vcf -U -baq CALCULATE_AS_NECESSARY -nt 7
+% java -jar /wga/dev/jaffe/GATK/Sting/dist/GenomeAnalysisTK.jar \
+     -R /seq/references/Mus_musculus_assembly9/v1/Mus_musculus_assembly9.fasta \
+     -T VariantFiltration -U -B:variant,vcf raw.vcf -o snps.vcf \
+     --filterExpression "QD<5.0||AC<2||DP<6" --filterName junk
+% cat snps.vcf | grep -v junk > snps.clean.vcf
+% java -jar /wga/dev/jaffe/GATK/Sting/dist/GenomeAnalysisTK.jar \
+     -R /seq/references/Mus_musculus_assembly9/v1/Mus_musculus_assembly9.fasta \
+     -T IndelGenotyperV2 -I /wga/scr1/ALLPATHS/M.musculus/bams/frag.list \
+     -o indels.vcf -U --minFraction 0.5
+% cat indels.vcf | Substitute FROM="0/1" TO="1/1" NH=True > indels.fixed.vcf
+% EditRefUsingVcf SAMPLE="C57BL/6J P38062" VCFS="{snps.clean.vcf,indels.fixed.vcf}" \
+     REF_IN=/seq/references/Mus_musculus_assembly9/v1/Mus_musculus_assembly9.fasta \
+     REF_OUT=genome_fixed.fasta

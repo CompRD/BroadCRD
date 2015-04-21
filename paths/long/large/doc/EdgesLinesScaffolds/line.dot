@@ -1,0 +1,27 @@
+digraph G {
+
+node [width=0.1,height=0.1,fontsize=10,shape=point];
+edge [fontsize=12];
+rankdir=LR;
+margin="0.2,0";
+
+1 -> 2;
+2 -> 3;
+2 -> 3;
+3 -> 4;
+4 -> 5;
+4 -> 5;
+
+5 -> 6 [minlen=2];
+
+6 -> 7;
+6 -> 7;
+6 -> 7;
+
+7 -> 8 [minlen=2];
+
+8 -> 9;
+8 -> 9;
+9 -> 10;
+
+}

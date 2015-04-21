@@ -1,0 +1,130 @@
+// Copyright (c) 2004 Broad Institute of MIT and Harvard
+//
+// KmerMultStats.cc
+
+// Purpose:
+//   Computes the frequency of the most frequent kmer occuring within
+//   the specified list of contigs (by default, all contigs are examined)
+//   in an assembly (given as a SUBDIR).
+
+// Command line options:
+//      PRE
+//      DATA
+//      RUN
+//      SUBDIR
+// 
+//      CONTIG_IDS  (default: "" --> all contigs)
+//      KMER_SIZE   (default: 96 )
+
+// Input files:
+//      assembly data files in  PRE/DATA/RUN/SUBDIR/
+
+// Output files:
+//    none
+
+
+#include "CoreTools.h"
+#include "ParseSet.h"
+#include "Basevector.h"
+
+#include "assembly/Assembly.h"
+#include "assembly/PrefetchStrategy.h"
+
+#include "kmer_freq/HighestKmerFreq.h"
+
+//------------------------------------------------------------
+// main()
+//
+
+int main( int argc, char *argv[] )
+{
+  RunTime();
+    
+  BeginCommandArguments;
+
+  CommandArgument_String(PRE);
+  CommandArgument_String(DATA);
+  CommandArgument_String(RUN);
+  CommandArgument_String(SUBDIR);
+
+  // Ids of contigs to be examined (parsed by ParseIntSet);
+  // empty string means all contigs
+  CommandArgument_String_OrDefault(CONTIG_IDS, "");
+
+  // Size of kmers whose multiplicities are to be counted
+  CommandArgument_UnsignedInt_OrDefault( KMER_SIZE, 96 );
+
+  EndCommandArguments;
+
+
+  // verify that the parameters are within limits
+  const int kmer_size = int(KMER_SIZE);
+  if (kmer_size < 1)
+    {
+      cout << "The value " << KMER_SIZE << " of KMER_SIZE"
+	   << " is too small; the minimum allowed is 1." << endl;
+      exit(-1);
+    }
+
+
+  // set up the Assembly
+  String strRunDir = PRE + "/" + DATA + "/" + RUN;
+  Assembly theAssembly( PRE + "/" + DATA + "/" + RUN,
+			SUBDIR,
+			false  // no verbose output
+			);
+  //  PrefetchAllStrategy prefetchStrategy;
+  //  theAssembly.SetContigPrefetchStrategy( &prefetchStrategy );
+
+
+
+  // set up the Contigs to be examined
+  vec<int> contigIds;
+  if ( CONTIG_IDS == "" )
+    {
+      contigIds.resize( theAssembly.GetNumContigs() );
+      for (int i = 0; i < theAssembly.GetNumContigs(); i++)
+	{
+	  contigIds[i] = i;
+	}
+    }
+  else
+    {
+      ParseIntSet( CONTIG_IDS, contigIds );
+    }
+  const int numContigs = contigIds.size();
+
+
+  cout << "Examining " << numContigs << " contigs..." << endl;
+
+  // loop through all Contigs to be examined
+  for (int contigIndex = 0; contigIndex < numContigs; contigIndex++)
+    {
+      //      Dot(cout, contigIndex);
+
+      const int theContigId = contigIds[contigIndex];
+      Contig theContig = theAssembly.GetContig(theContigId);
+
+      const basevector & theContigBases = theContig.GetBases();
+      const int theContigLength = theContigBases.size();
+      const int highest_kmer_freq = HighestKmerFreq(theContigBases, kmer_size);
+
+      // Output results
+
+      {
+	cout.setf(ios::internal);
+	cout.setf(ios::fixed);
+
+	cout << "Contig " << setw(6) << theContigId << ": ";
+	cout << setw(6) << theContigLength << " ; ";
+
+	cout << setw(4) << highest_kmer_freq;
+
+	cout << endl;
+      }
+
+    } // for (int contigIndex = 0; contigIndex < numContigs; contigIndex++)
+
+} // main()
+
+

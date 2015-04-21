@@ -1,0 +1,33 @@
+#!/bin/csh
+
+# find mutations between trio
+
+set region = 10:10000000-10500000
+
+# child
+samtools view -b /wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/1/Solexa-125532/H01UJADXX.1.aligned.duplicates_marked.bam $region > mx1.bam
+if ( $status != 0 ) exit 1
+samtools view -b /wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/2/Solexa-125532/H01UJADXX.2.aligned.duplicates_marked.bam $region > mx2.bam
+if ( $status != 0 ) exit 1
+
+# father
+samtools view -b /seq/picard/H03N7ADXX/C1-508_2013-01-07_2014-04-25/1/Solexa-135851/H03N7ADXX.1.aligned.duplicates_marked.bam $region > my1.bam
+samtools view -b /seq/picard/H03N7ADXX/C1-508_2013-01-07_2014-04-25/2/Solexa-135851/H03N7ADXX.2.aligned.duplicates_marked.bam $region > my2.bam
+samtools view -b /seq/picard/H05F1ADXX/C1-508_2013-01-15_2014-04-25/2/Solexa-135851/H05F1ADXX.2.aligned.duplicates_marked.bam $region > my3.bam
+
+#mother
+samtools view -b /seq/picard/H06JHADXX/C1-508_2013-01-10_2014-04-25/1/Solexa-135853/H06JHADXX.1.aligned.duplicates_marked.bam $region > mz1.bam
+samtools view -b /seq/picard/H06JHADXX/C1-508_2013-01-10_2014-04-25/2/Solexa-135853/H06JHADXX.2.aligned.duplicates_marked.bam $region > mz2.bam
+samtools view -b /seq/picard/H06JUADXX/C1-508_2013-01-10_2014-04-25/2/Solexa-135853/H06JUADXX.2.aligned.duplicates_marked.bam $region > mz3.bam
+
+GapToy READS=mx1.bam,mx2.bam INSTANCE=30
+if ( $status != 0 ) exit 1
+GapToy READS=my1.bam,my2.bam,my3.bam INSTANCE=31
+if ( $status != 0 ) exit 1
+
+GapToy READS=mz1.bam,mz2.bam,mz3.bam INSTANCE=32
+if ( $status != 0 ) exit 1
+DiscoMerge INSTANCES=30,31,32 INST_OUT=40 NAMES="C,F,M" CREATE_DATA_DIR=True
+if ( $status != 0 ) exit 1
+
+TTT2

@@ -1,0 +1,976 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Arachne 2.0 Manual</title>
+  </head>
+
+<body bgcolor="white" text="black">
+
+<font size=-1>
+<p>
+This manual and the software it describes are copyright &copy 2001-2004 
+The Broad Institute/Massachusetts Institute of Technology.
+
+<P>
+This product includes software developed by the Apache Software Foundation 
+(<A HREF="http://www.apache.org/">http://www.apache.org</A>).
+
+<P>
+This product includes software developed by the University of California, Berkeley and its contributors.
+</font>
+
+<BR><BR><HR><BR><BR>
+
+<p>
+<h1>Arachne 2.0 Manual</h1>
+<p>
+
+<P><A NAME="secTOC"><H3>Table of Contents</H3></A></P>
+
+<UL>
+  <LI><A HREF="#secOverview">Overview</A>
+  <LI><A HREF="#secData">About your data</A>
+  <LI><A HREF="#secInstall">Installation</A>
+    <UL>
+      <LI><A HREF="#secPrereq">Step 1: Install prerequisite software</A>
+      <LI><A HREF="#secBinDir">Step 2: Create the Arachne binary directory</A>
+      <LI><A HREF="#secDataDir">Step 3: Create the main Arachne data directory</A>
+      <LI><A HREF="#secVector">Step 4: Supplement the vector file</A>
+      <LI><A HREF="#secTest">Step 5: Test Arachne on a small mouse project</A>
+    </UL>
+
+  <LI><A HREF="#secPrep">Preparing your data for assembly</A>
+    <UL>
+      <LI><A HREF="#secDataFiles">Data files</A>
+      <LI><A HREF="#secXML">XML ancillary files</A>
+      <LI><A HREF="#secConfigFile">Configuration file</A>
+    </UL>
+
+  <LI><A HREF="#secRunning">Running Arachne</A>
+  <LI><A HREF="#secOutput">Output</A>
+  <LI><A HREF="#secAce">Generating ace files</A>
+  <LI><A HREF="#secContact">Contacting us</A>
+
+</UL>
+
+<BR><BR><HR><BR><BR>
+
+<P><A NAME="secOverview"><H3>Overview</H3></A></P>
+
+Arachne is a tool for assembling genome sequence from
+whole-genome shotgun reads, mostly in forward-reverse pairs obtained by
+sequencing clone ends.  
+
+<P>
+As input, Arachne requires the base calls and associated quality scores
+of each read (as produced by most base-calling software, such as
+PHRED), as well as ancillary information about each read (in a
+standard format described herein).
+
+<P>
+As output, Arachne produces a list of supercontigs ("scaffolds") -- each of 
+which consists of an ordered list of contigs, all forward-oriented,
+and estimates for the gaps between them within the supercontig.  
+Base calls and quality scores are provided for each contig, along with the 
+approximate locations of the reads used to build it.  Arachne also 
+produces a summary and brief analysis of the assembly.
+
+<p>
+Many of Arachne's algorithms are described in
+"ARACHNE: A Whole-Genome Shotgun Assembler",
+<a href="http://www.genome.org">Genome Research</a>, January 2002, and
+"Whole-Genome Sequence Assembly for Mammalian Genomes: ARACHNE 2", 
+<a href="http://www.genome.org">Genome Research</a>, January 2003.
+
+<P><A NAME="secData"><H3>About your data</H3></A></P>
+
+<P>
+We explain here the assumptions Arachne makes about your sequence
+reads.
+
+<P>
+These reads come from the entire genome of an organism or a cloned
+fragment thereof (but not both simultaneously), which we call the
+<em>target</em>.  The target should be from a single haplotype: Arachne does 
+not support the assembly of polymorphic data at this time.
+
+<P>
+Regardless of the target, Arachne assumes most sequence reads
+have been obtained randomly from it, either as single reads ("unpaired
+production reads") or as clone-end pairs ("paired production reads").
+The bulk of reads provided to Arachne should be pairs from the latter
+category, because this pairing information is needed to assemble
+correctly.
+
+<P>
+To use Arachne, make a sensible division of your sequence reads
+into libraries (to use the term loosely), preferably placing similar reads
+together.  Thus, there may be several libraries of paired production reads,
+each having different insert length statistics (mean and standard deviation,
+which must be the same for all reads in a single library).
+These library statistics must be provided to Arachne via the 
+<a href="#secXML">ancillary data files</a> or the
+<a href="Manual.html#secConfigFile">configuration file</a>, as will be described later.
+
+<P>
+Arachne does have limited support for transposon-based read pairs, but
+does not handle other types of finishing reads at this time.  If such
+reads are presented to the program as unpaired production reads, the
+performance may be acceptable, but Arachne will treat the reads as
+though they were obtained randomly from the genome.
+
+<P><A NAME="secInstall"><H3>Installation</H3></A></P>
+
+Arachne is available as compiled binaries for a single platform:
+Compaq Alpha hardware, running Tru64 Unix, operating system version 5.1.  
+This exact platform is required.
+
+<p>
+The Arachne source code, while unsupported, is available at 
+<A HREF="ftp://ftp.broad.mit.edu/pub/wga/Arachne/Arachne_src.tar.gz">
+ftp://ftp.broad.mit.edu/pub/wga/Arachne/Arachne_src.tar.gz</A>.
+
+<p>Here is the procedure for installing Arachne from the compiled binaries:
+
+<h4><A NAME="secPrereq">Step 1: Install prerequisite software</A></h4>
+
+<ul>
+<p>
+<li>The LaTeX suite of text-processing software, including executables for
+latex and dvips.  These items may already be on your system.  Otherwise,
+install the LateX suite, for example by downloading one of the free 
+implementations from <A HREF="http://www.tug.org">http://www.tug.org</A>.  
+We use the web2c implementation.
+
+<p>
+<li>The compression utility gzip and the traceback utility addr2line
+(from the binutils package), provided by the Free Software
+Foundation (<A HREF="http://www.gnu.org">http://www.gnu.org</A>).
+
+</ul>
+
+<p>
+<h4><a name="secBinDir">Step 2: Create the Arachne binary directory</a></h4>
+
+<p>Pick a location on your system for the Arachne binaries, then
+get and unpack 
+<A HREF="ftp://ftp.broad.mit.edu/pub/wga/Arachne/Arachne_bin.tar.gz">
+ftp://ftp.broad.mit.edu/pub/wga/Arachne/Arachne_bin.tar.gz</A> into that
+location.
+
+<h4><a name="secDataDir">Step 3: Create the main Arachne data directory</a></h4>
+
+<p>Pick a location on your system where your data will go, then get and unpack 
+<A HREF="ftp://ftp.broad.mit.edu/pub/wga/Arachne/Arachne_data.tar.gz">
+ftp://ftp.broad.mit.edu/pub/wga/Arachne/Arachne_data.tar.gz</A> into that
+location.  All users of Arachne must set the environment variable 
+ARACHNE_PRE to the full path of Arachne_data.
+
+<h4><a name="secVector">Step 4: Supplement the vector file</a></h4>
+
+<p>In the main Arachne data directory, the file vector/contigs.fasta includes a 
+broad selection of vector sequences.  Be sure to add your sequencing vectors
+to this file if they are not already in it.
+
+<h4><a name="secTest">Step 5: Test Arachne on a small mouse project</a></h4>
+
+<p>Go to the Arachne binary directory and type 
+<p>
+<blockquote>
+<tt>Assemble  DATA=mouse_example  RUN=run</tt>
+</blockquote>
+<p>
+Wait until it finishes.  A report about the project should
+be produced as <tt>mouse_example/run/assembly.ps</tt>, inside the main Arachne 
+data directory.  View this file to confirm that the assembly yielded one 
+supercontig, consisting of 52 contigs, one of which is misassembled.  Verify that 
+<tt>mouse_example/run/assembly.log</tt> ends 
+with a message regarding normal termination.
+<P>This does not guarantee that Arachne is installed correctly, however it 
+should reveal any major problems.
+
+<P>Note.  If upon typing <tt>Assemble</tt>, you got an error message about
+"command not found", then it is probably because you need to add "." to your
+Unix path.  You can see your path by typing "set | grep path".
+
+<P>Note.  If upon typing <tt>Assemble</tt>, you got an error message from
+the loader, it may be because you do not have version 5.1 of the
+operating system.  Type "uname -r" to find out.
+
+<P><A NAME="secPrep"><H3>Preparing your data for assembly</H3></A></P>
+
+<h4>Data and run directories</h4>
+
+For each sequencing project to be assembled, create a subdirectory
+(referred to hereafter as DATA) of the main Arachne data directory, that contains 
+the source data for the project.  Inside DATA, create a subdirectory for each 
+particular assembly (referred to as RUN), into which assembly output files
+are to be placed.  We use DATA and RUN relative to their parents.  For example, if 
+the main Arachne data directory is /seq/Arachne_stuff, and DATA=sequoia and 
+RUN=May1, 
+then DATA really refers to /seq/Arachne_stuff/sequoia, and RUN really refers to
+/seq/Arachne_stuff/sequoia/May1.  
+
+<p>
+Notes: DATA is simply a partial path to a subdirectory of the main
+Arachne data directory, so nesting is allowed.  For example, if in the
+above example we were to specify that DATA=projects/yeast, it would
+refer to /seq/Arachne_stuff/projects/yeast.  Also, soft linking is
+allowed and probably necessary for very large sequencing projects.
+Finally, the RUN directory is automatically created by Arachne if it
+did not exist beforehand.
+
+<h4><a name="secDataFiles">Data files</a></h4>
+
+The data files provided to Arachne as input reside in the DATA directory:
+
+<ul>
+<p>
+<li> read sequence files in fasta format.  Any and all files of the form
+reads.fasta, reads.fasta.gz, fasta/fasta.*, fasta/*.fasta, or fasta/*.fasta.gz
+will be used.
+
+<p>
+<li> read quality score files in fasta format.  Any and all files of the form
+reads.qual, reads.qual.gz, qual/qual.*, qual/*.qual, qual/*.qual.gz will be
+used.  The quality score files must match the read sequence files on a 
+file-by-file basis.
+
+<p>
+<li>XML ancillary files: any files of the form traceinfo/*xml* are used.  The
+requirements regarding these files are described later.
+
+<p>
+<li>reads_config.xml: the assembly configuration file, described later.
+
+<p>
+<li>reads.to_exclude: the optional read exclusion file, described later.
+
+<p>
+<li> genome.size: a text file containing the estimated genome size on the 
+first line, and nothing else.
+
+<p>
+<li> nhaplotypes: an optional text file containing the number of haplotypes in the 
+data set on the first line, and nothing else
+(allowed values: 1 or 2; default value: 2)
+
+<p>
+<li> mitochondrial.fasta (optional): a fasta file containing sequence contigs for 
+the mitochondrial genome of the organism being sequenced.  Sequence reads matching
+these contigs are not used in the assembly.
+
+<p>
+<li> contigs.fasta (optional, but highly recommended): sequence contigs, called 
+<em>known contigs</em>, which Arachne uses in report generation to evaluate the 
+quality of the assembly by aligning its contigs against the known contigs.
+
+<p>
+<li> defaults (optional): arguments that are always to be fed to the 
+<tt>Assemble</tt>
+executable (as described <a href="Manual.html#secRunning">below</a>),
+but which may be overridden by command-line arguments given directly to it.
+
+</ul>
+
+<p>
+<h3><a name="secXML">XML ancillary files</a></h3>
+
+The files DATA/traceinfo/*xml* contain ancillary data about the reads, which is
+in the Trace Archive XML format 
+<a href=http://www.ncbi.nlm.nih.gov/Traces/TraceArchiveRFC.html>
+(http://www.ncbi.nlm.nih.gov/Traces/TraceArchiveRFC.html).</a>  
+As described in the next section, this ancillary data may be modified and
+supplemented with the aid of the configuration file.
+
+<p>
+We use only a subset of the fields specified in the Trace Archive XML
+definition:
+
+<ul>
+
+<p><li> <tt>trace_name</tt>: The name of the read, which must be unique.  Required.
+
+<p><li> <tt>plate_id</tt>: The name of the plate on which the read resides.  For 
+paired production reads, normal practice to designate the same plate_id for two
+physical plates, one having the forward reads and the other having the reverse
+reads.  All reads with a given plate_id must be in the same library.  Required.
+
+<p><li> <tt>well_id</tt>: The well on the plate that the read came from.  Required.
+
+<p><li> <tt>template_id</tt>: The name of the template (insert).  Arachne identifies 
+forward-reverse read pairs as those sharing the same template_id.  Required for 
+reads designated "paired production" or "transposon".  The concept of
+a template for a transposon here is simply a kludge to associate a
+pair of transposon reads from the same transposon event, so there
+should be a different template id for each transposon event. 
+Reads with the same template_id must be in the same library. 
+
+<p><li> <tt>insert_size</tt>: The estimated insert size, in bases, for
+paired production reads.  The estimated separation, in bases, for transposon reads.
+Required to be non-zero for reads designated as "paired production" or "transposon" (see the
+<tt>type</tt> field below).  Moreover, for paired production reads the
+insert_size must be at least 400; this requirement is intended to
+catch situations where, e.g., a length of 2 was used to mean 2000.
+
+<p><li> <tt>insert_stdev</tt>: The standard deviation of the insert size, in bases,
+for paired production reads.  The standard deviation of the separation, in bases, 
+for transposon reads.  Required to be non-zero for reads designated "paired production"
+or "transposon".
+
+<p><li> <tt>trace_end</tt>: The direction of the read on its insert 
+(either <tt>F</tt> for forward or <tt>R</tt> for reverse).  
+Required for reads designated "paired production" or "transposon".
+
+<p><li> <tt>seq_lib_id</tt>: The name of the library containing the
+read.  Some centers instead use the field <tt>library_id</tt> for
+this, and Arachne will look for a library_id if no seq_lib_id is specified.
+Required.
+
+<p><li> <tt>center_name</tt>: The center from which the read came.  Optional.
+
+<p><li> <tt>ti</tt>: The trace archive number.  Optional.
+
+</ul>
+
+<p>
+In addition, we have a field that is not part of the Trace Archive Format
+and therefore <em>must</em> be set using the configuration file 
+(see <a href="#secData">above</a> for a brief description).
+
+<ul>
+<p><li> <tt>type</tt>: "paired_production", "unpaired_production", or "transposon".  Required.
+</ul>
+
+<p>
+<b>Important</b>:  Every read must appear in exactly three places in the Arachne 
+input files: in a read sequence file, in a read quality score file, and in an 
+XML ancillary file.  Read identities are defined by read names, and read names
+are determined as follows.  For read sequence and read quality score files, we take
+the rightmost white-space-free string on a ">" line.  For example,
+">gnl|ti|3 G10P69425RH3.T0" would yield the read name "G10P69425RH3.T0".
+For XML ancillary files, read names are defined by the TRACE_NAME field.
+
+<p><p>
+<h3><a name="secConfigFile">Configuration file</a></h3>
+
+<p>
+The configuration file (reads_config.xml) allows you to correct and augment the
+information presented to Arachne via the XML files.
+
+<p>
+For example, if any of the required fields are missing from your XML
+ancillary files, you do not need to modify the XML file itself before
+running Arachne.  You can simply write a configuration file that will provide the
+missing information to Arachne.  
+<p>
+Also, the configuration file allows for an easy way to set parameters
+that are common to a group of reads.  For instance, below we
+demonstrate how to set insert size and insert size standard deviation
+for a particular library. 
+<p>
+Note that you <em>must</em> use the configuration file to set
+<tt>type</tt> field.  If you try to include the <tt>type</tt> field in the XML file,
+Arachne will fail because the XML file will not conform to the Trace
+Archive Format specification
+(see <a href="#secXML">above</a>).
+
+<p>
+Here we give a somewhat informal explanation of how the configuration
+files are constructed.  However, as an XML file, the configuration file has a 
+formal "document type" definition, that can be found in the file 
+<tt>dtds/configuration.dtd</tt> (in the main Arachne data directory).
+
+<p>
+Begin the configuration file with the following text:
+<pre>
+&lt;?xml version="1.0"?&gt; 
+&lt;!DOCTYPE configuration SYSTEM "configuration.dtd"&gt; 
+&lt;configuration&gt; 
+</pre>
+
+<p>
+and end it with:
+<pre>
+&lt;/configuration&gt; 
+</pre>
+
+<p>
+The types of constructs that can put in between are 
+<em>comments</em>, <em>macros</em>, and most importantly, <em>rules</em>.
+
+<p>
+Comments are in the standard XML format, for example:
+<p>
+<pre>
+	&lt;!-- ******** Some contaminated reads, to be tossed ******** --&gt; 
+</pre>
+
+<p>
+Macros facilitate abbreviation, pointless or otherwise, for example:
+<p>
+<pre>
+	&lt;macro name="gh"&gt;gringlehopper&lt;/macro&gt; 
+</pre>
+would change every subsequent occurrence of the string <tt>$gh</tt>
+to the string <tt>gringlehopper</tt>.  Any text could
+have been used in place of <tt>gringlehopper</tt>.
+
+<p>
+Rules require more explanation, because they have nontrivial syntax.  For example,
+<p>
+<pre>
+        &lt;rule&gt; 
+             &lt;name&gt; exclude probable human reads &lt;/name&gt; 
+             &lt;match&gt; 
+                  &lt;match_field&gt;plate_id&lt;/match_field&gt; 
+                  &lt;literal&gt;G10P6007&lt;/literal&gt;
+             &lt;/match&gt; 
+	     &lt;match&gt; 
+                  &lt;match_field&gt;plate_id&lt;/match_field&gt; 
+                  &lt;regex&gt;^G10P613[01]$&lt;/regex&gt;
+             &lt;/match&gt; 
+	     &lt;action&gt;&lt;remove /&gt;&lt;/action&gt; 
+	&lt;/rule&gt; 
+</pre>
+<p>
+would cause all reads having plate_id G10P6007, G10P6130, or G10P6311
+to be ignored by Arachne.
+
+<p>
+More generally, a rule is defined by three fields:
+
+<p><ul>
+	<li> <tt>&lt;name&gt;</tt>: Explanatory title.  One per rule or none at all.
+
+	<li> <tt>&lt;match&gt;</tt>: Defines which reads are affected by the rule.
+        One or more per rule.
+
+	<li> <tt>&lt;action&gt;</tt>: Defines what happens to those
+	reads affected by the rule, namely those reads 
+        specified in one or more of the match fields.  Exactly one per rule.
+</ul>
+
+<p>
+        A given rule can have more than one <tt>&lt;match&gt;</tt>
+	tag.  If there is more than one, then the rule is applied to
+	reads that match <em>any</em> of those <tt>&lt;match&gt;</tt>
+	tags.
+
+<p>
+	Each <tt>&lt;match&gt;</tt> tag contains the names of the
+	fields it checks (in <tt>&lt;match_field&gt;</tt> tags) and
+	the values it expects in those fields (in <tt>&lt;literal&gt;</tt> or
+	<tt>&lt;regex&gt;</tt> tags).  If <em>all</em> of the
+	specified fields match the expected values, the
+	<tt>&lt;match&gt;</tt> is made and the rule's action is
+	applied.
+<p>
+        A <tt>&lt;match&gt;</tt> tag requires one or more
+        <tt>&lt;match_field&gt;</tt><tt>&lt;literal&gt;</tt> or
+        <tt>&lt;match_field&gt;</tt><tt>&lt;regex&gt;</tt> pairs.
+
+<p><ul>
+	<li> <tt>&lt;match_field&gt;</tt>: The field from the XML ancillary data to
+	test for a matching read, in lower-case.  This should be
+	followed by either a <tt>&lt;literal&gt;</tt> tag or a
+	<tt>&lt;regex&gt;</tt> tag.
+
+	<li> <tt>&lt;literal&gt;</tt>: A literal string to match against the
+	contents of the specified <tt>&lt;match_field&gt;</tt>.  
+
+	<li> <tt>&lt;regex&gt;</tt>: A regular expression to match against the
+	contents of the specified <tt>&lt;match_field&gt;</tt>.  
+
+	<blockquote>
+	Since it is a regular expression, be aware that a regex like 
+	<tt>&lt;regex&gt;0&lt;/regex&gt;</tt> will match not only zero, but any string 
+	that contains a zero, such as "500" or "asdf0qwerty".  If your intention is
+	to match exactly some value, use the <tt>&lt;literal&gt;</tt>
+	tag or use the start- and end-of-line markers ("^" and 
+	"$") to restrict your regular expression to match exactly the entire string 
+	in that field,
+	e.g. <tt>&lt;literal&gt;0&lt;/literal&gt;</tt> or <tt>&lt;regex&gt;^0$&lt;/regex&gt;</tt>.
+	</blockquote>
+</ul>
+<p>
+	The <tt>&lt;action&gt;</tt> tag requires one of the following sub-tags.  
+        Only one type of sub-tag is allowed for a single <tt>&lt;action&gt;</tt> tag, 
+        though multiple <tt>&lt;set&gt;</tt> tags are allowed in a single 
+        <tt>&lt;action&gt;</tt> tag.
+<p>
+<ul>	
+	<li>  <tt>&lt;remove /&gt;</tt>: Remove any matching read.
+	Only one <tt>&lt;remove /&gt;</tt> tag is allowed in each 
+        <tt>&lt;action&gt;</tt> tag.
+	<li>  <tt>&lt;unpair /&gt;</tt>: Remove any pairing information for matching
+	reads.  Only one <tt>&lt;unpair /&gt;</tt> tag is allowed in each 
+        <tt>&lt;action&gt;</tt> tag.
+	<li>  <tt>&lt;set&gt;</tt>: Set a field for any 
+        matching read.  The syntax is 
+<pre>
+	&lt;set&gt; 
+             &lt;set_field&gt; ... &lt;/set_field&gt; 
+             &lt;value&gt; ... &lt;/value&gt; 
+        &lt;/set&gt;
+</pre>
+        but there may be more than one set tag within a given
+        <tt>&lt;action&gt;</tt>.
+</ul>
+<p>
+	Values of other fields associated with the matching read may
+	be referred to in <tt>&lt;value&gt;</tt> tags by prepending the name of the
+	field with an "<tt>@</tt>".  Also, integer arithmetic evaluation will
+	occur when setting numeric fields such as <tt>insert_size</tt> and
+	<tt>insert_stdev</tt>.  For example,
+<p>
+<pre>
+      &lt;set&gt;
+         &lt;set_field&gt; insert_stdev &lt;/set_field&gt;
+         &lt;value&gt;@insert_size/10&lt;/value&gt;
+      &lt;/set&gt;
+</pre>
+</p>
+	will set <tt>insert_stdev</tt> to 10% of <tt>insert_size</tt>.
+<p> 
+Here is another example of a rule that sets the insert statistics for all
+reads whose names begin with G20:
+<p>
+<pre>
+      &lt;rule&gt; 
+         &lt;name&gt; set insert stats for G20 reads &lt;/name&gt; 
+         &lt;match&gt;
+            &lt;match_field&gt;trace_name&lt;/match_field&gt;
+            &lt;regex&gt;^G20&lt;/regex&gt;
+         &lt;/match&gt; 
+         &lt;action&gt; 
+            &lt;set&gt;
+               &lt;set_field&gt;insert_size&lt;/set_field&gt;
+               &lt;value&gt;4000&lt;/value&gt;
+            &lt;/set&gt; 
+            &lt;set&gt;
+               &lt;set_field&gt;insert_stdev&lt;/set_field&gt;
+               &lt;value&gt;400&lt;/value&gt;
+            &lt;/set&gt; 
+         &lt;/action&gt; 
+      &lt;/rule&gt; 
+</pre>
+
+<p>
+Finally, we give an example that shows how to designate every read as being
+a paired production read:
+<p>
+<pre>
+      &lt;rule&gt; 
+         &lt;name&gt; all reads are paired production reads &lt;/name&gt; 
+         &lt;match&gt;
+            &lt;match_field&gt;trace_name&lt;/match_field&gt;
+            &lt;regex&gt;.&lt;/regex&gt;
+         &lt;/match&gt; 
+         &lt;action&gt; 
+            &lt;set&gt;
+               &lt;set_field&gt;type&lt;/set_field&gt;
+               &lt;value&gt;paired_production&lt;/value&gt;
+            &lt;/set&gt; 
+         &lt;/action&gt; 
+      &lt;/rule&gt; 
+</pre>
+<BR>
+
+Rules are applied in the order which they appear in the configuration file.
+Interactions between the rules are possible, and consequently, the order
+in which the rules appear may matter.
+
+<P>
+Additionally, one may provide an exclusion file, a list of read
+names to be excluded from the assembly.  This file should be named
+"reads.to_exclude" and should be located in the DATA directory.  The
+reads in this file will be excluded prior to the application of any
+rules.
+
+<P><A NAME="secRunning"><H3>Running Arachne</H3></A></P>
+
+An Arachne assembly must be initiated from the Arachne binary directory,
+by invoking the main Arachne executable, <tt>Assemble</tt>, as follows:
+
+<p>
+<blockquote>
+     <tt>Assemble  DATA=</tt>the_project_directory  <tt>RUN=</tt>the_results_directory
+</blockquote>
+</pre>
+<p>
+where "the_project_directory" is the name of the data directory and 
+"the_results_directory" is the name of the run directory.
+
+<P>Note.  Before running <tt>Assemble</tt> on your own data, be sure
+to test your installation by running it on mouse_example, as per the
+instructions given earlier.
+
+<P>Note.  Some experimentation is needed to determine how much memory and
+disk space are needed for any given Arachne assembly.  Running out of either
+will have unpredictable consequences.
+
+<P>Note.  Simultaneous <tt>Assemble</tt> processes can share the same
+data directory, but not the same run directory.
+
+<p>
+<tt>Assemble</tt> accepts a number of additional command-line arguments, all 
+optional:
+
+<ul>
+<p>
+<h4>Input Processing Options:</h4>
+<ul>
+<p><li>
+<tt>num_cpus</tt>: The number of cpus Arachne will try to multithread over.  In
+the present release, this only affects the early stages of read processing,
+and only if the reads and quality scores have been distributed over multiple 
+files.  The default value is 1.
+
+<p><li>  
+<tt>config_file</tt>: The name of an alternate configuration
+file (in place of the default file name <tt>reads_config.xml</tt>).
+
+<p><li>  
+<tt>exclusion_file</tt>: The name of an alternate exclusion
+file (in place of the default file name <tt>reads.to_exclude</tt>).
+</ul>
+<p> 
+<h4>Assembly Quality Options:</h4>
+<ul>
+<p><li> 
+<tt>FAST_RUN=True</tt>: By default, Arachne assembles in two passes: the first pass
+combines some reads together (to form larger "reads"), and then the second
+pass assembles these.  This two-pass approach will usually produce a better 
+assembly, but will also cause Arachne to use more time and memory.  If you 
+want to turn off the two-pass feature, put "<tt>FAST_RUN=True</tt>" on the
+command line.  This is what we have done for mouse assemblies.
+
+<p><li>
+<tt>maxcliq1</tt>: Arachne builds read-read alignments via seed
+sequences of length 24.  If a seed sequence occurs more than
+<tt>maxcliq1</tt> times in the reads, it is ignored.  If
+<tt>maxcliq1</tt> is too small, Arachne will not see valid alignments.
+If it is too large, Arachne will be overwhelmed by alignments between
+repeat sequences (and consequently, be slow and use more memory).  A
+reasonable value would be 5 to 10 times the coverage of the genome by
+the reads, although we have used larger values.  The default value is
+50.
+
+<p><li>
+<tt>maxcliq2</tt>: This is like <tt>maxcliq1</tt>, but governs the second pass of 
+Arachne assembly if <tt>FAST_RUN=False</tt> (the default).  The default value is 50.
+</ul>
+
+<p>
+<h4>Assembly Improvement Options:</h4>
+Some of the algorithms used below are described in the paper ("Whole-Genome Sequence Assembly for
+Mammalian Genomes: ARACHNE 2", <a href="http://www.genome.org">Genome Research</a>, January 2003).
+
+<ul>
+<p><li> 
+
+<tt>ENLARGE_CONTIGS=True</tt>: Attempt to extend contigs by creating
+new contigs using unplaced partners of placed reads and by merging
+contigs whose linking information indicates an overlap.  This can
+cause Arachne to be slow and use more memory.  
+
+<p><li>
+
+<tt>IMPROVE_SUPERS=True</tt>: Attempt to extend and improve existing
+supercontigs, using a variety of strategies, described in the paper
+cited above.  There are a two sub-options described below that affect
+the algorithms used in the <tt>IMPROVE_SUPERS</tt> section.
+<p>
+A pair of these parameters affects the &quot;positive breaking&quot;
+algorithm, where Arachne attempts to find evidence that indicates that
+two supercontigs should be broken and one piece from each joined
+together instead.  This evidence takes the form of long links from the
+middle of one supercontig to the middle of another.
+<p>
+Arachne requires that there be a minimum number of these links and
+that the links be spread over some minimum distance in each
+supercontig.  These parameters are specified on the Assemble command
+line as <tt>min_cluster_size_to_break</tt> and
+<tt>min_cluster_spread_to_break</tt>, with default values of 5 and
+50000, respectively.  Both can be any positive (non-zero) value,
+though we recommend that the <tt>min_cluster_spread_to_break</tt>
+should be a significant fraction of the long links' estimated insert
+size.
+<p>
+Note that this code was designed for whole genome shotgun assemblies,
+and may not be applicable to smaller assemblies, such as BACs.
+<p>   
+
+
+<p><li>
+
+<tt>PATCH_GAPS=True</tt>: Attempt to cross gaps between neighboring contigs by placing partners
+of reads in those contigs and reads to which those partners align into
+those gaps.  This option may cause Arachne to run more slowly and use
+more memory.  There are two sub-options described below that
+adjust the parameters of the gap-patching algorithm.
+
+<p>
+The first of these sub-options is <tt>patch_gaps_loops1</tt>, which
+affects how inclusive the algorithm is in selecting reads that might
+patch a gap.  The higher the value of this parameter, the larger this
+set of reads will be and the better chance you have of collecting a
+set of reads that will successfully patch a gap.  However, using a
+higher value also increases the possibility of performing an incorrect
+patch, and the runtime and memory usage of the gap-patching modules
+will increase.  Conversely, by decreasing the value of this parameter,
+you decrease the chances of successfully patching gaps, but you will
+reduce runtime and memory usage.  The default value of
+<tt>patch_gaps_loops1</tt> is 5, but any non-negative integer is valid.
+
+<p>
+The second of these sub-options is <tt>patch_gaps_max_deviance</tt>,
+which affects how closely a possible patch must correlate to the
+linking information in that region.  If a prospective patch of a gap would
+stretch the links over that gap too much, the patch is abandoned.  The 
+lower this value, the stricter the correspondence must be.  The 
+default value of <tt>patch_gaps_max_deviance</tt> is 4.0, but any
+non-negative floating point number is valid.
+
+<p>
+Note that this code may produce assemblies with multiply-placed reads,
+i.e. reads which are placed into more than one contig, though not
+twice in the same supercontig.  Arachne attempts to resolve as many of
+these as it can, but in some cases it is not clear which location is
+better, and both placements are left untouched.
+
+
+<p><li> 
+
+<tt>PLACE_BAC_ENDS=True</tt>: Attempt to place as-yet-unplaced long
+insert ends and use this new linking information to extend and improve
+existing supercontigs.  These reads are placed only if there appears
+to be an unambiguous location for them in the assembly.  The
+command-line option <tt>min_bac_insert_size</tt> is used to specify
+which reads to attempt to place.  Reads with estimated insert sizes of
+greater than <tt>min_bac_insert_size</tt> are considered.  The default
+value is 100000, though any non-zero positive value is accepted.
+</ul>
+
+<p>
+<h4>Output Options:</h4>
+<ul>
+
+<p><li>
+
+<tt>REINDEX_SUPERS=True</tt>: Reorder the supercontigs in the
+assembly by their estimated size (starting at 0) and
+reorder the contigs by their occurrence in those reordered
+supercontigs (also starting at 0).  For example, the largest
+supercontig will have id 0 and could contain contigs 0 through 9, the
+second largest supercontig will have id 1 and could contain contigs 10
+to 17, and so on.
+
+<p><li>
+
+<tt>ACE=True</tt>: Automatically generate ace files for all
+supercontigs in the assembly (as could be done by
+<tt>CreateAceFile</tt>, described below), placing them in the
+subdirectory <tt>acefiles</tt> of the run directory.  If the option
+<tt>one_ace_file=True</tt> is used, one ace file containing all the
+contigs in the assembly will be generated.
+
+</ul>	
+</ul>
+<p>
+
+<P><A NAME="secOutput"><H3>Output</H3></A></P>
+
+<p>
+The output of the assembly consists of the following files, found in the RUN
+directory:
+
+<ul>
+<p><li> <b>assembly.ps</b>: A report about the assembly, in postscript form.
+
+<p><li> <b>assembly.log</b>: The main log file for Arachne. The last item written to the 
+        file should describe how Arachne terminated.
+
+<p><li> <b>assembly.bases.gz</b>: The fasta file containing
+        the sequence of bases for the contigs, gzipped.
+
+<p><li> <b>assembly.quals.gz</b>: The fasta file containing
+        the sequence of quality scores for the contigs, gzipped.
+
+<p><li> <b><a name="secAssemblyLinks">assembly.links</a></b>: A file describing the supercontigs in the assembly.
+<p>
+This tab-delimited file has the following fields, one row per contig,
+ordered by supercontig id and the ordinal number of the contig in the
+supercontig:
+
+<table>
+<tr><td><b>Type</b></td> <td><b>Meaning</b></td></tr>
+<tr><td>Integer</td> <td>Id of the supercontig containing this contig</td></tr>
+<tr><td>Integer</td> <td>Length of the supercontig containing this contig (including estimated gap sizes)</td></tr>
+<tr><td>Integer</td> <td>Number of contigs in the supercontig containing this contig</td></tr>
+<tr><td>Integer</td> <td>Ordinal number of this contig in the supercontig</td></tr>
+<tr><td>Integer</td> <td>Id of this contig</td></tr>
+<tr><td>Integer</td> <td>Length of this contig</td></tr>
+<tr><td>Integer</td> <td>Estimated length of gap before this contig (zero if first contig in supercontig)</td></tr>
+<tr><td>Integer</td> <td>Estimated length of gap after this contig (zero if last contig in supercontig)</td></tr>
+</table>
+
+<p><li> <b><a name="secAssemblyReads">assembly.reads</a></b>: A file describing the placement of reads in the assembly.
+<p>
+This tab-delimited file has the following fields, one row per placed
+read, ordered by the id of the contig containing the read and the
+approximate coordinate of the first base of the trimmed read in the
+contig:
+
+<table>
+<tr><td><b>Type</b></td> <td><b>Meaning</b></td>
+<tr><td>String</td> <td>Name of read</td></tr>
+<tr><td>String</td> <td>Status of read</td></tr>
+<tr><td>Integer</td> <td>Untrimmed read length</td></tr>
+<tr><td>Integer</td> <td>Coordinate of first base of trimmed read in untrimmed read (zero-based)</td></tr>
+<tr><td>Integer</td> <td>Length of trimmed read in untrimmed read</td></tr>
+<tr><td>Integer</td> <td>Id of contig containing read</td></tr>
+<tr><td>Integer</td> <td>Length of contig containing read</td></tr>
+<tr><td>Integer</td> <td>Approximate coordinate of first base of trimmed read in contig (zero-based)</td></tr>
+<tr><td>Integer</td> <td>Approximate coordinate of last base of trimmed read in contig (zero-based)</td></tr>
+<tr><td>'+' or '-'</td> <td>Strand (orientation of read on contig)</td></tr>
+<tr><td>String</td> <td>Name of this read's partner (empty if unpaired)</td></tr>
+<tr><td>String</td> <td>Status of this read's partner</td></tr>
+<tr><td>Integer</td> <td>Id of the contig containing this read's partner (empty if unpaired or partner unplaced)</td></tr>
+<tr><td>Integer</td> <td>Observed insert size (empty if unpaired, partner unplaced, or partner in different supercontig)</td></tr>
+<tr><td>Integer</td> <td>Given insert size (empty if unpaired)</td></tr>
+<tr><td>Integer</td> <td>Given insert size standard deviation (empty if unpaired)</td></tr>
+<tr><td>Float</td> <td>Observed insert size deviation measure (empty if observed insert size is empty)</td></tr>
+</table>
+
+<p>
+The status of the read is a set of characters used to flag conditions
+of note.  Currently that field will either be empty or contain one or
+more of the following one-letter codes: <tt>M</tt>, <tt>S</tt>, and <tt>T</tt>.
+
+<p>
+If a read is multiply placed, its status will include <tt>M</tt>, and no
+observed insert size or deviation measure will be given for that
+pairing.
+
+<p>
+If a read's partner is multiply placed, the partner's status will
+include <tt>M</tt>, and no contig will be given for the partner, and no
+observed insert size or deviation measure will be given for that
+pairing.
+
+<p>
+If a read and its partner are on the same supercontig and have the
+same orientation, the status of both will include <tt>S</tt>, and no
+observed insert size or dev deviation measure will be given for that
+pairing.
+
+<p>
+If a read is a transposon, its status will include <tt>T</tt>, and the
+observed insert size will be the observed separation of the transposon
+reads and its partner.
+
+<p>
+Note that the observed insert size may include estimated gap sizes
+between contigs unless the read and its partner are located in the
+same contig.
+
+<p>
+The observed insert size deviation measure field contains the result
+of the calculation:
+
+<p>
+<center>
+<table>
+<tr><td><center>observed insert size - given insert size</center></td></tr>
+<tr><td><hr></td></tr>
+<tr><td><center>given insert size standard deviation</center></td></tr>
+</table>
+</center>
+
+<p>
+This gives you a signed measure of the observed insert size relative to the given insert size.
+
+<p><li><b><a name="secAssemblyUnplaced">assembly.unplaced</a></b>: An accounting of unplaced reads.
+
+<p>
+This tab-delimited file contains the names of the reads that were not
+placed in the assembly and why.
+
+<p>
+Each row contains a read name and a keyword indicating the reason the
+read was not placed in the assembly.  The values of that field can be:
+
+<table>
+<tr><td><b>Value</b></td> <td><b>Meaning</b></td></tr>
+<tr><td>deliberate</td> <td>excluded by configuration file</td></tr>
+<tr><td>low_quality</td> <td>nothing left after quality-based trimming</td></tr>
+<tr><td>vector_or_host</td> <td>matches vector or bacterial host sequence</td></tr>
+<tr><td>mitochondrial</td> <td>matches mitochondrial sequence</td></tr>
+<tr><td>other_contaminant</td> <td>matches sequence in DATA/contaminants.fasta</td></tr>
+<tr><td>same_name</td> <td>had the same name as some other read</td></tr>
+<tr><td>no_metainfo</td> <td>had no metainformation in the XML files</td></tr>
+<tr><td>chimera</td> <td>suspected of being chimeric</td></tr>
+<tr><td>unplaced</td> <td>no problem with read, but not placed in contig</td></tr>
+<tr><td>other</td> <td>some other reason</td></tr>
+</table>
+
+</ul>
+
+The RUN directory also contains a subdirectory "work", in which large numbers
+of internal assembly files reside.  
+
+<P><A NAME="secAce"><H3>Generating ace files</H3></A></P>
+
+Ace files are the main input files for <A
+HREF="http://www.phrap.org/consed/consed.html">Consed</A>, a tool for
+viewing assemblies by graphically showing the aligned reads on a
+contig-by-contig basis.  To get ace files from an Arachne assembly,
+either specify <tt>ACE=True</tt> on the Assemble command line or invoke the
+tool <tt>CreateAceFile</tt> manually from the Arachne
+binary directory.  This will provide enough data to run Consed, although its
+functionality will be greater if the .scf and .phd files which 
+PHRED produces are available.  The acefiles created by Arachne have
+only been tested with consed releases 7.52 and 12.
+
+<P>A typical use of <tt>CreateAceFile</tt> would be
+<p>
+<pre>
+  CreateAceFile  DATA=... RUN=... ACEDIR=... AceFile=ace_file_name  Type=Index  Index='[1-3,5]'
+</pre>
+<p>
+where DATA and RUN are set in the same manner as with
+<tt>Assemble</tt>, except that &quot;/work&quot; should be appended to
+the RUN parameter.  This command would produce four .ace files in the
+ACEDIR directory (where ACEDIR is a subdirectory of DATA):
+ace_file_name.1, ace_file_name.2, ace_file_name.3, and
+ace_file_name.5, corresponding to supercontigs 1, 2, 3, and 5.
+<p>
+
+<P>If "<tt>Type=Index</tt>" is changed to "<tt>Type=All</tt>" and
+"<tt>Index=</tt>..." is omitted, then ace files will be generated for
+all supercontigs, in multiple files as in the example.  Alternately,
+acefiles for the n largest supercontigs can be produced by using
+"<tt>Type=Top TopN=</tt>n", where n is a positive integer.  In all
+cases, an additional argument of the form "<tt>Cutoff=</tt>k" will
+cause the omission of ace files for supercontigs whose constituent
+contigs are all shorter than k bases.
+
+<P>If <tt>ONE_FILE=True</tt> is used, CreateAceFile will place all the 
+contigs in the assembly in one ace file.
+
+<P><A NAME="secContact"><H3>Contacting us</H3></A></P>
+
+<P>
+We would like to hear from you!  You may contact us at <A
+HREF="mailto:wga@broad.mit.edu">wga@broad.mit.edu</A>.
+
+<p>
+If you experience difficulty while running Arachne, please send us 
+a description of the problem encountered along with the assembly.log file from the 
+relevant RUN directory.  You may find it helpful to look at the list of
+<A HREF="http://www.broad.mit.edu/wga/FAQ.html">Frequently Asked Questions.</A>
+
+</body>
+</html>

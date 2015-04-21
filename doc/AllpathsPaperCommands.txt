@@ -1,0 +1,24 @@
+The commands to run to reproduce the results in the ALLPATHS paper:
+
+Check out and build the version of the code tagged allpaths_paper_4
+
+Then, here are the representative commands:
+
+To generate the simulated reads, and run assembly through unipaths (pre-parallel):
+
+PrepareSimulation DATA=projects/ALLPATHS/E.coli.MG1655.newref PRE=/wga/scr11/WGAdata RUN=papersim4 K=20 LIBRARIES="n=30,N=50000,dev=10%,C=1:N=6000,dev=10%,C=39.5:N=500,dev=1%,C=39.5" CONSTRUCTION=D ERROR_GENERATOR_NAME=projects/ALLPATHS/error_templates/template_2501.1_50 ERROR_TABLE_NAME=projects/ALLPATHS/error_rates_2501.1_50 MAX_ERRORS=2 ec_ks="{24,20,16}" ec_rounds=1 REMOVE_SUSPICIOUS_READS=True REMOVE_UNBUILDABLE_READS=True RECOVER_GAPS=True SUSPICIOUS_VERBOSE=True FIND_MUXES=False PROTECT_GOOD_READS_STATE=off
+
+Then, to do the rest of the assembly ( parallel and post-parallel ):
+
+For haploid genomes:
+
+LocalizeReads PRE=/wga/scr11/WGAdata DATA=projects/ALLPATHS/E.coli.MG1655.newref RUN=papersim4 SUBDIR=ilya.new USE_TRUTH=True PARALLEL_BATCHES=4
+
+For diploid genomes (currently only human):
+
+LocalizeReads PRE=/wga/scr11/WGAdata DATA=projects/ALLPATHS/human/human22_10Mb.diploid RUN=papersim4 SUBDIR=ilya.new USE_TRUTH=True PARALLEL_BATCHES=4 FILTER_NHOOD=False MERGE_COPY_NUMBER_TWO=True MIN_COPY_NUMBER_TO_CLOSE=4 MAX_NODES=5000 DIPLOID=True
+
+
+The assemblies were run around Nov 15-20, 2007.
+
+

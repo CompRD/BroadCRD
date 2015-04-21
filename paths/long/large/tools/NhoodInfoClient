@@ -1,0 +1,41 @@
+#!/bin/csh
+
+# NhoodInfoClient - this is a script that continually polls a remote file
+# and updates graphviz to show it when it changes.
+#
+# This script is Mac-specific:
+# - calls graphviz, which you need to have installed
+# - uses Mac-specific sleep syntax.
+#
+# You need to set the environment variable NHOOD_INFO_LOC to the location of
+# a remote directory, e.g.
+# setenv NHOOD_INFO_LOC joe_user@slobber.com:/users/joe/dots
+#
+# Usage:
+# NhoodInfoClient whatever.dot
+# where whatever.dot is the name of the dot file that is to be followed
+# (in the remote directory)
+
+if ( !( $?NHOOD_INFO_LOC ) ) then
+     echo "You need to set the environment variable NHOOD_INFO_LOC."
+     echo "It points to a directory on a remote host."
+     echo "Example:"
+     echo "setenv NHOOD_INFO_LOC joe_user@slobber.com:/users/joe/dots"
+     exit 1
+endif
+
+while(1)
+     scp -o ServerAliveInterval=5 -o ConnectTimeout=5 $NHOOD_INFO_LOC/$1 tmp.dot \
+          >& /dev/null
+     cp tmp.dot tmp2.dot
+     cmp tmp2.dot $1 > /dev/null
+     if ( $status != 0 ) then
+          grep "#done" tmp2.dot > /dev/null
+          if ( $status == 0 ) then
+               /bin/mv tmp2.dot $1
+               open -a graphviz $1
+          endif
+     endif
+     # Mac-specific
+     sleep 0.2
+end

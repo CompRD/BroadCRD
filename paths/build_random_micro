@@ -1,0 +1,63 @@
+#!/bin/csh -f
+
+# build_random_micro: call build_micro on a "random" genomic region
+#
+# Currently this assembles a random 1 Mb subset of human chr1.
+#
+# Note that the intent is that over time this code will be made progressively more 
+# complicated with the goal of producing more variable tests.  The goal is to
+# exercise the code as much as possible.
+#
+# usage: paths/build_random_micro region_name
+#
+# where region_name is as in build_micro.
+
+echo "running build_random_micro $1"
+if ( $1 == "" ) then
+     echo "You need to provide a region name."
+     exit 1
+endif
+set chr = 1
+set chr_size = 247033078
+set region_size = 1000000
+
+set max_start = `expr $chr_size - $region_size`
+set extra_args =
+echo "searching for assembly arguments"
+while(1)
+     set nanox = `date +%N`
+     set nano = `expr $nanox + 0`
+     echo "trying nano=$nano"
+
+     # half the time, use simulated sheared jumps
+
+     if ( $nano % 2 == 0 ) then
+          set extra_args = "SIMULATE_SHEARED_JUMPS"
+
+          # randomly choose some simulation parameters
+
+          set n = `expr 30 + $nano % 141`
+          set N = `expr 1350 + $nano % 8000`
+          set dev = `expr 1 + $nano % 21`
+          set C = `expr 5 + $nano % 81`
+          set extra_args = $extra_args" SIM_JUMP_LIBS=n=$n,C=$C,N=$N,dev=$dev%"
+
+     endif
+
+     # pick random start point for region
+
+     set start = `expr $nano % $max_start`
+
+     set stop = `expr $start + $region_size`
+     set genomefasta = /wga/scr4/bigrefs/human/genome.fasta
+     SelectBases PRE=/ INPUT=$genomefasta START=$start STOP=$stop CONTIG=$chr \
+                   UPCASE=True OUTPUT=/tmp/$$.fasta
+     set Ncount = `grep -v ">" /tmp/$$.fasta | tr -d 'ACGT\n' | wc --bytes`
+     rm /tmp/$$.fasta
+     echo "trying Ncount=$Ncount"
+     if ( $Ncount < 10000 ) break
+end
+
+echo "launching build_micro"
+`dirname $0`/build_micro human standard $1 {$chr}:{$start}-{$stop} $extra_args
+if ( $status != 0 ) exit 1

@@ -1,0 +1,22 @@
+#!/bin/csh
+
+# Rudimentary test to see if LongProto and Discovar seem to be doing the same thing.
+# OK unless exit status != 0.
+
+use -q BuildTools
+use -q .samtools-0.1.18
+setenv MALLOC_PER_THREAD 1
+
+LongProto SAMPLE=human READS=\#picard TMP=tmp.xxx X=19:9M-9.05M OUT_INT_HEAD=aaa \
+   LOGGING=PERF_STATS=True TEE=$1/statistics0.txt
+if ( $status != 0 ) exit 1
+PerfStatConvert < $1/statistics0.txt > $1/statistics.txt
+
+Discovar READS="/wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/1/Solexa-125532/H01UJADXX.1.aligned.duplicates_marked.bam,/wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/2/Solexa-125532/H01UJADXX.2.aligned.duplicates_marked.bam" TMP=tmp.xxx REGIONS=19:9000000-9050000 OUT_HEAD=bbb
+if ( $status != 0 ) exit 1
+
+cmp aaa.final.fasta bbb.fasta
+if ( $status != 0 ) exit 1
+
+cmp aaa.final.dot bbb.dot
+if ( $status != 0 ) exit 1

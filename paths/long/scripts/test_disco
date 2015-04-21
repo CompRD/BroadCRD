@@ -1,0 +1,4 @@
+#!/bin/sh
+# usage: test_discovar filename_of_expected_calls filename_of_actual_calls
+bindir=`dirname $0`/../../../bin
+exec $bindir/DiffDiscovar EXPECTED=$1 ACTUAL=$2

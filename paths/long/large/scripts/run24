@@ -1,0 +1,50 @@
+#!/bin/csh
+
+# call with one argument, 1 or 2 or 3
+#
+# to run from a machine having at least 0.5 TB
+
+set instance = $1
+
+echo "running on $HOST"
+
+set rev = 51020
+
+# done:
+# NA20502 HG02922 HG03006 HG00096 HG00268 HG00419 HG00759 HG01051 HG01112 
+# NA18525 NA18939 NA19017 NA19625 NA19648 NA20845
+# HG01500 HG01565 HG01583 HG01595 HG01879 HG02568 HG03052
+# broken:
+# HG03642
+
+# running on crd27
+if ( $instance == 1 ) then
+     set samples = "HG03742"
+endif
+
+# running on crd17
+if ( $instance == 2 ) then
+     set samples = ""
+endif
+
+# running on crd26
+if ( $instance == 3 ) then
+     set samples = ""
+endif
+
+foreach sample ( $samples )
+
+     mkdir -p /wga/scr4/jaffe/GapToy/humans/$sample
+
+     GapToy.$rev ROOT=/local/scratch X=all SAMPLE=$sample \
+          INSTANCE=$sample > ~/crd/GapToy.$sample
+     if ( $status != 0 ) break
+
+     set target = /wga/scr4/jaffe/GapToy/humans/$sample
+     cp -pr /local/scratch/jaffe/GapToy/$sample/a.final $target
+     cp /local/scratch/jaffe/GapToy/$sample/genome* $target
+     cp /local/scratch/jaffe/GapToy/$sample/the_command $target
+     cp /local/scratch/jaffe/GapToy/$sample/frags.dist $target
+     /bin/rm -rf /local/scratch/jaffe/GapToy/$sample
+
+end

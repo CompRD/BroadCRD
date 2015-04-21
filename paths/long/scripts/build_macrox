@@ -1,0 +1,17 @@
+#!/bin/csh
+
+# usage: build_macrox directory arg1 arg2 arg3 arg4
+
+use -q BuildTools
+use -q .samtools-0.1.18
+use -q .coreutils-8.5
+
+
+setenv MALLOC_PER_THREAD 1
+set options1="OUT_EFASTA_READS=$1/corrected.efasta"
+set options2="OUT_INT_HEAD=$1/assembly TMP=$1/tmp"
+timeout $2 LongProto $3 $4 $5 $6 LOGGING="{PERF_STATS=True,SHOW_REFTRACE_EVENTS=True}" \
+     $options1 $options2 TEE=$1/statistics0.txt
+set stat = $status
+PerfStatConvert < $1/statistics0.txt > $1/statistics.txt
+exit $stat

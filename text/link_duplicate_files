@@ -1,0 +1,19 @@
+#!/bin/csh
+
+cd $1
+
+# Find duplicate files in a directory.  Delete duplicates and replace by soft links.
+
+foreach f1 (*)
+     if ( -d $f1 ) continue
+     if ( -l $f1 ) continue
+     foreach f2(*)
+          if ( $f1 == $f2 ) continue
+          if ( -d $f2 ) continue
+          if ( -l $f2 ) continue
+          cmp $f1 $f2 >& /dev/null
+          if ( $status != 0 ) continue
+          /bin/rm $f2
+          ln -s $f1 $f2
+     end
+end

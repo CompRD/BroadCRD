@@ -1,0 +1,182 @@
+typedef unsigned char Bool;
+const Bool True = 1;
+const Bool False = 0;
+
+#include <iostream>
+using std::cout;
+using std::endl;
+
+#include <vector>
+using std::vector;
+using std::swap;
+
+typedef char orientation;
+#define ForwardOr 0
+#define ReverseOr 1
+
+class read_location {
+
+ public:
+  
+  read_location( ) { }
+  
+  read_location( int read_id, 
+                 unsigned int length_of_read, 
+                 int contig, 
+                 int start_on_contig, 
+                 orientation orientation_on_contig, 
+                 int length_of_contig ) :
+    read_id_(read_id), 
+    length_of_read_(length_of_read), 
+    contig_(contig),
+    start_on_contig_(start_on_contig), 
+    length_of_contig_(length_of_contig),
+    orientation_on_contig_(orientation_on_contig)
+  { }
+
+  int ReadId( ) const { return read_id_; }
+  
+  int Contig( ) const { return contig_; }
+  
+  int StartOnContig( ) const { return start_on_contig_; }
+  int StopOnContig( ) const { return start_on_contig_ + length_of_read_ - 1; }
+  
+  orientation OrientationOnContig( ) const { return orientation_on_contig_; }
+  int LengthOfContig( ) const { return length_of_contig_; }
+
+ private:
+  
+  int read_id_;
+  unsigned int length_of_read_;
+  
+  int contig_;
+  int start_on_contig_;
+  int length_of_contig_;
+  orientation orientation_on_contig_;
+};
+
+struct read_pairing {
+  
+ public:
+  
+  int id1, id2;
+  int sep;
+  
+  bool Dead( ) const { return id1 == -1; }
+};
+
+struct link_record {
+
+ public:
+  
+  link_record( ) { }
+  
+  int m1, m2;
+  int start1, stop1;
+  int start2, stop2;
+  int gap, gap_dev;
+  int read_id;
+  Bool rc1, rc2, direct;
+  
+  void SetDirect( int id ) 
+  {
+    direct = True;
+    read_id = id;    
+  }
+
+  void Swap( )
+  {
+    swap( m1, m2 );
+    swap( rc1, rc2 );
+    swap( start1, start2 );
+    swap( stop1, stop2 );    
+  }
+};
+
+void InitializeSupers( const vector<read_pairing> &pairs,
+                       const vector<read_location> &reads_orig,
+                       const vector<int> &simple_reads_orig_index )
+{    
+  vector<link_record> links;
+
+  int link_record_count = 2;
+  for ( unsigned int i = 0; i < pairs.size( ); i++ )
+  {
+    const read_pairing& p = pairs[i];
+    int ind1 = simple_reads_orig_index[p.id1], 
+      ind2 = simple_reads_orig_index[p.id2];
+    if ( ind1 < 0 || ind2 < 0 ) continue;
+    const read_location &r1 = reads_orig[ind1], &r2 = reads_orig[ind2];
+    if ( r1.Contig( ) == r2.Contig( ) ) continue;
+    link_record_count += 2;    
+  }
+
+  links.reserve( link_record_count );
+
+  for ( unsigned int i = 0; i < pairs.size( ); i++ )
+  {
+    const read_pairing& p = pairs[i];
+    if ( p.Dead( ) ) continue;
+    int ind1 = simple_reads_orig_index[p.id1], 
+      ind2 = simple_reads_orig_index[p.id2];
+    if ( ind1 < 0 || ind2 < 0 ) continue;
+    const read_location &r1 = reads_orig[ind1], &r2 = reads_orig[ind2];
+    if ( r1.Contig( ) == r2.Contig( ) ) continue;
+
+    static link_record x;
+
+    x.m1 = r1.Contig( );
+    x.m2 = r2.Contig( );
+    x.rc1 = r1.OrientationOnContig( );
+    x.rc2 = r2.OrientationOnContig( );
+    x.start1 = r1.StartOnContig( );
+    x.stop1 = r1.StopOnContig( );
+    x.start2 = r2.StartOnContig( );
+    x.stop2 = r2.StopOnContig( );
+    x.SetDirect( p.id1 );
+
+    x.gap = p.sep;
+
+    if ( x.rc1 ) 
+      x.gap -= r1.StartOnContig( );
+    else
+      x.gap -= ( r1.LengthOfContig( ) - r1.StopOnContig( ) );
+
+    if ( x.rc2 ) 
+      x.gap -= r2.StartOnContig( );
+    else
+      x.gap -= ( r2.LengthOfContig( ) - r2.StopOnContig( ) );
+    
+    cout << x.gap << endl;
+    
+    links.push_back(x);
+    x.Swap( );
+    links.push_back(x);
+  }
+}
+
+int main()
+{
+  int N = 3975;
+
+  read_pairing pair;
+  pair.id1 = 161;
+  pair.id2 = 886;
+  pair.sep = 3614;
+
+  vector<read_pairing> pairs;
+  pairs.push_back( pair );
+  
+  read_location loc1( 161, 462, 16, 22046, ForwardOr, 26649 );
+  read_location loc2( 886, 549, 14, 47, ForwardOr, 831 );
+  
+  vector<read_location> reads_orig;
+  reads_orig.push_back( loc1 );
+  reads_orig.push_back( loc2 );
+
+  vector<int> simple_reads_orig_index(N);
+  for ( unsigned int i = 0; i < reads_orig.size( ); i++ )
+    simple_reads_orig_index[ reads_orig[i].ReadId( ) ] = i;
+
+  InitializeSupers( pairs, reads_orig, simple_reads_orig_index );    
+}

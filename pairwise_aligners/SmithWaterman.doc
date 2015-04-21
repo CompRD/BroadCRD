@@ -1,0 +1,235 @@
+Possible steps to speed alignment remediation using SmithWaterman
+=================================================================
+
+
+1) Choose a heuristic for determining split points.  Options include:
+the number of base changes, the phred scores at those base changes,
+etc.  My proposal: minimum of 20 perfect bases or 4 base changes each
+of which has score at least 12.  (The score of a base change is the
+minimum of the four scores, two on each sequence, flanking the base
+change.)  This heuristic is roughly four times as conservative as
+anything that I have seen in my limited experience (I looked at about
+a dozen places where SmithWaterman improved the alignment).  Indeed, I 
+never saw anything that ran through a base change larger than a score of 10.
+
+2) Run full SmithWaterman on the section between the split points,
+updating the alignments as appropriate.  Heuristically determine a
+reasonable bandwidth, or determine that no single bandwidth will
+suffice.  My recommendation is a fixed bandiwdth of 7.  Make sure that
+this does not lose too many alignment improvements.
+
+3)  If this isn't fast enough (and I doubt that it will be) build a score-only 
+banded SmithWaterman, possibly with a fixed bandwidth of 7.  Only run the full 
+SmithWaterman when the score-only version shows a performance improvement.
+
+4)  If this isn't accurate enough, identify whether the inaccuracy is a result of too
+small a bandwidth or too aggressive a split.  
+
+More aggresive steps
+====================
+
+5)  If this still isn't fast enough, first check to see if a more aggressive split, 
+say two base changes instead of 4, would improvement performance by allowing smaller
+segments to be passed to SmithWaterman which in turn might allow a smaller bandwidth.
+Run segments that share only a two base change split point twice, once with a closed
+SmithWaterman and once with an open SmithWaterman.  Another option would be to code
+a large bandwidth, say 13 to 17, closed-end score-only version of SmithWaterman, which could be
+run on long stretches with failry large split points in betweeen.  The idea would be 
+to compare a large closed-end SmithWaterman with a series of smaller closed-end 
+score-only SmithWaterman's separated by more modest split points.  If the smaller
+SWs find as good a score as the larger one, use them.  
+
+
+
+
+
+
+Rambling thoughts.
+==================
+
+
+
+The following are the rambling thoughts that I went through to arrive at the above suggestion.
+I don't expect anyone to read them.  
+
+
+SmithWaterman.cc is way too slow.  It could be made faster by have two flavors,
+one which does not keep back tracking information and one which does.
+The one which does not keep back tracking information could be
+significantly faster because it requires only 1D data.  Only when the
+score-only version of SmithWaterman finds a better score need we run the
+version that creates an alignment.
+
+However, even this will only improve performance by a factor of 2, maybe 4,
+and we need a factor of 20 to 100 improvement in performance.  I think
+that we can get a factor of 20 to 100 as follows:
+
+1)  Run SmithWaterman only on sections starting which include alignment
+errors.  I would give ten bases on each end, so that it would take a
+perfect match of 20 bases to cause us to split an alignment question
+into two calls to SmithWaterman.
+2)  Write a score-only SmithWaterman with a fixed bandwidth, say 7.
+This would require only 8 data elements (or close to that) and hence ought
+to fit into registers.  Computing the scores will then be a significant
+cost, but my experience is that the final answers are not all that 
+sensitive to the scoring system (I use pow in my scoring system, but 
+when I take it out, I see almost no degradation in results).  And, in
+any case, we can pre-compute pow on the integers from 1 to 100 and convert
+pow to a table lookup.  
+3)  Call the full SmithWaterman to create a new alignment only on those
+sections where a new alignment will be needed.
+
+A bandwidth of 7 is large enough to cover three gaps on either side 
+of the alignment and hence will cover just about any short stretch.
+We could experiment with bandwidth 3 and 5 as well, but my gut feel 
+is that half of the time spent in a bandwidth 7 score-only version 
+will be in reading in the bases, pre-computing scores, etc and hence 
+the smaller bandwidth SmithWaterman's won't save all that much.
+
+Limiting calls to Smith Waterman to short stretches will allow us
+to get away with small bandwidth more often.  There will still be 
+some stretches of alignment that require larger bandwidth, but if
+these are rare enough they won't affect execution time much.  IF they 
+are more common we may need a variable bandwidth score-only verison 
+of SmithWaterman, or perhaps a large, fixed-bandwidth, like say 15,
+would do.  
+
+Limiting calls to Smith Waterman to short stretches will also mean that 
+most calls to score-only SmithWaterman will show that there is no
+reason to call the full SmithWaterman.  Only about 1 alignment out of 10
+can be improved with SmithWaterman, and most alignment improvements 
+only involve one stretch.  
+
+If I get to this before anyone else does, I will start by limiting calls
+to SmithWaterman to short stretches.  Then, based on my experience with 
+that, I will either create a fixed bandwidth score-only version of 
+SmithWaterman, or perhaps a variable bandwidth version will appear to 
+make more sense.  Either way, I would use that to reduce the number of
+calls to the full SmithWaterman (to compute alignments).  The last step 
+would be to speed up the full SmithWaterman.  It is possible that 
+this step won't be necessary (because it is called infrequently and it
+is only called on short stretches).  But, if it is necessary, it may
+make sense to determine first the minimum bandwidth necessary (which 
+can be done with a few calls to the score-only version of SmithWaterman)
+and/or identify whether fulSmithWaterman has to be run on the full 
+segment.  We will want to run the score only SmithWaterman on 
+a generous chunk of alignment.  Above, I suggested that we might require
+a perfect match of 20 bases to split an alignment test into two 
+alignment tests (calls to score-only SmithWaterman).  However, given
+that such a test identifies an opportunity to improve the score, we 
+could split this up further to see if that same score improvement can 
+be attained by two or more separate calls to the score-only SmithWaterman,
+say breaking the alignment stretches fed to the score-only SmithWaterman
+at every stretch of ten (or fewer) matching bases.
+
+Indeed, if this system were in place, and the score-only SmithWaterman 
+were fast enough, one might consider longer stretches of alignment in 
+the score-only SmithWaterman.  However, longer stretches require larger
+bandwidth.  One could imagine a SmithWaterman with a shifting band (the given
+alignment gives a very good idea of what stretch of options we want to 
+consider and hence how we ought to shift the band).  
+
+Using closed end and open end SmithWaterman's to make sure that we are
+not missing anything by skipping over perfect matches.
+======================================================
+
+We will often have to choose between running SmithWaterman's on two separate
+sections of alignment or running a single SmithWaterman over the combined section.
+Ideally we would like to be able to run the two sections separately without 
+risk that we are missing something by doing so.  
+
+I claim that if the following both hold then running a banded SmithWaterman on 
+two alignment sections separated by a perfect match yields a score that is as
+good as a banded SmithWaterman over the combined section:
+
+1)  An open right-ended SmithWaterman shows that the best match going forward
+lines up with the perfect match.
+2)  An open left-ended SmithWaterman yields no improvement over a closed left-ended
+SmithWaterman.  
+
+Definitions:  
+  Right end is the forward end.
+  Open right-end means that we allow the alignment at the right end to slip.
+  Closed right-end means that we force the alignment at the right end to match the
+	perfect match at that end.
+  Open right-end and closed right-end can be computed at the same time.
+  Open left-end allows the alignment at the beginning to slip by setting the
+cost of all starting positions to zero.
+  Closed left-end forces the alignment at the beginning to match the perfect match on 
+that end by setting the cost of all strating positions, except the one matching 
+the perfect match to infinity.
+  Open left-end and closed left-end are separate computations which both have the same cost.
+  
+Argument in favor of Claim:
+
+  I claim that if there is a cost associated with not matching up to the perfect
+match on the right end of the first sequence and no advantage to not matching up 
+to the perfect match on the sequence sequence, then there can be no advantage to 
+not using the perfect sequence.  To upgrade this argument to a proof, one must
+be careful about the bandwidth.
+
+  Indeed, this is a very weak claim.  Surely, stronger claims can be
+proved, including, for example, starting the second sequence with the
+values produced by the first sequence (this mihgt be called semi-open)
+and comparing that against a closed left end sequence.  This semi-open
+SmithWaterman would give precisely the right answer if the perfect
+match were a perfect one character repeat (i.e. all As, all Cs, all Ts
+or all Gs) and would yield a score at least as good as a full banded
+SmithWaterman would otherwise.
+
+  However, I suspect that the simple version would be good enough.  
+
+
+Putting it all together
+=======================
+
+Here is my proposed design.
+
+Treat any gap that includes at least 10 base changes as a potential split point.
+
+Compute an open left-end SmithWaterman for the first sequence
+including 5 base changes into the perfect match.  
+Compute an open both-ended SmithWaterman and a closed both-ended SmithWaterman 
+for the second sequence strating from 5 base changes back on the left end.  
+If the lowest score for the closed both-ended SmithWaterman is the same as the
+lowest score for the open both-ended SmithWaterman, treat the perfect match 
+as golden, and hence the score for the first sequence as being the minimum
+for that sequence.  If the open both-ended SmithWaterman yields a lower score,
+back up, look for the next potential split point, compute an appropriate 
+bandwidth and restart.  For now, this restart mechansim could be aborting 
+and calling full SmithWaterman with a healthy bandwidth on the entire seqeuence.
+
+DETAILS:  Compute the close-ended SmithWaterman first (it is cheaper because 
+it does not require including any part of the perfect match on either side).
+The open-ended SW can be terminated as soon it hits the right end if it 
+has not generated a score lower (better) than that produced by the close-ended
+SmithWaterman.  It can be continued and stopped as soon as open-ended score
+is dominated by the close-ended score.  However, my gut feel is that checking
+this termination condition may be more cost than it is worth and that we chould
+probably just go 5 base changes in and leave it at that.  
+
+
+
+
+
+Determining the bandwidth is an interesting question.  It should start from 
+the assumption that the given alignment is pretty good.  However, figuring 
+out how many insertions and deletions above that number is
+required is a tough question.  It should depend on the length of the 
+sequence to be aligned, but also on the phred scores.  Serafim claims that 
+insertions or deletions (I forget which) are essetially non-existent in
+sequences with bases above a certain threshold.  
+
+
+
+Another useful tool
+===================
+
+It would be useful to have a routine which compares two alignments and determines
+the maximum number of insertions in one which are not in the other.  More precisely,
+how large a bandwidth would be required to find the better alignment, given the 
+worse alginment.
+
+
+
+

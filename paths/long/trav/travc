@@ -1,0 +1,68 @@
+#!/bin/csh
+
+# travc: Assemble a region, together with control regions, and report results using 
+# a controlled vocabulary.  
+# The first applicable state of the following is reported:
+# - LongProto failed [if it crashed]
+# - e errors and g gaps [otherwise].
+
+# usage:
+# travc chr start stop controls outhead executable extras
+#
+# required environment variables:
+# - TRAV_CRD: directory for putting some stuff
+# - TRAV_LCRD: directory for putting some other stuff
+# 
+# required args:
+# - chr = chromosome record number (1 = chr1); if -1, assume region is empty
+# - start = start on chromosome, in Mb (e.g. 10.15)
+# - stop = stop on chromosome, in Mb
+# - controls = comma-separated list of integers referring to control regions
+#
+# optional args:
+# - outhead = argument passed to LongProto for file naming, default = aaa
+# - executable = name of executable, default = LongProto
+# - extra arguments to pass to LongProto; if first is 'control', exclude internal
+#   list of extra arguments; default = null.
+
+# Define region and executable.
+
+set region = "{$1}:{$2}M-{$3}M"
+if ( $1 == -1 ) set region =
+set controls = $4
+set executable = $6
+if ( $executable == "" ) set executable = LongProto
+
+# Define extra arguments.
+
+set extra1 = $7
+set extras =
+if ( $extra1 != "control" ) then
+     set extras = ""
+else
+     set extra1 =
+endif
+
+# Define LongProto command core.
+
+set core = "$executable SAMPLE=human READS=#picard $extras $extra1 $8 $9 $10"
+
+# Launch LongProto.
+
+set head = $5
+if ( $head == "" ) set head = aaa
+$core TMP= $TRAV_LCRD/tmp.xxx OUT_INT_HEAD= $TRAV_CRD/$head \
+     OUT_HEAD= $TRAV_CRD/$head.end X=$region OUT_GENOME= $TRAV_LCRD/genome.fastb \
+     DATA_SPEC=HUMAN_CONTROLS="$controls" \
+     HEURISTICS=INJECT_REF=False >& $TRAV_LCRD/xxx
+
+# Evaluate results.
+
+if ( $status != 0 ) then
+     echo "STATUS: LongProto failed"
+     mail -s "travc $1 $2 $3 $4 failed" $user < $TRAV_LCRD/xxx
+     exit
+endif
+set errs = `cat $TRAV_LCRD/xxx | grep "errs = " | Col 7 | tr -d ')'`
+set gaps = `cat $TRAV_LCRD/xxx | grep "gaps = " | Col 11 | tr -d ','`
+echo "STATUS: $errs errors and $gaps gaps"

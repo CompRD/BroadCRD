@@ -1,0 +1,9 @@
+# These heuristics are designed to work well for aligning chimp contigs to human.
+MF=500    SH=True   MC=0.15 MIN_HITS_TO_OVERRIDE=4000
+MF=500    SH=True   MC=0.15 MIN_HITS_TO_OVERRIDE=4000
+MF=500    SH=True   MC=0.15 MIN_HITS_TO_OVERRIDE=500 MO=100 MIN_OVERLAP=1000
+MF=1000   SH=True   MC=0.18
+MF=5000   SH=True   MC=0.18
+MF=10000  SH=True   MC=0.18
+MF=20000  SH=True   MC=0.18
+MF=40000  SH=True   MC=0.18

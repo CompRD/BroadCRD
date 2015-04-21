@@ -1,0 +1,36 @@
+#!/bin/csh
+
+# Run LongProto over and over on random regions, looking for cases where the
+# assembly has no errors or gaps, but when some extra condition is added to the
+# LongProto command, this is no longer the case.  Stop when this occurs.  This is 
+# set up to test an extra condition involving HyperBasevector improvement.
+
+# Call with a single argument, the 'head' for output files.
+
+# Hardcoded, to modify as needed:
+
+set sample = mouse
+set size = 200000
+set len = 1K
+set extra = "CHUNK_EDGES=True"
+
+# Proceed.
+
+set head = $1
+set base = "SAMPLE=$sample LEN=$len"
+while(1)
+     LongProto $base X="random($size)" OUT_INT_HEAD=$head >& $head
+     set region = `cat $head | grep using | tr ' ' '\n' | grep X`
+     set errors = `cat $head | grep errors | tr ' ' '\n' | grep %`
+     set gaps = `cat $head | grep gaps | tr ' ' '\n' | grep '\.'`
+     echo "region = $region, errors = $errors, gaps = $gaps"
+     if ( $errors == "0.00%%%" && $gaps == "2.00" ) then
+          LongProto $base $region IN_SHBV=$head.1.shbv $extra >& $head
+          set errors = `cat $head | grep errors | tr ' ' '\n' | grep %`
+          set gaps = `cat $head | grep gaps | tr ' ' '\n' | grep '\.'`
+          if ( $errors != "0.00%%%" || $gaps != "2.00" ) then
+               echo "now region = $region, errors = $errors, gaps = $gaps"
+               exit
+          endif
+     endif
+end

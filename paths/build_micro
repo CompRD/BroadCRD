@@ -1,0 +1,1028 @@
+#!/bin/csh -f 
+#
+# ==================================================================================
+#
+# I. USAGE (please also read section II, DANGERS)
+#
+# build_micro: pull a set of reads from a genomic region and assemble them
+#
+# usage: paths/build_micro genome dataset region_name range extra1...extra9
+#
+# where
+#
+# - genome is the codename for a genome (see below)
+#
+# - dataset is the codename for a dataset
+#   'standard' means 'the usual'
+#   'big' means 'long reads'
+#   'hybrid' means 'Illumina/PacBio hybrid assembly'
+#   'hybrid-alt' is another version of hybrid
+#   'hybrid-alt2' is another version of hybrid
+#   'miseq' includes some MiSeq data
+#   'miseq-alt' is another version of miseq
+#    For these you may specify which PacBio runs are to be used, e.g.
+#    PACBIO_RUNS=12345,6789".  Otherwise, depending on how this file is configured,
+#    you may get no PacBio data, or you may get the default for the given genome.
+#
+# - The currrently allowed values for genome and dataset are:
+#
+#   bifido      hybrid
+#   candida     standard
+#   clap        hybrid
+#   clap19      standard, hybrid
+#   copro       standard, hybrid, hybrid-alt, hybrid-alt2
+#   ecoli       standard, hybrid, miseq
+#   egg         hybrid, hybrid-alt
+#   entero      standard, hybrid
+#   eubac       hybrid
+#   fragilis    hybrid
+#   fuso        standard, hybrid
+#   fuso7       standard, hybrid, hybrid-alt
+#   fusonuke    hybrid
+#   human       standard
+#   human19     standard, fosmid
+#   kleb        hybrid
+#   mouse       standard, big
+#   plasmo      standard, miseq
+#   rhody       standard, hybrid, hybrid-alt, miseq, miseq-alt
+#   stick       standard
+#   strep       hybrid, hybrid-alt
+#   swig        standard, hybrid
+#   tb_kzn      hybrid
+#   tim         hybrid
+#
+#   Some of these may be removed later.
+#
+# - region_name is the name you choose for the region 
+#   * it it begins with / it is treated as the absolute path of a directory you own
+#   * otherwise we put in the assembly in /wga/scr4/$user/genome/region_name.
+#
+# - range are the coordinates that define the region, in one of three formats:
+#   * for example, 1:10000-11000, referring to the given range of coordinates on the
+#     given 'chromosome number' - note that this may involve rejiggering of indices
+#   * a list of chromosomes separated by commas
+#   * 'all'.
+#
+# - extra1...extra9 are extra arguments that are to be passed to RunAllPathsLG,
+#   except for the following special arguments, and those noted in the next section:
+#
+#   * DATA_ONLY, to stop after having generated the data
+#   * GET_ALIGNS, to generate aligns (qltout files) from the input bam
+#   * PREFILTER, to do some special filtering
+#   * FRAG_COV=... 
+#   * JUMP_COV=...
+#   * LONG_JUMP_COV=...
+#   * PACBIO_RUNS=...
+#   * PACBIO_BAM, to take PACBIO_RUNS from BAM file in PICARD cache /wga/scr4/picard/pacbio
+#   * OMIT_ECOP15I, to skip EcoP15I lanes
+#   * OMIT_FOSMID, to omit Fosmid lanes
+#   * PICARD_HEAD= either /seq or /wga/scr4, depending on whether you wan't to pull
+#                  BAM files directly from picard or from our cached version;
+#                  default = /wga/scr4
+#   * TARGETS, which can be set to 'standard' to speed things up
+#   * EVALUATION, which can be set to 'BASIC' to speed things up
+#   * FAKE_PLOIDY, specify a ploidy to be used instead of that stored 
+#                  with the reference.  Useful for fosmid data, for instance.
+#
+# - simulation arguments:
+#
+#   * SIMULATE_SHEARED_JUMPS: to use simulated sheared jumps instead of real ones
+#   * SIM_JUMP_LIBS: libraries passed to read simulator, default
+#               "n=100,C=45,N=3000,dev=10%"
+#               which provides one library of reads of length 100 from fragments of
+#               size 3000 +/- 10%, at 45x; see paths/simulation/SimulateReads.cc for
+#               the general syntax of this argument
+#
+#   * SIMULATE_FRAGS: to use simulated fragments instead of real ones
+#   * SIM_FRAG_LIBS: (same as jump libs above)
+#
+#   * SIM_ERR: the ERROR_GENERATOR_NAME to pass to SimulateReads, if specified, and will
+#               be used for BOTH frags and jumps.
+#
+# Note on genome records:
+#
+# * candida = 0-8.
+#
+# * ecoli.  At present the only allowed option for range is 'all'.  Note that we
+#   use a special reference for accuracy evaluation that includes an inversion.
+#
+# * human = 1-22 (in genome.fasta as chr1-chr22).  There are other records in the
+#   file but it's not clear what this code would do with them.  Note that the
+#   reference sequence is not exactly the same as the reference sequence used by
+#   Picard.
+#
+# * mouse = 1-19 (in genome.fasta as chr1-chr19).  There are other records 
+#   in the file but it's not clear what this code would do with them.
+#
+# * plasmo = 1-14 (in genome.fasta as MAL1-MAL14), of sizes 643292 947102 1060087 
+#   1204112 1343552 1418244 1501719 1419563 1541723 1694445 2035250 2271477 2895605 
+#   3291006, respectively.  Note that the records in genome.fasta are in a crazy 
+#   order.
+#
+# * rhody = 0-7, in principle (not tested).
+#
+# * stick = 0-1934
+#
+# ==================================================================================
+#
+# II. DANGERS
+#
+# THIS PROGRAM WIPES OUT A DIRECTORY AND REBUILDS IT.
+#
+# Note on dependencies.  This program uses the following modules: Fasta2Fastb 
+# FastbSizes FastbStats FilterRegionalData ImportPacBioReads MakeReadInfo
+# MergeReadSets ReverseFastb RunAllPathsLG SAM2CRDDump SelectBases
+# SelectFasta SelectRandomPairs SimulateReads Substitute TrimReads.
+#
+# The -f option for csh is needed so long as this runs from an individual user's 
+# account.
+#
+# PICARD_HEAD: /wga/scr4/picard includes some edits (described in the README) so
+# is not 100% identical to /seq/picard
+#
+# ==================================================================================
+
+use -q BuildTools
+
+# Test for help request.
+
+if ($# == 0 || $1 == "-h" || $1 == "--help") then
+    echo "Usage: build_micro GENOME DATASET NAME RANGE [ARGS]..."
+    echo "Build and assemble a set of reads from a genomic region."
+    echo "Example: build_micro stick standard myassembly 17:100000-300000"
+    exit 1
+endif 
+
+# Unpack arguments.
+
+echo "`date`: Running paths/build_micro $1 $2 $3 $4 $5 $6 $7 $8 $9 $10 $11 $12 $13"
+set genome = $1; set dataset = $2; set region = $3
+set range = `echo $4 | tr ',' ' '`
+set extra1 = $5; set extra2 = $6; set extra3 = $7; set extra4 = $8
+set extra5 = $9; set extra6 = $10; set extra7 = $11; set extra8 = $12
+set extra9 = $13
+
+# Location of library information file, new lanes must be added here:
+
+set libinfo = '/wga/scr4/dexter/libinfo/dexter_libs'
+if ( !( -e $libinfo ) ) then
+    echo "Cannot find library information file:"
+    echo $libinfo
+    exit 1
+endif
+
+# Decode special arguments.
+
+set PICARD_HEAD = /wga/scr4
+set data_only = false
+set get_aligns = false
+set TARGETS = full_eval
+set extra_args =
+set EVALUATION = FULL
+foreach i ( 1 2 3 4 5 6 7 8 9 )
+     set extrai = `eval echo \$extra$i`
+     set delete = false
+     set value = `echo $extrai | sed 's/=/ /' | awk '{print $2}'`
+     foreach tag (SIM_FRAG_LIBS SIM_ERR SIM_JUMP_LIBS PICARD_HEAD FRAG_COV JUMP_COV LONG_JUMP_COV PACBIO_RUNS TARGETS EVALUATION FRAG_TRIM FAKE_PLOIDY)
+          if ( `echo $extrai | grep $tag` != "" ) then
+               set $tag = $value
+               set delete = true
+               break
+          endif
+     end
+     if ( $delete == true ) eval set extra$i =
+end
+foreach i ( 1 2 3 4 5 6 7 8 9 )
+     set extrai = `eval echo \$extra$i`
+     set delete = false
+     foreach tag (PREFILTER SIMULATE_SHEARED_JUMPS SIMULATE_FRAGS OMIT_ECOP15I OMIT_FOSMID PACBIO_BAM)
+          if ( $extrai == $tag ) then
+               set $tag =
+               set delete = true
+               break
+          endif
+     end
+     if ( $delete == true ) eval set extra$i =
+end
+foreach i ( 1 2 3 4 5 6 7 8 9 )
+     set extrai = `eval echo \$extra$i`
+     set delete = true
+     if ( $extrai == DATA_ONLY ) then
+          set data_only = true
+     else if ( $extrai == GET_ALIGNS ) then
+          set get_aligns = true
+     else set delete = false
+     endif
+     if ( $delete == true ) eval set extra$i =
+end
+
+# Default fragment read length for various assembly types.
+# Maybe overridden below for individual assemblies.
+
+if ( $dataset == big ) then
+     set frag_read_length = 151
+else if ( $dataset == miseq || $dataset == miseq-alt || $dataset == fosmid ) then
+     set frag_read_length = 251
+else
+     set frag_read_length = 101
+endif
+
+# Define the lanes of data.  For rhody we subsample the fragment and
+# sheared jump reads to ~90x PF each.  For ecoli we subsample to ~45x PF each.
+
+set unmapped = False
+set have_ref = True
+set have_good_ref = True
+
+if ( $genome == bifido && $dataset == hybrid ) then
+     set FRAG_LANES="{B03C5ABXX.1.Solexa-36232}"
+     set SHEARED_JUMP_LANES="{801G2ABXX.1.Solexa-44947}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.278
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.560
+     set have_ref = False
+     set PACBIO_RUNS = "17484-17486,17852"
+
+else if ( $genome == candida && $dataset == standard ) then
+     set FRAG_LANES = "{B05U5ABXX.1}"
+     set SHEARED_JUMP_LANES = "{ 702AHABXX.{1,7} }"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.0417
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.0398
+
+else if ( $genome == clap && $dataset == hybrid ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62030}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62895}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.32
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.21
+     set have_good_ref = False
+     set PACBIO_RUNS = "18082-18097,18102-18108,18117-18119"
+
+else if ( $genome == clap19 && $dataset == standard ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62014}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62896}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.15
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.18
+     set have_good_ref = False
+
+else if ( $genome == clap19 && $dataset == hybrid ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62014}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62896}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.30
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.18
+     set have_good_ref = False
+     # Should remove pacbio job 17982. Job 17982 is a duplicate of job 17981.
+     set PACBIO_RUNS = "17974-17982,18026-18027,18034-18036"
+
+else if ( $genome == copro && $dataset == standard ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62002}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62886}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.08
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.10
+     set have_good_ref = False
+
+else if ( $genome == copro && $dataset == hybrid ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62002}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62886}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.12
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.20
+     set have_good_ref = False
+     set PACBIO_RUNS = "19240,19247-19251,19253-19254"
+
+else if ( $genome == copro && $dataset == hybrid-alt2 ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62002}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62886}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.08
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.10
+     set have_good_ref = False
+     set PACBIO_RUNS = "18776-18778,18795-18797"
+
+else if ( $genome == copro && $dataset == hybrid-alt ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62002}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62886}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.08
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.30
+     set have_good_ref = False
+     set PACBIO_RUNS = "18776-18778,18795-18797"
+
+else if ( $genome == ecoli && $dataset == standard ) then
+     set FRAG_LANES = "{207GVABXX.4.Solexa-25396}"
+     set SHEARED_JUMP_LANES = "{302GJAAXX.2}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.088
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.176
+
+else if ( $genome == ecoli && $dataset == miseq ) then
+     set FRAG_LANES = "{A06HA.1.Solexa-74706}"
+     set SHEARED_JUMP_LANES = "{302GJAAXX.2}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.08
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.18
+
+# Note both of the jump lanes for ecoli.hybrid have unmapped bams that are faked
+# as aligned BAMS - thus limiting what can be done with them!!
+else if ( $genome == ecoli && $dataset == hybrid ) then
+     set FRAG_LANES = "{207GVABXX.4.Solexa-25396}"
+     set SHEARED_JUMP_LANES = "{80528ABXX.8.Solexa-42866,801G2ABXX.1.Solexa-44956}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.088
+     if ( ! $?JUMP_COV ) set JUMP_COV = 1.000
+     if ( ! $?PACBIO_RUNS ) set PACBIO_RUNS = "17623-17625,17636-17640"
+
+else if ( $genome == egg && $dataset == hybrid ) then
+     set FRAG_LANES = "{B03C5ABXX.1.Solexa-36226}"
+     set SHEARED_JUMP_LANES = "{C01ELABXX.1.Solexa-62929}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.29
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.17
+     set have_ref = False
+     set PACBIO_RUNS = "19329-19336"
+
+else if ( $genome == egg && $dataset == hybrid-alt ) then
+     set FRAG_LANES = "{B03C5ABXX.1.Solexa-36226}"
+     set SHEARED_JUMP_LANES = "{C01ELABXX.1.Solexa-62929}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.29
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.17
+     set have_ref = False
+     set PACBIO_RUNS = "18439-18446,18456-18463"
+
+else if ( $genome == entero && $dataset == standard ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62020}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62905}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.17
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.21
+
+else if ( $genome == entero && $dataset == hybrid ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62020}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62905}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.17
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.21
+     set PACBIO_RUNS = "18217-18220,18757-18770,18821-18827,18838-18842"
+
+else if ( $genome == eubac && $dataset == hybrid ) then
+     set FRAG_LANES="{80528ABXX.4.Solexa-36238}"
+     set SHEARED_JUMP_LANES="{801G2ABXX.1.Solexa-44951}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.187
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.412
+     set have_ref = False
+     set PACBIO_RUNS = "17886-17893"
+
+else if ( $genome == fragilis && $dataset == hybrid ) then
+     set FRAG_LANES = "{B091AABXX.8.Pond-62019}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.1.Solexa-62404}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.18
+     if ( ! $?JUMP_COV ) set JUMP_COV = 1.00
+     set have_ref = False
+     set PACBIO_RUNS = "18471,18473,18474,18476,18478,18486-18493"
+
+else if ( $genome == fuso && $dataset == standard ) then
+     set FRAG_LANES = "{B03C5ABXX.1.Solexa-36239}"
+     set SHEARED_JUMP_LANES = "{C01ELABXX.1.Solexa-62932}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.30
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.14
+     set have_ref = False
+
+else if ( $genome == fuso && $dataset == hybrid ) then
+     set FRAG_LANES = "{B03C5ABXX.1.Solexa-36239}"
+     set SHEARED_JUMP_LANES = "{C01ELABXX.1.Solexa-62932}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.30
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.14
+     set have_ref = False
+     set PACBIO_RUNS = "18546-18561"
+
+else if ( $genome == fuso7 && $dataset == standard ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62035}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62891}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.08
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.13
+     set have_good_ref = False
+
+else if ( $genome == fuso7 && $dataset == hybrid ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62035}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62891}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.08
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.13
+     set have_good_ref = False
+     set PACBIO_RUNS = "18123-18126,18130,18132-18133,18135-18137,18142-18145,18160-18163,18166-18168,18171"
+
+else if ( $genome == fuso7 && $dataset == hybrid-alt ) then
+     set FRAG_LANES = "{B084DABXX.1.Pond-62035}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.3.Solexa-62891}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.08
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.39
+     set have_good_ref = False
+     set PACBIO_RUNS = "18123-18126,18130,18132-18133,18135-18137,18142-18145,18160-18163,18166-18168,18171"
+
+else if ( $genome == fusonuke && $dataset == hybrid ) then
+     set FRAG_LANES = "{B091AABXX.8.Pond-61999}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.1.Solexa-62391}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.15
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.32
+     set have_ref = False
+     set PACBIO_RUNS = "18506-18508,18515-18520,18580-18587"
+
+else if ( $genome == human && $dataset == standard ) then
+     set FRAG_LANES="{202PBABXX.{1,2,3,4,5,6,7,8},61PHDAAXX.{6,7,8}}"
+     set SHEARED_JUMP_LANES="{2025JABXX.{1,2,3,4,5,6,7,8}}"
+     set JUMP_LANES = "{ $SHEARED_JUMP_LANES }"
+
+else if ( $genome == human19 && $dataset == standard ) then
+     set FRAG_LANES="{HUMANFOSM.1.Solexa-Multiple}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.09		# average coverage is 1090, this gives approx 98x
+     set SIM_JUMP_LIBS="n=100,N=3000,C=50,dev=10%"
+     set SIMULATE_SHEARED_JUMPS
+
+else if ( $genome == human19 && $dataset == fosmid ) then
+     set FRAG_LANES="{A2925.1.Solexa-127359,A2925.1.Solexa-127365}"
+     set SIM_JUMP_LIBS="n=100,N=3000,C=50,dev=10%"
+     set SIMULATE_SHEARED_JUMPS
+     set FAKE_PLOIDY=1
+     set extra_args = "$extra_args JUMPOMATIC=False PATCH_UNIPATHS=False"
+     set extra_args = "$extra_args PATCH_SCAFFOLDS=False FIX_SOME_INDELS=False FIX_ASSEMBLY_BASE_ERRORS=False FIX_LOCAL=False" # already set for PB runs
+#     set PACBIO_RUNS = "19900,19892,19891,19899"
+
+else if ( $genome == kleb && $dataset == hybrid ) then
+     set FRAG_LANES="{702B4ABXX.2.Pond-56350}"
+     set SHEARED_JUMP_LANES="{B03C5ABXX.3.Solexa-54911}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.2
+     set PACBIO_RUNS = "17858-17868,17879-17881"
+     set have_good_ref = False
+
+else if ( $genome == mouse && $dataset == standard ) then
+     set FRAG_LANES="{ {6141AAAXX,613F0AAXX,613F1AAXX}.{1,2,3,4,5,6,7,8} }"
+     set SHEARED_JUMP_LANES="{ 61NDRAAXX.{1,2,3,4,5,6,7}, 61NGGAAXX.{2,3,4,5,6}, 61NCCAAXX.{1,2,3,4} }"
+     if ( ! $?OMIT_ECOP15I ) set ECOP15I_JUMP_LANES="{ 207HCABXX.{1,2,3,5,8} }"
+     if ( ! $?OMIT_FOSMID ) set FOSILL_JUMP_LANES="{61NBYAAXX.1}"
+
+else if ( $genome == mouse && $dataset == big ) then
+     set FRAG_LANES="{B006NACXX.{4,5,6} }"  # available: B006NACXX.{1,2,3,4,5,6}
+     set SHEARED_JUMP_LANES="{ 61NDRAAXX.{1,2,3,4,5,6,7}, 61NGGAAXX.{2,3,4,5,6}, 61NCCAAXX.{1,2,3,4} }"
+     if ( ! $?OMIT_ECOP15I ) set ECOP15I_JUMP_LANES="{ 207HCABXX.{1,2,3,5,8} }"
+     if ( ! $?OMIT_FOSMID ) set FOSILL_JUMP_LANES="{61NBYAAXX.1}"
+
+else if ( $genome == plasmo && $dataset == standard ) then
+     set FRAG_LANES = "{600NVAAXX.8}"
+     set SHEARED_JUMP_LANES = "{600NVAAXX.7}"
+
+else if ( $genome == plasmo && $dataset == miseq ) then
+#     set FRAG_LANES = "{A07M5.1.Solexa-75411}"
+     set FRAG_LANES = "{CHESTERFO.1}"
+     set SHEARED_JUMP_LANES = "{600NVAAXX.7}"
+
+else if ( $genome == rhody && $dataset == standard ) then
+     set FRAG_LANES = "{3031HAAXX.1}"
+     set SHEARED_JUMP_LANES = "{3027BAAXX.1}"
+     if ( ! $?OMIT_FOSMID ) set FOSILL_JUMP_LANES="{42TDMAAXX.7}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.384
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.136
+
+else if ( $genome == rhody && $dataset == miseq ) then
+     set FRAG_LANES = "{A07MK.1.Solexa-75412}"
+     set SHEARED_JUMP_LANES = "{3027BAAXX.1}"
+     if ( ! $?OMIT_FOSMID ) set FOSILL_JUMP_LANES="{42TDMAAXX.7}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.384
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.136
+
+else if ( $genome == rhody && $dataset == miseq-alt ) then
+     set FRAG_LANES = "{A1PJD.1.Solexa-121745.Tag_IlluminaHTKit2,A1PJD.1.Solexa-121745.Tag_IlluminaHTKit3,A1PJD.1.Solexa-121745.Tag_IlluminaHTKit4,A1PJD.1.Solexa-121745.Tag_IlluminaHTKit5}"
+     set SHEARED_JUMP_LANES = "{3027BAAXX.1}"
+     if ( ! $?OMIT_FOSMID ) set FOSILL_JUMP_LANES="{42TDMAAXX.7}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 1.0
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.136
+
+else if ( $genome == rhody && $dataset == hybrid ) then
+     set FRAG_LANES = "{3031HAAXX.1}"
+     # set FRAG_LANES = "{A07MK.1.Solexa-75412}"
+     # set frag_read_length = 251
+     # using robojumps
+     set SHEARED_JUMP_LANES = "{C01ELABXX.1.Solexa-62923}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.384
+     if ( ! $?PACBIO_RUNS ) then
+          set PACBIO_RUNS = "17312,17397,17475-17479,17517-17519,17521-17523"
+     endif
+
+else if ( $genome == rhody && $dataset == hybrid-alt ) then
+     set FRAG_LANES = "{3031HAAXX.1}"
+     set SHEARED_JUMP_LANES = "{3027BAAXX.1}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.384
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.136
+     if ( ! $?PACBIO_RUNS ) then
+          set PACBIO_RUNS = "17312,17397,17475-17479,17517-17519,17521-17523"
+     endif
+
+else if ( $genome == stick && $dataset == standard ) then
+     set FRAG_LANES="{ 30NARAAXX.{1,2,3,4,6,7,8}, 30N9VAAXX.{1,2,3,4,5,6,7,8} }"
+     set SHEARED_JUMP_LANES="{ 30NE7AAXX.{1,2,3,5,6,7}, 30NCKAAXX.{1,2,3,4,5,6,7,8} }"
+
+else if ( $genome == strep && $dataset == hybrid ) then
+     set FRAG_LANES = "{B03C5ABXX.1.Solexa-36223}"
+     set SHEARED_JUMP_LANES = "{801G2ABXX.1.Solexa-44969}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.187
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.558
+     set PACBIO_RUNS = "17546-17548,17933-17937"
+     set unmapped = Tue
+
+else if ( $genome == strep && $dataset == hybrid-alt ) then
+     set FRAG_LANES = "{B03C5ABXX.1.Solexa-36223}"
+     set SHEARED_JUMP_LANES = "{801G2ABXX.1.Solexa-44969}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.187
+     if ( ! $?JUMP_COV ) set JUMP_COV = 1.0
+     set PACBIO_RUNS = "17546-17548,17933-17937"
+     set unmapped = True
+
+else if ( $genome == swig && $dataset == standard ) then
+     set FRAG_LANES = "{B091AABXX.8.Pond-62017}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.1.Solexa-62392}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.21
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.36
+     set unmapped = Tue
+
+else if ( $genome == swig && $dataset == hybrid ) then
+     set FRAG_LANES = "{B091AABXX.8.Pond-62017}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.1.Solexa-62392}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.21
+     if ( ! $?JUMP_COV ) set JUMP_COV = 0.36
+     set PACBIO_RUNS = "18734-18737,18738,18771-18772,18779-18780"
+     set unmapped = Tue
+
+else if ( $genome == tb_kzn && $dataset == hybrid ) then
+     set FRAG_LANES = "{B03C5ABXX.1.Solexa-36233}"
+     set SHEARED_JUMP_LANES = "{801G2ABXX.1.Solexa-44946}"
+     set unmapped = True
+     # set PACBIO_RUNS = "17481-17483,17543-17545"
+     set PACBIO_RUNS = "18240-18244,18396-18403"
+
+else if ( $genome == tim && $dataset == hybrid ) then
+     set FRAG_LANES = "{B091AABXX.8.Pond-62028}"
+     set SHEARED_JUMP_LANES = "{B08YJABXX.1.Solexa-62400}"
+     if ( ! $?FRAG_COV ) set FRAG_COV = 0.16
+     if ( ! $?JUMP_COV ) set JUMP_COV = 1.00
+     set have_ref = False
+     set PACBIO_RUNS = "18448-18455"
+
+else
+     echo "unknown genome or dataset"
+     exit 1
+
+endif
+
+if ( $have_ref == False ) then
+     set TARGETS = standard
+     set EVALUATION = BASIC
+     set unmapped = True
+endif
+
+if ( $have_good_ref == False ) then
+     set TARGETS = standard
+     set EVALUATION = BASIC
+endif
+
+# Select all reads if coverage not specified.  Set default values for simulation 
+# arguments.
+
+if ( ! $?FRAG_COV ) set FRAG_COV = 1.0
+if ( ! $?JUMP_COV ) set JUMP_COV = 1.0
+if ( ! $?LONG_JUMP_COV ) set LONG_JUMP_COV = 1.0
+if ( ! $?SIM_FRAG_LIBS ) set SIM_FRAG_LIBS = "n=100,C=50,N=180,dev=20%"
+if ( ! $?SIM_JUMP_LIBS ) set SIM_JUMP_LIBS = "n=100,C=50,N=3000,dev=10%"
+
+# Define directories.
+
+set bacteria = /wga/scr4/ALLPATHS/bacteria
+set small_euks = /wga/scr4/ALLPATHS/small_euks
+if ( $genome == bifido ) set root = $bacteria/Bifidobacterium_bifidum_14161
+if ( $genome == candida ) set root = $small_euks/Candida_albicans_82863
+if ( $genome == clap ) set root = $bacteria/Neisseria_gonorrhoeae_20103
+if ( $genome == clap19 ) set root = $bacteria/Neisseria_gonorrhoeae_20105
+if ( $genome == copro ) set root = $bacteria/Coprobacillus_species_22682
+if ( $genome == ecoli ) set root = $bacteria/Escherichia_coli_17968_29193
+if ( $genome == egg ) set root = $bacteria/Bacteroides_eggerthii_38479
+if ( $genome == entero ) set root = $bacteria/Enterococcus_casseliflavus_14328
+if ( $genome == eubac ) set root = $bacteria/Eubacterium_species_16678
+if ( $genome == fragilis ) set root = $bacteria/Bacteriodes_fragilis_86659
+if ( $genome == fuso ) set root = $bacteria/Fusobacterium_species_17342
+if ( $genome == fuso7 ) set root = $bacteria/Fusobacterium_species_16681
+if ( $genome == fusonuke ) set root = $bacteria/Fusobacterium_nucleatum_69863
+if ( $genome == human ) set root = /wga/scr4/bigrefs/human
+if ( $genome == human19 ) set root = /wga/scr4/bigrefs/human19
+if ( $genome == kleb ) set root = $bacteria/Klebsiella_oxytoca_76541
+if ( $genome == mouse ) set root = /wga/scr4/bigrefs/mouse_fixed
+if ( $genome == plasmo ) set root = $small_euks/Plasmodium_falciparum_11854
+if ( $genome == rhody ) set root = $bacteria/Rhodobacter_sphaeroides_17970
+if ( $genome == stick ) set root = /wga/scr4/ALLPATHS/G.aculeatus
+if ( $genome == strep ) set root = $bacteria/Streptococcus_pneumoniae_60912
+if ( $genome == swig ) set root = $bacteria/Scardovia_wiggsiae_57717
+if ( $genome == tb_kzn ) set root = $bacteria/Mycobacterium_tuberculosis_5897
+if ( $genome == tim ) set root = $bacteria/Bacteroides_thetaiotaomicron_86675
+
+# Set up to run the assembly.
+
+if ( !( $region =~ '/*' ) ) set region = /wga/scr4/$user/babies/$genome/$region
+set ref = $region
+set data = $ref/data
+set pre = /
+set aa_refname = genome
+if ( $genome == human || $genome == mouse || $genome == stick \
+     || $genome == candida ) then
+     set aa_refname = genome_extended
+endif
+echo "RUN = $region/data/run"
+
+# More set up.
+
+/bin/rm -rf $ref
+mkdir -p $ref
+mkdir $data
+echo $range > $ref/region
+echo "$0 $*" > $ref/build_micro
+
+# Transform Plasmodium (or human19) chromosome numbers.
+# (Permutation no longer needed with upgrade to new reference v3, but SelectFasta 
+# starts numbering at zero, so we subtract one.  Also see chr_head change below.)
+
+set orig_range = "$range"
+if ( ( $genome == plasmo || $genome == human19 ) && "$range" != all ) then 
+     set new_range =
+     foreach x ($range)
+          set tig = $x
+          set bases =
+          if ( `echo $tig | grep \:` != "" ) then
+               set bases = \:`echo $tig | awk -F: '{print $2}'`
+               set tig = `echo $tig | awk -F: '{print $1}'`
+          endif
+	  	  set qtig = `expr $tig - 1`	# subtract one for SelectFasta AND convert to single-digit (e.g. 03 becomes 3)
+          set new_range = "$new_range $qtig$bases"
+     end
+     set range = "$new_range"
+endif
+
+# Define header for chromosome names.
+
+if ( $genome == human || $genome == mouse ) set chr_head = chr
+if ( $genome == rhody ) then
+     set chr_head = ""
+     set chr_list = (chr1 plasmid1 chr2 plasmid2 plasmid3 plasmid4 plasmid5)
+endif
+if ( $genome == human19 ) set chr_head = ""
+if ( $genome == stick ) set chr_head = super_
+if ( $genome == plasmo ) set chr_head = Pf3D7_
+if ( $genome == candida ) then
+     set chr_list = (Ca21chr1 Ca21chr2 Ca21chr3 Ca21chr4 Ca21chr5 Ca21chr6 \
+                     Ca21chr7 Ca21chrR Ca19-mtDNA)
+endif
+
+# Create mini-genome in its own reference dir.  Also create a version with its
+# ends extended by 1kb to allow for assembly of stuff that reaches off the ends.
+
+if ( $genome == ecoli && "$range" != all ) then
+     echo "For your genome, you must specify all for the range."
+     exit 1
+endif
+
+if ( $genome == rhody && "$range" != all ) then
+     echo "WARNING: you did not specify 'all' and consequently may get garbage\!\!"
+endif
+
+set genome_ref = genome
+if ( $genome == mouse ) set genome_ref = genome_fixed
+set req_scontigs = `echo $range | grep \:`
+
+# Handle the case where the region is a range of bases on one chromosome or scaffold.
+
+if ( $req_scontigs != "" ) then
+     set qtig = `echo $range | awk -F: '{print $1}'`
+     set start = `echo $range | awk -F ":|-" '{print $2}'`
+     set stop = `echo $range |  awk -F ":|-" '{print $3}'`
+     echo "`date`: Creating the mini-genome from single chromosome/scaffold..."
+     SelectBases PRE=/ INPUT=$root/$genome_ref.fasta CONTIG=$qtig \
+          START=$start STOP=$stop UPCASE=True OUTPUT=$ref/genome.fasta
+     if ( $status != 0 ) then
+          echo "Base selection failed:"
+          cat $ref/genome.fasta
+          exit 1
+     endif
+     if ( $genome == ecoli ) then
+          SelectBases PRE=/ INPUT=$root/genome_alt.fasta CONTIG=$qtig \
+               START=$start STOP=$stop UPCASE=True OUTPUT=$ref/genome_alt.fasta
+          if ( $status != 0 ) exit 1
+     endif
+     set start_ext = `expr $start - 1000`
+     if ( $start_ext < 0 ) set start_ext = 0
+     set stop_ext = `expr $stop + 1000`
+     SelectBases PRE=/ INPUT=$root/$genome_ref.fasta CONTIG=$qtig \
+          START=$start_ext STOP=$stop_ext UPCASE=True \
+          OUTPUT=$ref/genome_extended.fasta
+     if ( $status != 0 ) then
+          echo "Extended base selection failed."
+          exit 1
+     endif
+     if ( $genome == candida || $genome == rhody ) then
+          set qtigp = `expr $qtig + 1`
+          set super_range = {$chr_list[$qtigp]}:$start-$stop
+     else 
+          set super_range = $chr_head$orig_range
+     endif
+
+# Handle the case of the entire genome.
+
+else if ( "$range" == all ) then
+     set super_range =
+     if ( "$EVALUATION" != BASIC ) then
+          set aa_refname = genome
+          if ( $genome == ecoli ) then
+               set aa_refname = genome.alt
+               cp $root/genome.alt.fasta $ref
+          endif
+          cp $root/genome.fasta $ref
+          if ( $status != 0 ) then
+               echo "cp failed"
+               exit 1
+          endif
+     endif
+
+# Handle the case of a list of chromosomes or scaffolds.
+
+else
+     set aa_refname = genome
+     echo "`date`: Creating the mini-genome from list of supers..."
+     set crange = `echo $range | tr ' ' ','`
+     SelectFasta PRE=/ INPUT=$root/$genome_ref.fasta IDS="{"$crange"}" \
+          UPCASE=True OUTPUT=$ref/genome.fasta
+     if ( $status != 0 ) then
+          echo "SelectFasta failed"
+          exit 1
+     endif
+     set super_range =
+     foreach x ($orig_range)
+          if ( $genome == candida || $genome == rhody ) then
+               set xp = `expr $x + 1`
+               set super_range = $super_range $chr_list[$xp]
+          else set super_range = "$super_range $chr_head$x"
+          endif
+     end
+endif
+echo "super_range = " $super_range
+
+# Make some auxiliary files.
+
+if ( "$EVALUATION" != BASIC || $?SIMULATE_SHEARED_JUMPS || $?SIMULATE_FRAGS ) then
+     Fasta2Fastb IN=$ref/genome.fasta OUT=$ref/genome.fastb NAMES=False
+     if ( $status != 0 ) then
+          echo "Fasta2Fastb failed"
+          exit 1
+     endif
+     FastbSizes FILE=$ref/genome.fastb TOTAL_ONLY=True REPORT=$ref/genome.size
+     if ( $status != 0 ) then
+          echo "FastbSizes failed"
+          exit 1
+     endif
+endif
+if ( $?FAKE_PLOIDY ) then
+     echo "$FAKE_PLOIDY" > $data/ploidy
+else
+     cp $root/ploidy $data
+endif
+if ( $status != 0 ) exit 1
+
+# Get PacBio reads.
+
+if ($?PACBIO_RUNS) then
+	if ($?PACBIO_BAM) then
+                echo "Using PacBio Runs (from BAM): $PACBIO_RUNS" > $data/long_reads_orig.source.txt
+                ExtractPacbioFromBAM.pl PACBIO_CACHE=/wga/scr4/picard/pacbio RUNS="$PACBIO_RUNS" \
+                        HEAD_OUT=$data/long_reads_orig RANGE="$super_range"
+                if ( $status != 0 ) exit 1
+	else
+                echo "Using PacBio Runs: $PACBIO_RUNS" > $data/long_reads_orig.source.txt
+                ImportPacBioReads PACBIO_DATA_DIR=/seq/pacbio_results/userdata/jobs \
+                   HEAD_OUT=$data/long_reads_orig RUNS="$PACBIO_RUNS"
+                if ( $status != 0 ) exit 1
+	endif
+endif
+if ( $dataset == hybrid ) set extra_args = "$extra_args AA_CHUNK_SIZE=10K"
+if ( $dataset == hybrid-alt ) set extra_args = "$extra_args AA_CHUNK_SIZE=10K"
+if ( $dataset == hybrid-alt2 ) set extra_args = "$extra_args AA_CHUNK_SIZE=10K"
+
+# ExtractFromBam args
+
+if ($get_aligns == true) then
+    set EXTRACT_ARGS = "PICARD_HEAD=$PICARD_HEAD TMP=$data WRITE_NAMES=False WRITE_ALIGNS=True UNMAPPED=$unmapped"
+else
+    set EXTRACT_ARGS = "PICARD_HEAD=$PICARD_HEAD TMP=$data WRITE_NAMES=False WRITE_ALIGNS=False UNMAPPED=$unmapped"
+endif
+
+# Start getting fragment pairs.
+
+echo "`date`: Extracting data for this region..."
+
+if ( $?SIMULATE_FRAGS ) then 
+    if ( $?SIM_ERR ) then
+	     SimulateReads PRE=/ DATA=$data RUN=run PIPELINE_MODE=True CONSTRUCTION=D \
+          GENOME=../genome READS_OUT=frag_reads_orig LIBRARIES="$SIM_FRAG_LIBS" ERROR_GENERATOR_NAME="$SIM_ERR" REVCOMP=True
+    else
+     	 SimulateReads PRE=/ DATA=$data RUN=run PIPELINE_MODE=True CONSTRUCTION=D \
+          GENOME=../genome READS_OUT=frag_reads_orig LIBRARIES="$SIM_FRAG_LIBS" REVCOMP=True
+    endif
+    unset FRAG_LANES # NIW: the right thing to do? -- avoid selecting random pairs, etc.
+else if ( $?FRAG_LANES ) then
+     echo "extracting FRAG_LANES = $FRAG_LANES"
+     set extract_frag_name = frag_reads_orig
+     if ( $?FRAG_TRIM ) then
+	set extract_frag_name = frag_reads_orig_untrimmed
+     endif
+     ExtractFromBAM.pl $EXTRACT_ARGS TARGET_HEAD=$data/$extract_frag_name \
+          RANGE="$super_range" LANES=\""$FRAG_LANES"\" NOMINAL_READ_LEN=$frag_read_length \
+	  REQUIRE_LIBINFO=True LIBINFO=$libinfo  >& $data/ExtractFromBAM.frag.out &
+endif
+
+# Start getting sheared jumps.
+
+if ( $?SIMULATE_SHEARED_JUMPS ) then
+    if ( $?SIM_ERR ) then
+	 SimulateReads PRE=/ DATA=$data RUN=run PIPELINE_MODE=True CONSTRUCTION=D \
+	      GENOME=../genome READS_OUT=jump_reads_sheared LIBRARIES="$SIM_JUMP_LIBS" ERROR_GENERATOR_NAME="$SIM_ERR" REVCOMP=True
+    else
+	 SimulateReads PRE=/ DATA=$data RUN=run PIPELINE_MODE=True CONSTRUCTION=D \
+	      GENOME=../genome READS_OUT=jump_reads_sheared LIBRARIES="$SIM_JUMP_LIBS" REVCOMP=True
+    endif
+     if ( $status != 0 ) exit 1
+     unset SHEARED_JUMP_LANES ECOP15I_JUMP_LANES FOSILL_JUMP_LANES # NIW: the right thing to do? -- avoid selecting random pairs, etc.
+else if ( $?SHEARED_JUMP_LANES ) then
+     set VERSION = newest
+     if ( $genome == mouse ) set VERSION = oldest
+     echo "extracting SHEARED_JUMP_LANES = $SHEARED_JUMP_LANES"
+     ExtractFromBAM.pl $EXTRACT_ARGS \
+          TARGET_HEAD=$data/jump_reads_sheared RANGE="$super_range" \
+          LANES=\""$SHEARED_JUMP_LANES"\" VERSION=$VERSION \
+	  REQUIRE_LIBINFO=True LIBINFO=$libinfo \
+          >& $data/ExtractFromBAM.sheared_jump.out &
+endif
+
+# Start getting EcoP15I jumps.
+
+if ( $?ECOP15I_JUMP_LANES ) then
+     echo "extracting ECOP15I_JUMP_LANES = $ECOP15I_JUMP_LANES"
+     ExtractFromBAM.pl $EXTRACT_ARGS TARGET_HEAD=$data/jump_reads_eco \
+          RANGE="$super_range" LANES=\""$ECOP15I_JUMP_LANES"\" \
+	  REQUIRE_LIBINFO=True LIBINFO=$libinfo \
+          >& $data/ExtractFromBAM.eco_jump.out &
+endif
+
+# Start getting Fosmid jumps.
+
+if ( $?FOSILL_JUMP_LANES ) then
+     echo "extracting FOSILL_JUMP_LANES = $FOSILL_JUMP_LANES"
+     ExtractFromBAM.pl $EXTRACT_ARGS TARGET_HEAD=$data/jump_reads_fosill \
+          RANGE="$super_range" LANES=\""$FOSILL_JUMP_LANES"\" SEP=40000 DEV=4000 \
+	  REQUIRE_LIBINFO=False \
+          >& $data/ExtractFromBAM.fosill_jump.out &
+endif
+
+# Wait for extractions to complete, complete processing.
+
+wait
+if ( ! $?SIMULATE_FRAGS && $?FRAG_LANES ) then
+     cat $data/ExtractFromBAM.frag.out
+     if ( !( -e $data/$extract_frag_name.fastb ) ) then
+          echo "ERROR: Output not properly generated by ExtractFromBAM.  Exiting."
+          exit 1
+     endif  
+endif
+if ( ! $?SIMULATE_SHEARED_JUMPS && $?SHEARED_JUMP_LANES ) then
+     cat $data/ExtractFromBAM.sheared_jump.out
+     if ( !( -e $data/jump_reads_sheared.fastb ) ) then
+          echo "ERROR: Output not properly generated by ExtractFromBAM.  Exiting."
+          exit 1
+     endif
+endif
+if ( $?ECOP15I_JUMP_LANES ) then
+     cat $data/ExtractFromBAM.eco_jump.out
+     if ( !( -e $data/jump_reads_eco.fastb ) ) then
+          echo "ERROR: Output not properly generated by ExtractFromBAM.  Exiting."
+          exit 1
+     endif
+     TrimReads HEAD_IN=$data/jump_reads_eco HEAD_OUT=$data/jump_reads_eco_trimmed \
+          UPDATE_QLTS=$get_aligns TRIM_SIZE=26
+endif
+if ( $?FOSILL_JUMP_LANES ) then
+     cat $data/ExtractFromBAM.fosill_jump.out
+     if ( !( -e $data/jump_reads_fosill.fastb ) ) then
+          echo "ERROR: Output not properly generated by ExtractFromBAM.  Exiting."
+          exit 1
+     endif
+endif
+
+# Trim fragment reads
+
+if ( $?FRAG_TRIM ) then
+    TrimReads HEAD_IN= $data/$extract_frag_name \
+	      HEAD_OUT= $data/frag_reads_orig \
+	      TRIM_SIZE= $FRAG_TRIM \
+	      UPDATE_PAIR_SEPS= True
+endif
+
+# Reverse jumps.
+
+if ( $?SIMULATE_SHEARED_JUMPS ) then			
+     # assumes that SHEARED_JUMP_LANES is unset when simulating jumps -- should eventually unwind the 
+     # logic below (next two if/endifs) and fold this in.
+     cp $data/jump_reads_sheared.fastb $data/jump_reads_orig.fastb
+     cp $data/jump_reads_sheared.qualb $data/jump_reads_orig.qualb
+     cp $data/jump_reads_sheared.pairs $data/jump_reads_orig.pairs
+endif
+
+if ( $?SHEARED_JUMP_LANES && ! $?ECOP15I_JUMP_LANES ) then
+     if ( ! $?SIMULATE_SHEARED_JUMPS ) then
+          ReverseFastb READS_IN=$data/jump_reads_sheared \
+               READS_OUT=$data/jump_reads_orig QUALS=True QLTS=$get_aligns \
+               PAIRED=True
+          if ( $status != 0 ) exit 1
+     else
+          cp $data/jump_reads_sheared.fastb $data/jump_reads_orig.fastb
+          cp $data/jump_reads_sheared.qualb $data/jump_reads_orig.qualb
+     endif
+     cp $data/jump_reads_sheared.pairs $data/jump_reads_orig.pairs
+endif
+if ( $?SHEARED_JUMP_LANES && $?ECOP15I_JUMP_LANES ) then
+     ReverseFastb READS_IN=$data/jump_reads_eco_trimmed \
+          READS_OUT=$data/jump_reads_eco_trimmed_rc QUALS=True QLTS=$get_aligns
+     if ( $status != 0 ) exit 1
+     if ( ! $?SIMULATE_SHEARED_JUMPS ) then
+          ReverseFastb READS_IN=$data/jump_reads_sheared \
+               READS_OUT=$data/jump_reads_sheared_rc QUALS=True QLTS=$get_aligns
+          if ( $status != 0 ) exit 1
+     else
+          cp $data/jump_reads_sheared.fastb $data/jump_reads_sheared_rc.fastb
+          cp $data/jump_reads_sheared.qualb $data/jump_reads_sheared_rc.qualb
+     endif
+endif
+
+# Sym link pairing info.
+
+if ( $?SHEARED_JUMP_LANES && $?ECOP15I_JUMP_LANES ) then
+     ln -s jump_reads_eco.pairs $data/jump_reads_eco_trimmed_rc.pairs
+     ln -s jump_reads_sheared.pairs $data/jump_reads_sheared_rc.pairs
+endif
+
+# Merge sheared and EcoP15I reads.
+
+if ( $?SHEARED_JUMP_LANES && $?ECOP15I_JUMP_LANES ) then
+     MergeReadSets DIR=$data TRACK_READS=False READS_OUT=jump_reads_orig \
+          READS_IN="{jump_reads_sheared_rc,jump_reads_eco_trimmed_rc}"
+     if ( $status != 0 ) exit 1
+endif
+
+# Trim off the first 4 bases of Fosill reads.
+
+if ( $?FOSILL_JUMP_LANES ) then
+     TrimReads HEAD_IN=$data/jump_reads_fosill HEAD_OUT=$data/long_jump_reads_orig \
+          UPDATE_QLTS=$get_aligns TRIM_START=4
+     if ( $status != 0 ) exit 1
+     ln -s jump_reads_fosill.pairs $data/long_jump_reads_orig.pairs
+endif
+
+# Filter data.
+
+if ( $?PREFILTER ) FilterRegionalData PRE=/ DATA=$data
+
+
+# Select subset and randomize read order (also removes unpaired reads)
+if ( $?FRAG_LANES ) then
+	SelectRandomPairs READS_IN=$data/frag_reads_orig \
+    READS_OUT=$data/frag_reads_orig FRAC=$FRAG_COV
+	if ( $status != 0 ) exit 1
+endif
+if ( $?SHEARED_JUMP_LANES ) then
+    SelectRandomPairs READS_IN=$data/jump_reads_orig \
+	READS_OUT=$data/jump_reads_orig FRAC=$JUMP_COV
+    if ( $status != 0 ) exit 1
+endif
+if ( $?FOSILL_JUMP_LANES ) then
+    SelectRandomPairs READS_IN=$data/long_jump_reads_orig \
+	READS_OUT=$data/long_jump_reads_orig FRAC=$LONG_JUMP_COV
+    if ( $status != 0 ) exit 1
+endif
+
+# record fractions used for posterity
+
+echo "# Illumina data fractions used" > $data/fraction_used
+if ( $?FRAG_LANES) echo "FRAG=$FRAG_COV" >> $data/fraction_used
+if ( $?SHEARED_JUMP_LANES) echo "JUMP=$JUMP_COV" >> $data/fraction_used
+if ( $?FOSILL_JUMP_LANES) echo "LONG=$LONG_JUMP_COV" >> $data/fraction_used
+
+# Early exit (data only).
+
+if ( $data_only == true ) then
+    echo "\n`date`: done"
+    exit
+endif
+
+# Run the assembly.
+
+RunAllPathsLG PRE=$pre REFERENCE_NAME=$region DATA_SUBDIR=data RUN=run \
+     OVERWRITE=True AA_REFNAME=$aa_refname TARGETS=$TARGETS EVALUATION=$EVALUATION \
+     $extra1 $extra2 $extra3 $extra4 $extra5 $extra6 $extra7 $extra8 $extra9 $extra_args
+if ( $status != 0 ) exit 1
+
+#if ( $genome == human || $genome == mouse ) then
+#     MakeReadInfo PRE=/ DATA=$data RUN=run
+#     if ( $status != 0 ) exit 1
+#endif
+
+# Done.
+
+echo "\n`date`: done"

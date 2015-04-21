@@ -1,0 +1,173 @@
+File: Introduction to Arachne and Allpaths
+
+This is the documentation for Arachne and Allpaths.  This page
+includes some high-level pointers; look also at the index on the left.
+
+Major code stages:
+   - <Kmer gathering>
+   - <Error correction>
+
+See also <Complete assembly flow>.
+
+Other useful pages:
+   - <Terms and Concepts>
+   - <Data Files>
+
+Section: Major tasks
+
+Task: Kmer gathering
+
+Gathering the <kmers> that appear in the reads.   
+
+Task: Read filtering
+
+Removing erroneous reads outright.  Differs from <Error correction> in
+that it doesn't attempt to fix reads, but shares the same goal of
+leaving fewer errors in the read set.
+
+We assume that after read filtering and error correction, no errors
+are left (though in practice this is not true of course); in
+particular, we only consider perfect overlaps of reads as overlaps,
+and ignore overlaps with even one error.  So, for good or bad, read
+filtering and error correction are our only chances to get rid of
+read errors.
+
+Done by the programs below.
+
+    <SolexaToAllpaths> - does some initial filtering
+    <RemoveSuspiciousReads> - does more clever filtering
+
+Task: Error correction
+
+Fixing errors in reads.  This is also referred to as 'editing' or 'doing edits'.
+
+Several error correction methods are used:
+
+  - if there is a simultaneous change of a few
+    bases that makes the kmers in the read much more likely, do the mutation
+    (<ProvisionalEdits>, <MakeProvisionalChanges>)
+  - in all reads with a kmer, look at the position immediately after the kmer,
+    and if there is strong consensus for one base then edit all reads to have 
+    that base there ( <SolexaToAllpaths> )
+  - a generalization of the above, anchor (align) on a kmer all reads in which
+    that kmer occurs, then see if there is strong consensus in the non-kmer 
+    columns, and if there is, edit the non-conensus positions in the reads to
+    match the consensus ( <AnchorConsensusEdits> )
+  - experimental scheme in <CorrectByKmers> -- document this more.
+
+
+Certain reads are identified as "good" and protected from editing
+by the various error correction methods.   This is done by <ProtectGoodReads>.
+
+Diagnostic tools that help us see what's  happening and find new
+heuristics for error correction: 
+
+     - <EvalauteErrorCorrection> uses synthetic data to evaluate erro
+       correction methods
+     - <AnchorConsensusEdits> visually renders the anchoring on a kmer
+        of all reads where that kmer occurs.
+     - <FindEditErrors> find genome bases that are covered by a long
+        genome unipath but only by a short read unipath, and identify
+	potential edits that would have prevented this situation.
+
+
+We assume that after read filtering and error correction, no errors
+are left (though in practice this is not true of course); in
+particular, we only consider perfect overlaps of reads as overlaps,
+and ignore overlaps with even one error.  So, for good or bad, read
+filtering and error correction are our only chances to get rid of
+read errors.
+
+Some subtasks of error correction:
+
+     - <Deciding which kmers are genomic>
+
+Task: Deciding which kmers are genomic
+
+Deciding which kmers that appear in the reads actually appear in the
+original genome, and which do not.  This is easier than correcting any
+individual read: if a kmer does appear in the genome, then at least
+some reads should read that kmer without error, and so the kmer should
+appear verbatim in at least a few reads.  However, since reads are
+thrown randomly on the genome, by sheer chance a given genomic kmer
+might never be read; worse, some regions of the genome are
+systematically not read or under-read (see <gc bias> for example).
+Also, all reads that do land on a kmer may end up having errors in the
+kmer, so a genomic kmer is not represented in the kmers of the reads.
+Conversely, several reads may mutate (have errors) in such a way that
+they all contain the same non-genomic kmer, and so a non-genomic kmer
+appears in the kmer set of the reads.  <Error correction> seeks to fix
+errors in the reads.  Distinguishing genomic and non-genomic kmers
+despite the complications described above is part of error correction.
+
+Subtask of <Error correction>.
+
+Topic: Handling gc bias
+
+Code that tries to compensate for the fact that how many reads fall
+on a given part of the genome.
+
+The relevant programs are:
+
+    <GcBiasCurve> - Estimate and store the <GC bias> curve for kmers
+        for a given K value.
+    <UnipathGcBias> - Estimate and store the GC bias for the given
+       unipaths, for use by <UnipathCoverage>
+
+///////////////////////////////////////////////////////////////////
+
+Task: Copy number determination
+
+For each <unipath>, determining how many times that unipath occurs in
+the genome.  We actually mostly care whether it occurs exactly one
+time or it occurs more than once.  
+
+Programs involved in this task include:
+ 
+   <UnipathCoverage> - Given a read set and unipaths created from them, predict the
+      number of copies of each unipath in the genome.
+
+Task: Evaluation
+
+Here we describe programs that evaluate how well the various steps of
+assembly are working; these programs are not required for assembly,
+but do quality control and help improve the algorithms.
+
+  <EvaluateStrongKmers> - shows how well the kmers we declare <strong>
+     actually match the <genomic kmers>.
+  <UnipathEval> - prints statistics on unipath sizes
+  <UnipathStats> - Given a simulated read set and unipaths created from them, 
+     compare results from UnipathCoverage with truth
+  <EvaluateUnipathLinkGraph> - Evaluates the accuracy and statistical
+     properties of unipath link graphs
+
+<N50> is a useful measure of contiguity of a set of segments.
+
+Technique: Insert walking
+
+Given a <paired read>, find all <kmer paths> between the two ends of
+the reads -- this tell us all the possibilities for what is in the
+unread part of the <insert> (we can only read a short part at each
+end of an insert).  With high enough coverage, we hope that many reads
+land in the middle of the insert in such a way that the parts of these
+reads that we _can_ read cover the "unknown" (unread) part of our
+paired read, and tell us what is in the unread part.
+
+Topic: Global configuration
+
+Here are some ways in which the system can be configured.
+
+Supported kmer shapes: see <SupportedKmerShapes.h>.
+Environment variables: for example, the PRE variable.
+
+Topic: Solexa
+
+Basic description of the Solexa sequencing.  References to more info.
+
+Synonyms: Various synonyms
+   Edits - See <Error correction>
+   error correction - See <Error correction>
+   copy number estimation - See <Copy number determination>
+   copy number determination - See <Copy number determination>
+
+

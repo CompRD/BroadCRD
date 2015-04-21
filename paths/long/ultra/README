@@ -1,0 +1,2 @@
+For code that works with ultra-long reads that have indels.  Please put
+main programs in ../auxmain.

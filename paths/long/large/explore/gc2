@@ -1,0 +1,28 @@
+
+SUMMARY.  This is a gap of 147 bases in 69% GC.  Apparently closeable.
+
+hg19
+X:70473473-70473620
+also 147 base gap in PB_chin
+
+51400.newchem
+a.final: L29720  --> L20460
+         8569648 --> 4504886 (0 links)
+a.200:   28506758 --> 17609512
+
+looks like high-GC gap, clean, good test case
+
+Moombat fails, even if you change K=100 to K=60 or K=40
+
+cat ~/crd/SnorglePop.out.short | grep 28506758 yields nothing
+
+closed by:
+LongProto SAMPLE=human READS=#picard TMP=tmp.xxx                               \
+          OUT_INT_HEAD=/home/unix/jaffe/crd/ddd X=X:70.47M-70.48M              \
+          HEURISTICS="INJECT_REF=False" DATASET=1x
+
+Blot52.cc
+closes the gap (and makes a mess outside the region)
+from EdgeInfo E="8569648|4504886" OUT_READ_HEAD=evil OUT_ORIENT=True
+
+Should figure out why Snorgle/SnorglePop doesn't close it.

@@ -1,0 +1,17 @@
+#!/bin/csh -f
+#
+# Copyright (c) 2000, 2001 Whitehead Institute for Biomedical Research
+
+# Not all systems support memory usage reporting.  I don't know how to tell
+# which do and which don't, but what follows should work for Compaq Alpha
+# running Tru64 Unix and for Intel boxes running Linux.
+
+# Note that memory usage DOES NOT include memory used by child processes.
+
+if (`uname -s` == "Linux") then
+     set time=(0 'elapsed time = %E, cpu time = %Usec');
+else
+     set time=(0 'elapsed time = %E, cpu time = %Usec, memory = %MKb');
+endif
+
+time $*

@@ -1,0 +1,69 @@
+    ----------------------------------------------------------------------------
+    Instructions for reproducing the ALLPATHS-LG assemblathon entry for M.zebra.
+    ----------------------------------------------------------------------------
+
+    Files required:
+    ---------------
+    All files containing Broad Institute Illumina data. See zebra_groups.csv below for filenames.
+
+    zebra_libs.csv file
+    ====================
+    library_name, project_name, organism_name,               type, paired, frag_size, frag_stddev, insert_size, insert_stddev, read_orientation, genomic_start, genomic_end
+    Solexa-38739,        Zebra,  Malawi zebra,           fragment,      1,       180,          15,            ,              ,           inward,              ,
+    Solexa-46074,        Zebra,  Malawi zebra,   jumping (fosill),      1,          ,            ,       40000,          4000,           inward,             4,          75
+    Solexa-39450,        Zebra,  Malawi zebra,  jumping (sheared),      1,          ,            ,        2500,           250,          outward,              ,
+    Solexa-39462,        Zebra,  Malawi zebra,  jumping (sheared),      1,          ,            ,        2500,           250,          outward,              ,
+    Solexa-51379,        Zebra,  Malawi zebra,  jumping (sheared),      1,          ,            ,       11000,          1100,          outward,              ,
+    Solexa-50902,        Zebra,  Malawi zebra,  jumping (sheared),      1,          ,            ,        9000,           900,          outward,              ,
+    Solexa-50914,        Zebra,  Malawi zebra,  jumping (sheared),      1,          ,            ,        7000,           700,          outward,              ,
+    Solexa-50937,        Zebra,  Malawi zebra,  jumping (sheared),      1,          ,            ,        5000,           500,          outward,              ,
+
+    zebra_groups.csv file
+    ======================
+    file_name,            library_name,   group_name
+    625E1AAXX.3.*.fastq,  Solexa-38739,  625E1AAXX.3
+    625E1AAXX.4.*.fastq,  Solexa-38739,  625E1AAXX.4
+    625E1AAXX.2.*.fastq,  Solexa-38739,  625E1AAXX.2
+    625E1AAXX.1.*.fastq,  Solexa-38739,  625E1AAXX.1
+    625E1AAXX.5.*.fastq,  Solexa-38739,  625E1AAXX.5
+    625E1AAXX.6.*.fastq,  Solexa-38739,  625E1AAXX.6
+    625E1AAXX.8.*.fastq,  Solexa-38739,  625E1AAXX.8
+    625E1AAXX.7.*.fastq,  Solexa-38739,  625E1AAXX.7
+    801KYABXX.4.*.fastq,  Solexa-39462,  801KYABXX.4
+    801KYABXX.2.*.fastq,  Solexa-39450,  801KYABXX.2
+    801KYABXX.3.*.fastq,  Solexa-39450,  801KYABXX.3
+    803DNABXX.8.*.fastq,  Solexa-51379,  803DNABXX.8
+    803DNABXX.2.*.fastq,  Solexa-50902,  803DNABXX.2
+    803DNABXX.1.*.fastq,  Solexa-50914,  803DNABXX.1
+    803DNABXX.6.*.fastq,  Solexa-50937,  803DNABXX.6
+    62F6HAAXX.1.*.fastq,  Solexa-46074,  62F6HAAXX.1
+    62F6HAAXX.2.*.fastq,  Solexa-46074,  62F6HAAXX.2
+
+    
+    To prepare the data for assembly:
+    ---------------------------------
+    mkdir -p Assemblathon/M.zebra/attempt_1
+    Using revision 37640 (or later)
+    CacheLibs.pl ACTION=Add CACHE_DIR=Assemblathon/M.zebra/cache IN_LIBS_CSV=zebra_libs.csv
+    CacheGroups.pl ACTION=Add CACHE_DIR=Assemblathon/M.zebra/cache IN_GROUPS_CSV=zebra_groups.csv
+    CacheToReads.pl CACHE_DIR=Assemblathon/M.zebra/cache OUT_HEAD=Assemblathon/M.zebra/attempt_1/frag_reads_orig GROUPS="{625E1AAXX.{1,2,3,4,5,6,7,8}}"
+    CacheToReads.pl CACHE_DIR=Assemblathon/M.zebra/cache OUT_HEAD=Assemblathon/M.zebra/attempt_1/jump_reads_orig GROUPS="{801KYABXX.4,801KYABXX.2,801KYABXX.3,803DNABXX.8,803DNABXX.2,803DNABXX.1,803DNABXX.6}"
+    CacheToReads.pl CACHE_DIR=Assemblathon/M.zebra/cache OUT_HEAD=Assemblathon/M.zebra/attempt_1/long_jump_reads_orig GROUPS="{62F6HAAXX.1,62F6HAAXX.2}"
+    echo 2 > Assemblathon/M.zebra/attempt_1/ploidy
+
+    To reproduce the Assemblathon 2 assembly:
+    -----------------------------------------
+    Revision 37640  - starting assembly*
+    RunAllPathsLG PRE=/wga/scr1/ALLPATHS REFERENCE_NAME=M.zebra DATA_SUBDIR=attempt_1 RUN=run_1 OVERWRITE=True TARGETS= TARGETS_RUN="{gap_closed.pathsdb.k96}"
+    Revision 37658 - continuing using latest code*
+    RunAllPathsLG PRE=/wga/scr1/ALLPATHS REFERENCE_NAME=M.zebra DATA_SUBDIR=attempt_1 RUN=run_1 OVERWRITE=True TARGETS= TARGETS_RUN="{filled_reads_filt.fastb,extended.unibases.k96.lookup}"
+    Revision 37743 - continuing using latest code*
+    RunAllPathsLG PRE=/wga/scr1/ALLPATHS REFERENCE_NAME=M.zebra DATA_SUBDIR=attempt_1 RUN=run_1 OVERWRITE=True 
+    Revision 38732 - restarting pipeline with new module FixLocal
+    RunAllPathsLG PRE=/wga/scr1/ALLPATHS REFERENCE_NAME=M.zebra DATA_SUBDIR=attempt_1.2 RUN=run_1 OVERWRITE=True
+
+    * This assembly was completed prior to the Assemblathon 2 competition using our latest development code, updated twice as the assembly progressed. We then used this assembly as the basis of our Assemblathon entry to save time, just running those modules that had significantly changed.
+
+    To generate a fresh assembly with latest version of ALLPATHS-LG:
+    ----------------------------------------------------------------
+    RunAllPathsLG PRE=Assemblathon REFERENCE_NAME=M.zebra DATA_SUBDIR=attempt_1 RUN=run_1

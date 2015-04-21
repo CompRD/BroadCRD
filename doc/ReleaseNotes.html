@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<title>Arachne 2.0 Release Notes</title>
+</head>
+
+<body bgcolor="white" text="black">
+
+    <h1>What's New?</h1>
+
+    <ul>
+      <li><a href="#transposons">Support for transposon reads</a></li>
+      <li><a href="#new_options">New assembly options</a></li>
+      <li><a href="#new_output">New output files and formats</a></li>
+    </ul>
+
+<a name="transposons"><h2>Transposon Reads</h2></a>
+
+<p>
+
+Arachne is now capable of utilizing transposon reads more effectively.
+Specifically, the information given in pairings of transposon reads is
+used, whereas transposon reads were treated as unpaired reads
+previously.  Transposon pairs must be handled differently than other
+pairs because their relative orientation is reversed, i.e. they point
+away from each other instead of toward each other.  To accommodate
+this, the meanings of the <a
+href="Manual.html#secXML"><tt>insert_size</tt></a> and <a
+href="Manual.html#secXML"><tt>insert_stdev</tt></a> fields of the <a
+href="Manual.html#secXML">traceinfo file format</a> are used to
+indicate the estimated separation of the beginnings of the transposon
+reads, rather than the length of the insert itself, which for a
+transposon is effectively zero.  Also, the <a
+href="Manual.html#secXML"><tt>template_id</tt></a> field is used to
+pair reads from each transposon event, requiring a unique value for
+each such event.  This is a kludge that is likely to disappear in a
+future release.
+
+<p>
+
+To indicate that a given read pair is a transposon pair, the <a
+href="Manual.html#secConfigFile">configuration file</a> now allows the
+<a href="Manual.html#secXML"><tt>type</tt></a> field to set to any of:
+<tt>paired_production</tt>, <tt>unpaired_production</tt>, and
+<tt>transposon</tt>.  Note that reads typed as <tt>transposon</tt>,
+like those typed as <tt>paired_production</tt>, must have non-empty <a
+href="Manual.html#secXML"><tt>template_id</tt></a> and <a
+href="Manual.html#secXML"><tt>trace_end</tt></a> fields and non-zero <a
+href="Manual.html#secXML"><tt>insert_size</tt></a> and <a
+href="Manual.html#secXML"><tt>insert_stdev</tt></a> fields.
+
+    
+<a name="new_options"><h2>New Assembly Options</h2></a>
+
+<p>
+
+Arachne now has a number of new options available which enable,
+disable, or adjust the use of algorithms detailed in our paper
+("Whole-Genome Sequence Assembly for Mammalian Genomes: ARACHNE 2", <a
+href="http://www.genome.org">Genome Research</a>, January 2003).
+
+<p>
+See the <a href="Manual.html#secRunning">Running Arachne</a> section
+of the <a href="Manual.html">manual</a> for more information.
+
+
+<a name="new_output"><h2>New Output Files and Formats</h2></a>
+
+While the report (assembly.ps) remains largely unchanged from the
+first release, the format of the <a
+href="Manual.html#secAssemblyReads">assembly.reads</a> and <a
+href="Manual.html#secAssemblyLinks">assembly.links</a> files have
+changed, and there is a new file, <a
+href="Manual.html#secAssembly.unplaced">assembly.unplaced</a>.
+
+<p>
+See the <a href="Manual.html#secOutput">Output</a> section
+of the <a href="Manual.html">manual</a> for more information.
+
+<p>
+Also, the acefiles produced by Arachne now include the entire
+(untrimmed) set of bases of the reads, making it easier to use the
+corresponding phd files with consed.  Note that the acefiles produced
+by Arachne have only been tested with versions 7.52 and 12 of consed and may
+not be compatible with other versions.
+
+<p>
+See the <a href="Manual.html#secAce">Generating ace files</a> section
+of the <a href="Manual.html">manual</a> for more information.
+
+    <hr>
+    <address><a href="mailto:wga@genome.wi.mit.edu">wga@genome.wi.mit.edu</a></address>
+<!-- Created: Thu Feb 13 11:50:50 EST 2003 -->
+<!-- hhmts start -->
+Last modified: Mon Feb 24 18:24:38 EST 2003
+<!-- hhmts end -->
+  </body>
+</html>

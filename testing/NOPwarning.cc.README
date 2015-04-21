@@ -1,0 +1,22 @@
+#include <algorithm>
+#include <vector>
+
+class foobar
+{
+public:
+  float foo;
+  int   bar; // note: removing this member will suppress the NOP warning
+  
+  friend bool operator<( const foobar& a1, const foobar& a2 )
+  {
+    return a1.foo < a2.foo;
+    // note: changing foo to bar in this comparison
+    // will suppress the NOP warning
+  }
+};
+
+int main( )
+{
+  std::vector< foobar >  vecfoobar;
+  std::sort( vecfoobar.begin( ), vecfoobar.end( ) );
+}

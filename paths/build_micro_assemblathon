@@ -1,0 +1,335 @@
+#!/bin/csh -f
+
+# build_micro_assemblathon: take a genomic region, simulate reads and assemble them
+#
+# usage: paths/build_micro genome region_name range extra1...extra7
+#
+# where
+#
+# - genome is the 'codename' for a genome/dataset
+#   * currently the allowed values are ecoli, human, mouse, stick, plasmo and rhody
+#
+# - region_name is the name you choose for the region 
+#   * the case where region_name begins with / is treated as a special case: in that
+#     case it is expected to be the absolute path of a directory you will own
+#
+# - range are the coordinates that define the region, in one of three formats:
+#   * for example, 1:10000-11000, referring to the given range of coordinates on the
+#     given 'chromosome number' - note that this may involve rejiggering of indices
+#   * a list of chromosomes separated by commas
+#   * 'all'.
+#
+# - extra1...extra7 are extra arguments that are to be passed to RunAllPathsLG,
+#
+# WARNING: THIS WIPES OUT A DIRECTORY AND REBUILDS IT.
+#
+# Note on genome records:
+#
+# * ecoli.  At present the only allowed option for range is 'all'.
+#
+# * human = 1-22 (in genome.fasta as chr1-chr22).  There are other records in the
+#   file but it's not clear what this code would do with them.  Note that the
+#   reference sequence is not exactly the same as the reference sequence used by
+#   Picard.
+#
+# * mouse = 1-19 (in genome.fasta as chr1-chr19).  There are other records 
+#   in the file but it's not clear what this code would do with them.
+#
+# * stick = 0-1934
+#
+# * plasmo = 1-14 (in genome.fasta as MAL1-MAL14), of sizes 643292 947102 1060087 
+#   1204112 1343552 1418244 1501719 1419563 1541723 1694445 2035250 2271477 2895605 
+#   3291006, respectively.  Note that the records in genome.fasta are in a crazy 
+#   order.
+#
+# * rhody.  At present the only allowed option for range is 'all'.
+
+# Set up.
+
+if ($# == 0 || $1 == "-h" || $1 == "--help") then
+    echo "Usage: build_micro GENOME NAME RANGE [ARGS]..."
+    echo "Build and assemble a set of reads from a genomic region."
+    echo "Example: build_micro stick myassembly 17:100000-300000"
+    exit
+endif 
+
+set tmp = `dirname $0`
+set scriptdir = `readlink -f $tmp`
+
+echo "`date`: Running paths/build_micro $1 $2 $3 $4 $5 $6 $7 $8 $9 $10"
+set genome = $1
+set region = $2
+set range = `echo $3 | tr ',' ' '`
+
+# Unpack extra arguments.
+
+set extra1 = $4
+set extra2 = $5
+set extra3 = $6
+set extra4 = $7
+set extra5 = $8
+set extra6 = $9
+set extra7 = $10
+
+# default (haploid) coverage.
+set frag_cov = 40;
+set jump_cov = 20;   # 2x = 40
+if ( $genome == "SpeciesB" ) then
+    set frag_cov = 20;
+    set jump_cov = 10;
+endif
+
+# Check for valid genome.
+
+if ( $genome != ecoli && $genome != human && $genome != mouse \
+     && $genome != stick && $genome != plasmo && $genome != rhody \
+    && $genome != SpeciesB ) then
+     echo "unknown genome"
+     exit
+endif
+
+set ass_root = "/wga/scr1/ALLPATHS/Assemblathon"
+
+# Define directories.
+
+if ( $region =~ '/*' ) set absolute_path =
+set bacteria = /wga/scr4/ALLPATHS/bacteria
+set small_euks = /wga/scr4/ALLPATHS/small_euks
+if ( $genome == ecoli ) then
+     set dna = Escherichia_coli_29193
+     set readset = 02--207GV.4.25396--8.8--PLUS--302GJ.2--17.6
+     set root = $bacteria/$dna
+endif
+if ( $genome == human ) set root = /wga/scr1/ALLPATHS/H.sapiens.NA12878
+if ( $genome == mouse ) set root = /wga/scr1/ALLPATHS/M.musculus
+if ( $genome == stick ) set root = /wga/scr4/ALLPATHS/G.aculeatus
+if ( $genome == plasmo ) set root = $small_euks/Plasmodium_falciparum_11854
+if ( $genome == SpeciesB ) set root = /wga/scr1/ALLPATHS/Assemblathon/SpeciesB
+if ( $genome == rhody ) then
+     set dna = Rhodobacter_sphaeroides_17970
+     set readset = 01--3031H.1--38.4--PLUS--3027B.1--13.6
+     set root = $bacteria/$dna
+endif
+
+set ref = $ass_root/$genome/$region
+set data = $ref/data
+set run = $data/run
+echo "RUN = $run"
+
+# More set up.
+
+/bin/rm -rf $ref
+mkdir $ref
+mkdir $data
+echo $range > $ref/region
+
+# Transform Plasmodium chromosome numbers.
+
+set orig_range = "$range"
+if ( $genome == plasmo && "$range" != all ) then 
+     set new_range =
+     foreach x ($range)
+          set tig = $x
+          set bases =
+          if ( `echo $tig | grep \:` != "" ) then
+               set bases = \:`echo $tig | tr ':' ' ' | Col 2`
+               set tig = `echo $tig | tr ':' ' ' | Col 1`
+          endif
+          if ( $tig == 1 ) set qtig = 3
+          if ( $tig == 2 ) set qtig = 4
+          if ( $tig == 3 ) set qtig = 5
+          if ( $tig == 4 ) set qtig = 6
+          if ( $tig == 5 ) set qtig = 7
+          if ( $tig == 6 ) set qtig = 10
+          if ( $tig == 7 ) set qtig = 11
+          if ( $tig == 8 ) set qtig = 12
+          if ( $tig == 9 ) set qtig = 13
+          if ( $tig == 10 ) set qtig = 8
+          if ( $tig == 11 ) set qtig = 9
+          if ( $tig == 12 ) set qtig = 0
+          if ( $tig == 13 ) set qtig = 1
+          if ( $tig == 14 ) set qtig = 2
+          set new_range = "$new_range $qtig$bases"
+     end
+     set range = "$new_range"
+endif
+
+# Define header for chromosome names.
+
+if ( $genome == human || $genome == mouse || $genome == SpeciesB) set chr_head = chr
+if ( $genome == stick ) set chr_head = super_
+if ( $genome == plasmo ) set chr_head = MAL
+
+# Create mini-genome in its own reference dir.  Also create a version with its
+# ends extended by 1kb to allow for assembly of stuff that reaches off the ends.
+
+if ( ( $genome == ecoli || $genome == rhody ) && "$range" != all ) then
+     echo "For your genome, you must specify all for the range."
+     exit
+endif
+set genome_ref = genome
+if ( $genome == mouse ) set genome_ref = fixed/genome_fixed
+if ( $genome == "SpeciesB" ) set genome_ref = genome.diploid
+set req_scontigs = `echo $range | grep \:` #check if region is list of supers
+if ( $req_scontigs != "" ) then
+     set qtig = `echo $range | tr ':' ' ' | Col 1`
+     set start = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 2`
+     set stop = `echo $range | tr ':' ' ' | tr '-' ' ' | Col 3`
+     echo "`date`: Creating the mini-genome from single super..."
+     if ($genome == "SpeciesB") then
+	SelectDiploidAssemblathon FASTB_IN= $root/$genome_ref.fastb FASTB_OUT= $ref/genome.fastb RANGE=$range
+	Fastb2Fasta IN= $ref/genome.fastb OUT= $ref/genome.fasta
+     else 
+	SelectBases PRE=/ INPUT=$root/$genome_ref.fasta CONTIG=$qtig \
+             START=$start STOP=$stop UPCASE=True OUTPUT=$ref/genome.fasta
+     endif
+     if ( $status != 0 ) then
+          echo "Base selection failed:"
+          cat $ref/genome.fasta
+          exit
+     endif
+     set start_ext = `expr $start - 1000`
+     if ( $start_ext < 0 ) set start_ext = 0
+     set stop_ext = `expr $stop + 1000`
+     if ( $genome == "SpeciesB" ) then
+        set ext_range = ${qtig}:${start_ext}-${stop_ext}
+	SelectDiploidAssemblathon FASTB_IN= $root/$genome_ref.fastb FASTB_OUT= $ref/genome_extended.fastb RANGE=$ext_range
+	Fastb2Fasta IN= $ref/genome_extended.fastb OUT= $ref/genome_extended.fasta
+     else 
+        SelectBases PRE=/ INPUT=$root/$genome_ref.fasta CONTIG=$qtig \
+          START=$start_ext STOP=$stop_ext UPCASE=True OUTPUT=$ref/genome_extended.fasta
+     endif
+     if ( $status != 0 ) then
+          echo "Extended base selection failed."
+          exit
+     endif
+     ln -s $ref/genome_extended.fasta $ref/data
+     ln -s $ref/genome.fastb $ref/data
+     set super_range = $chr_head$orig_range
+else if ( "$range" == all ) then
+     cp $root/genome.fasta $ref
+     set super_range =
+else
+     echo "`date`: Creating the mini-genome from list of supers..."
+     set crange = `echo $range | tr ' ' ','`
+     SelectFasta PRE=/ INPUT=$root/$genome_ref.fasta IDS="{"$crange"}" \
+          UPCASE=True OUTPUT=$ref/genome.fasta
+     if ( $status != 0 ) exit
+     set super_range =
+     foreach x ($orig_range)
+          set super_range = "$super_range $chr_head$x"
+     end
+endif
+echo "super_range" $super_range
+
+# Make some auxiliary files.
+
+( cd $ref; MakeLookupTable SOURCE=genome.fasta OUT_HEAD=genome LOOKUP_ONLY=True )
+MakeLookupTable SOURCE=$ref/genome.fasta OUT_HEAD=$ref/genome
+if ( $status != 0 ) exit
+cp $ref/genome.fastamb $data
+FastbSizes FILE=$ref/genome.fastb TOTAL_ONLY=True REPORT=$ref/genome.size
+if ( $status != 0 ) exit
+GenomeUnipathStats GENOME=$ref/genome K=96 DOT=$ref/genome.dot
+if ( $status != 0 ) exit
+cp $root/ploidy $data
+
+# Simulate fragment pairs.
+
+$scriptdir/simulate_assemblathon_library $ref data frag $frag_cov
+
+# Simulate 3k jumps pairs.
+
+$scriptdir/simulate_assemblathon_library $ref data 3k_jump $jump_cov
+
+# Simulate 10k jumps pairs.
+
+$scriptdir/simulate_assemblathon_library $ref data 10k_jump $jump_cov
+
+
+# Reverse jumps.
+
+FastbQualbTrimReverse IN_HEAD= $ref/data/3k_jump OUT_HEAD= $ref/data/3k_jump_rev REVERSE=True
+ln -s 3k_jump.pairs $ref/data/3k_jump_rev.pairs
+
+FastbQualbTrimReverse IN_HEAD= $ref/data/10k_jump OUT_HEAD= $ref/data/10k_jump_rev REVERSE=True
+ln -s 10k_jump.pairs $ref/data/10k_jump_rev.pairs
+
+# Merge jumps
+
+MergeReadSets DIR= $ref/data READS_IN="{3k_jump_rev,10k_jump_rev}"  READS_OUT=jump_reads_orig
+
+# Sym link frags
+
+ln -s frag.fastb $ref/data/frag_reads_orig.fastb 
+ln -s frag.qualb $ref/data/frag_reads_orig.qualb 
+ln -s frag.pairs $ref/data/frag_reads_orig.pairs 
+
+# Set up to run the assembly.
+
+set refname = Assemblathon/$genome/$region
+if ( $?absolute_path ) then
+     set pre = /
+     set base = /
+     set refname = $region
+     set dataname = data
+     set runname = run
+else if ( $genome == ecoli || $genome == rhody ) then
+     set pre = /wga/dev/WGAdata
+     set base = projects/ALLPATHS
+     set dataname = $readset
+     set runname = $region
+else if ( $genome == human ) then
+     set pre = /wga/dev/WGAdata
+     set base = projects/ALLPATHS
+     set dataname = data
+     set runname = run
+else if ( $genome == mouse ) then
+     set pre = /wga/dev/WGAdata
+     set base = projects/ALLPATHS
+     set dataname = data
+     set runname = run
+else if ( $genome == stick ) then
+     set pre = /wga/dev/WGAdata
+     set base = projects/ALLPATHS
+     set dataname = data
+     set runname = run
+else if ( $genome == plasmo ) then
+     set pre = /
+     set base = $small_euks 
+     set dataname = data
+     set runname = run
+else if ( $genome == SpeciesB ) then
+     set pre = /wga/dev/WGAdata
+     set base = projects/ALLPATHS
+     set dataname = data
+     set runname = run
+endif
+
+set keep =
+if ( $genome == human || $genome == mouse || $genome == stick ) then
+     set keep = "FF_KEEP_INFO=True"
+endif
+
+set aa_refname = genome
+if ( $genome == human || $genome == mouse || $genome == stick ) then
+     set aa_refname = genome_extended
+endif
+
+
+# Run the assembly.
+
+RunAllPathsLG PRE=$pre ALLPATHS_BASE=$base REFERENCE_NAME=$refname \
+     DATA_SUBDIR=$dataname RUN=$runname OVERWRITE=True TARGETS=small_genome \
+     AA_REFNAME=$aa_refname EVALUATION=FULL \
+     $keep $extra1 $extra2 $extra3 $extra4 $extra5 $extra6 $extra7
+if ( $status != 0 ) exit
+if ( $genome == human || $genome == mouse ) then
+     MakeReadInfo PRE=/ DATA=$data RUN=run
+     if ( $status != 0 ) exit
+endif
+
+# Done.
+
+echo ""
+echo "`date`: done"

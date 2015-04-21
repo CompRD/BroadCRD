@@ -1,0 +1,42 @@
+
+Results of test_coverage, run with r45637.
+
+Below there is some data regarding the affect of coverage and density on 
+whole-genome assembly results, assuming 250 base reads from the HiSeq 2500, 
+from a PCR-free library.  This is based on data from 2.5 flowcells.  If there 
+is more NA12878 data we could repeat the analysis.  The same analysis could 
+also be used to assess the effect of other lab conditions on results.
+
+Briefly, there are two conclusions:
+(1) there is a big difference between one lane and two lanes;
+(2) for the data we have, given two lanes of data, better results are 
+    obtained using higher density lanes.
+
+====================================================================================
+
+For 91 'finished' Fosmids from NA12878, and for various combinations of lanes of 
+250 base PCR-free HiSeq 2500 data from NA12878, we assembled the regions 
+corresponding to the Fosmids and computed the number of error events and gaps of 
+the assemblies, relative to the finished sequence.
+
+id    lane           pairs(M)
+
+1.1   H01UJADXX.1    18.5
+1.2   H01UJADXX.2    18.6
+2.1   H06HDADXX.1    10.5
+2.2   H06HDADXX.2    13.6
+2.3   H06JUADXX.1    16.7
+
+                                       error
+test   lanes  dataset        pairs(M)  events    gaps   notes
+
+1      1      1.1            18.5      272       35
+2      1      1.2            18.6      264       32     best for 1 lane (co-winner)
+3      2      1.1,1.2        37.1       82        7     best for 2 lanes
+4      1      2.1            10.5      619       98
+5      1      2.2            13.6      396       40
+6      1      2.3            16.7      301       26     best for 1 lane (co-winner)
+7      2      2.1,2.2        24.1      128       14
+8      2      2.1,2.3        27.2      115       11
+9      2      2.2,2.3        30.3       95       11
+10     3      2.1,2.2,2.3    40.8       63        6     overall best (but 3 lanes)

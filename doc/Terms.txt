@@ -1,0 +1,507 @@
+
+File: Terms and Concepts
+
+Terms and concepts that are frequently used in the Arachne/ALLPATHS
+documentation.  Some terms have more than one meaning -- then all
+meanings are given in turn.  Only terms used in more than one
+place should be defined here; local terms should be defined
+where they are used.
+
+//////////////////////////////////////////////////////////////////////
+
+Group: Unclassified terms
+
+//////////////////////////////////////////////////////////////////////
+
+Term: base vector
+
+A vector of DNA bases: a string of A/G/T/C's.  Can be represented
+using <basevector> class.
+
+Term: read set
+
+A set of reads.  Can be represented as a <vecbasevector>.
+
+Term: genome unipath
+
+A <unipath> constructed directly from a known reference genome.  By
+definition, aligns perfectly to all its <placements>.  
+See also <read unipath>.
+
+Term: read unipath
+
+A <unipath> constructed from reads.  Its alignments to the <reference>
+may not be perfect.   Read unipaths are our best attempt to
+approximate the genome unipaths.  When the term "unipaths" is referred
+to without qualification, usually read unipaths are meant.
+
+Term: unique unipath
+
+A <unipath> which occurs exactly once, that is, has <copy number> 1.
+From such unipaths, we can seed <neighborhoods>.
+It is a big error if we call a unipath whose actual copy number is
+greater than one, a unique unipath; we then end up pasting together
+unrelated genome regions.
+
+Term: unibase
+
+Take a unipath, convert it to base sequence, and do edits by aligning
+reads to this sequence -- you get a unibase.  
+
+Note that a unibase no longer has the strict mathematical properties
+of a unipath -- for example, a given <kmer> may occur in two
+different unipaths.
+
+Term: N50
+
+A statistical measure of how contigous (unbroken) a set of segments
+(<contigs>, scaffolds, ungapped scaffolds, <unibases>, <unipaths>...) is.
+It is a segment size, such that half of the <assembly> is composed of segments
+of at least this size.
+
+Note that this is an intrinsic measure that depends only on the set
+of segments and does not consider how well these segments align
+to the <reference>.
+
+See also <Evaluation>.
+
+Term: contig
+
+A sequence of bases which we believe occurs in the genome.  
+So, <strong kmers>, <unipaths> and <unibases> are examples of contigs; but
+there can also be longer contigs, obtained by concatenating these
+elements and/or applying edits, or obtaining a sequence that we
+believe is genomic
+by some other method..  A contig *never has gaps*.  
+
+<Scaffolds> consists of contigs, properly oriented towards each other
+and with gap length/deviation information among the member contigs.
+
+Term: scaffold
+
+A set of <contigs>, properly oriented relative to each other and with
+gap length/deviation information among the contigs.
+
+An <assembly> consists of scaffolds.
+
+Term: assembly
+
+A group of <scaffolds>.  Has no information on how the scaffolds are
+oriented relative to each other, or even whether they are from the
+same DNA molecule.  Correspond to <genome parts>.
+
+Term: kmer graph
+
+A directed graph where each <kmer> is a node and there is an 
+edge from K1 to K2 if there is a <read> where K2 follows K1 and
+they're both <trusted>.  A subgraph of the de Bruijn graph of all
+possible kmers of the given length.
+
+Term: unipath graph
+
+A directed graph, derived from the <kmer graph>, where each node is a
+<unipath>.
+
+Term: unipath
+
+A <kmer path> in the <kmer graph> that starts at a kmer and follows a
+path in the kmer graph until it hits a branch.  Has useful
+mathematical properties.  For example, each <kmer> is in exactly
+one unipath.
+
+Unipaths are determined by <Unipather>.
+
+Term: genome part
+
+One of the <base vectors> in a genome.
+Note that the order of the genome parts relative to each other is unknown or may be
+undefined -- for example, each part may be a separate chromosome.
+
+Term: genome part id
+
+Identifier of a <genome part>.  Also referred to as "genome id" for short.
+
+Term: genome pos
+
+A particular base on a particular <genome part>.
+
+Term: reference
+
+A reference genome, a known genome for which we have reads.  Obviously
+we don't have that in production runs, but can use the reference for
+sanity-checking of results and for developing heuristics.
+
+Term: truth
+
+Refers to knowing the actual exact sequence of the genome that was
+sequenced, and the exact location of each read on that genome
+(and therefore the error-free version of each read).
+Only happens when we're using <simulated reads>.
+
+Note that knowledge of the truth is not the same as knowledge of the
+reference.  Sometimes we get reads from a known genome (that has been
+sequenced by other means), but we don't know where on the genome
+each read originated.
+In that case we know the <reference>, but not the truth.
+
+We have even less knowledge when doing <resequencing> or 
+<assisted assembly>, where we don't know the exact genome from which
+our reads come, but know the genome of another individual of the same
+species (resequencing) or the genome or a related species (assisted
+assembly).
+Finally, we may be doing complete 'de novo' sequencing with no
+knowledge at all of the genome from which our reads come.
+
+Term: reverse complement
+
+Reverse complement of a string of bases.
+
+Term: kmer space
+
+Representation of a <base vector> in terms of its sequence of <kmers>,
+rather than its sequence of bases.  A particular kmer space --
+the mapping of each kmer to an integer -- is created by <ReadsToPaths>.
+
+Term: sequence space
+
+The ordinary representation of a base vector as a string of bases.
+
+Term: genomic kmer
+
+A <kmer> that actually occurs in the genome.
+
+Term: strong kmer
+
+A kmer that we believe is a <genomic kmer>.
+
+Term: occurrence
+
+An occurrence of a kmer in a read; also referred to as a "kmer
+instance".  A given kmer may have a number of occurrences in various
+reads (potentially even several occurrences in the same read). 
+Note that this may be the
+occurrence of the reverse complement of the kmer
+in the read (meaning the actual kmer as written occurs on the
+complementary strand).
+
+Term: forward occurrence
+
+The <occurrence> of a kmer in a read, such that the canonical kmer
+occurs in the read.
+
+Term: backward occurrence
+
+The <occurrence> of a kmer in a read, such that the canonical kmer
+occurs on the complementary strand to the strand from which the read comes.
+
+Term: kmer strength
+
+How strongly we believe that a kmer is a <genomic kmer>.
+
+Term: adj
+
+A kmer adjacency; in other words, a (k+1)-mer.
+
+Term: mutmer
+
+An alignment with no indels; the only mismatches between the two
+aligned sequences are in the form of base substitutions.
+(A perfect alignment, with no indels but no mutations either, is a
+special case of a mutmer).
+A mutmer is often a short alignment, since long
+alignments often have indels.
+
+Term: mux
+
+A <minimal extension>, a construction used for <walking inserts>.
+Ask <Jon> about this.
+
+Term: placement
+
+A point on the reference to which a read or a unipath aligns.
+Differs from a full alignment in that only the start of the alignment
+is represented -- any substitutions, and especially any indels,
+are not captured by a placement and must be recomputed if you need them.
+
+Term: perfect read
+
+A read that aligns perfectly to at least one place in the reference
+genome.  This definition doesn't necessarily mean that this read had
+no errors: it could have an error but still align correctly to 
+some place in the genome, that was very similar to the place from
+which the read actually came.  This definition also ignores 
+<quality scores>.
+
+Term: passing read
+
+A read that passes a binary quality metric for reads.
+
+Term: correctible read
+
+A read that we are able to correct, as opposed to just throwing it
+out.  That is, a read for which we can find a reasonable hypothesis
+of what the read originally looked like, so that the proposed picture
+of how the read mutated from its original sequence into the read
+sequence is reasonably probable, and the proposed original sequence
+looks reasonably genomic (i.e. we believe that it occurs in the
+genome).
+
+The current implementation of the above, in <ProvisionalEdits>, 
+is to see if a few mutations can make all kmers in the read <strong>.
+
+Term: gap
+
+This can refer to one of several things.  
+It can mean:
+
+   - a gap in an alignment (such gap is also called an indel)
+   - a gap in a <kmer path>
+   - a gap in a <kmer shape>
+
+Topic: intensity
+
+For each read at each read position, for each base possibility, Solexa
+gives an intensity for that base possibility: how strongly does the
+raw data indicate that the base at that position is an A? a G? a T? a
+C?  For each of these possibilities, a <four_base> structure gives a
+value; we have one such structure for each position in each read
+in an <.intensities> file.
+
+Topic: quality score
+
+Handling of quality scores, which tell for each base in the read
+how confident we are that the base given in the read has been read
+correctly.
+
+Generally, read quality declines (and error probability increases)
+towards the end of a read.
+
+There are several general approaches to representing error probabilities:
+
+  - only considering read positions -- have a fixed probability
+  of error at a given read position, or of errors at a
+  particular combination of positions
+
+  - also considering read contents -- for individual reads,
+  together with the reads we get the quality scores for each
+  base.
+
+  - using the improved per-read quality scores developed by <Will> and
+    <Pablo>.
+
+Term: assisted assembly
+
+Assembling an unkonwn genome from low-coverage data, with the help of
+a known related genome.
+
+Term: paired reads
+
+A pair of reads with roughly known distance between them -- they are
+read from two ends of the same fragment, and we know the distribution
+of fragment lengths in a <library>.      
+
+Term: read pileup
+
+An abnormally high number of reads aligning to the same point on the
+reference -- usually caused by a highly repetitive region of the
+genome.
+
+Term: protected read
+
+A heuristic mechanism in error correction, where we identify some
+reads as being "good" and prevent them from being edited.
+
+Term: read bias
+
+The fact that reads to not fall uniformly randomly on the genome;
+rather, some parts of the genome have systematically more reads
+falling on them, and some systematically fewer.  This is in addition
+to the natural random variation in the number of reads falling on the
+various places of the genome.
+
+One major read bias is the <gc bias>.
+
+See also <read start bias>
+
+Term: read start bias
+
+The fact that read starts are not distributed randomly on the genome.
+This can result, for example, from uneven <shearing> of the genome
+into <fragments>.
+
+Where reads start can affect what linking information we have between
+various genome parts: if there are no reads crossing the
+boundary between two particular genome bases, that limits our ability
+to link together <neighborhoods>.
+
+See also: <read bias>, <gc bias>.
+
+Term: gc bias
+
+A <read bias> that is strongly tied to the gc content of the read.
+
+Note that the gc content of parts of the <fragment> that are not read
+may influence the gc bias of the read portion of the fragment.
+
+See <Handling gc bias>.
+
+Term: trusted base
+
+A base that we are pretty sure is correct, according to a definition
+by <David>.  For each base of each read we compute whether that base
+is trusted or not, and put this info into a <.trusted> file.
+
+Term: link
+
+A link between two basevecs -- e.g. between two <normal edges> of the
+assembly; a single <pair> where one read lands on one basevec and
+the other on the other basevec.  Implies a particular relative
+position and orientation of the two basevecs.  See also
+<bridge>
+
+Term: bridge
+
+A set of <links> between two basevecs, giving consistent information
+about the two basevecs' relative position and orientation.
+
+
+Term: ALLPATHS run
+
+One analysis of an ALLPATHS project, stored in a <run dir> under a
+   <project dir>.
+
+Term: Solexa run
+
+One reading of a <flowcell>, on a particular date.  There is normally
+exactly one run of each flowcell.  For <paired reads> there are two
+runs, one to read one end of the <fragments> and the other to read 
+the other end.  These can be viewed as one interrupted run.
+Each run corresponds to a directory under the <Broad pipeline
+directory>.
+
+Term: run
+
+1) <ALLPATHS run>; 2) <Solexa run>.
+
+//////////////////////////////////////////////////////////////////////
+
+Group: General sequencing terms
+
+Terms used in the field of DNA sequencing generally, without reference
+to a particular sequencing technology.
+
+Term: fragment
+
+One fragment of the sheared genome, which we attempt to read.  Each
+fragment is amplified by PCR and gives rise to a <cluster>.
+
+Term: insert
+
+See <fragment>.   (The term comes from older DNA sequencing
+technologies where the fragment to be sequenced was inserted into a
+plasmid; for <Solexa> we're not using plasmids anymore, so fragment is
+the more accurate term.)
+
+Term: library
+
+A collection of <fragments> of a particular size (plus or minus a
+bit).
+
+/////////////////////////////////////////////////////////////////////////
+
+Group: Solexa terms
+
+Terms specific to the <Solexa> sequencing platform.
+
+Term: cycle
+
+The reading of one base position during a <run>; this reads the next
+base in each <cluster>, adding one base to each <read>.
+
+Term: flowcell
+
+Contains several <lanes>.
+
+Term: lane
+
+A lane on the glass slide (a <flowcell>), with <clusters> on the walls.
+
+Term: cluster
+
+A cluster of copies of a fragment -- a spot on the wall of one lane of
+a Solexa <flowcell>; corresponds to
+one read.  Also known as "polony" - polymer colony.
+
+Term: polony
+
+See <cluster>.
+
+Group: Sanger sequencing terms
+
+Term: trace
+
+The raw data of a Sanger read.
+
+Group: Software engineering terms
+
+Term: Type concept
+
+A set of requirements on a type; a specification of what members the
+type must have and what their semantics must be.  Same thing as an STL
+concept, or a concept in <ConceptC++>.  We call them _type concepts_
+rather than just concept to leave room for the normal meaning of the
+word "concept", to denote some aspect of the problem domain.
+
+Section: Miscellaneous
+
+Abbreviations: Varous abbreviations
+
+    FLM - first local minimum of a <kmer frequency histogram>; most kmers
+       with frequencies less than this are erroneous (non-genomic),
+       while most kmers with frequencies greater than this are genomic
+       (or so we hope); see <strong kmers>.
+    FC - A Solexa <flowcell>
+    RC - See <reverse complement>
+    rc - See <reverse complement>
+    WGA - Whole Genome Assembly
+    occ - See <kmer occurrence>
+
+Synonyms: Various synonyms
+
+   reference genome - See <reference>
+   genome position - See <genome pos>
+   genome base - See <genome pos>
+   genome id - See <genome part id>
+   k-mer - See <kmer>
+   K-mer - See <kmer>
+   basevector - See <base vector>
+   sequence - See <base vector>
+   pileup - See <read pileup>
+   strength - See <kmer strength>
+   strong - See <strong kmer>
+   GC bias - See <gc bias>
+   base quality - See <quality score>
+   trusted - See <trusted base>
+   NaturalDocs - See www.naturaldocs.org
+   Natural Docs - See www.naturaldocs.org
+   doxygen - See www.doxygen.org
+   Doxygen - See www.doxygen.org
+   ConceptC++ - See http://www.generic-programming.org/languages/conceptcpp
+   kmer instance - See <occurrence>
+   quality control - See <Evaluation>
+   Scaffold - See <scaffold>
+   finished sequence - See <reference>
+   genome contig - See <genome part>
+   basevec - See <base vector>
+   sure kmers - See <MarkTrustedA1>
+   unsure kmers - See <MarkTrustedB1>
+   kadj - See <adj>
+   
+   
+
+
+
+
+
+
+   

@@ -1,0 +1,56 @@
+
+--------------------------------------------------------------------------------
+Sat Sep 28 20:03:30 2013 run on crd26, pid=34267 [Sep 28 2013 20:00:59 R47666M ]
+HQHBV DIR=H01UJ
+--------------------------------------------------------------------------------
+
+Sat Sep 28 20:03:30 2013: loading reads
+total reads = 743,640,178
+Sat Sep 28 20:11:31 2013: trimming reads
+mean trimmed read length = 181
+Sat Sep 28 20:11:53 2013 estimating kmer class distribution
+Min(freq) = 461, Max(freq) = 753388
+Sat Sep 28 20:12:56 2013: computing number of passes
+see 1,019,357,294,592 available bytes
+see 1,523,636,708,864 bytes in kmers
+passes_to_use = 2
+Sat Sep 28 20:13:01 2013: defining kmer bins
+Min(inbin) = 8003291, Max(inbin) = 8003892
+max to min bin ratio = 1.00008
+Sat Sep 28 20:13:01 2013: starting main passes
+starting pass 1 of 8
+starting pass 2 of 8
+starting pass 3 of 8
+starting pass 4 of 8
+starting pass 5 of 8
+starting pass 6 of 8
+starting pass 7 of 8
+starting pass 8 of 8
+2,935,375,875 passing kmers
+peak mem used = 484.1 GB
+Sat Sep 28 21:25:06 2013: sorting passing
+Sat Sep 28 21:26:18 2013: creating bkmers
+peak mem used = 484.1 GB
+Sat Sep 28 21:27:20 2013: pushing
+Sat Sep 28 21:27:58 2013: sorting to find nexts
+peak mem used = 484.1 GB
+Sat Sep 28 21:51:33 2013: finding nexts and backs
+Sat Sep 28 21:52:36 2013: defining bstarts
+Sat Sep 28 21:52:36 2013: defining cstarts
+peak mem used = 484.1 GB
+Sat Sep 28 21:54:40 2013: and now building nexts and backs
+peak mem used = 484.1 GB
+Sat Sep 28 22:03:22 2013: making chains 1
+bkmers.size( ) = 5870751750, chains.size( ) = 340460
+Sat Sep 28 22:04:24 2013: making chains 2
+bkmers.size( ) = 5870751750, chains.size( ) = 48945333
+Sat Sep 28 22:09:58 2013: creating circles
+bkmers.size( ) = 5870751750, chains.size( ) = 48945588
+Sat Sep 28 22:10:05 2013: sorting chains
+peak mem used = 484.1 GB
+Sat Sep 28 22:10:20 2013: making unibases
+48945588 unibases of median size 14 and N50 size 1049
+Sat Sep 28 22:11:42 2013: defining con
+Sat Sep 28 22:12:00 2013> building graph
+hb.EdgeObjectCount( ) = 48945588
+Sat Sep 28 22:15:20 2013: done, time used = 2.06 hours, peak mem used = 484.1 GB

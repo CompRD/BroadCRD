@@ -1,0 +1,108 @@
+
+// NOTES ON ILLUMINA DATA SETS (SPECIFIED BY SAMPLE)
+//
+// - human: NA12878
+//          * DATASET=0, PCR data,                                 H01RHADXX.{1,2}
+//          * DATASET=1, default, PCR-free (also 1.1, 1.2),        H01UJADXX.{1,2}
+//          * DATASET=2, more PCR-free data (also 2.1, 2.2, 2.3)   H06HDADXX.{1,2}
+//                                                                 H06JUADXX.1
+//          * DATASET=1s, PCR data from 100-base reads             202PBABXX.{1-8}
+//                        from 180 bp fragments                    61PHDAAXX.{6,7,8}
+//          * DATASET=1x, better PCR-free data from 250 base reads BH9TEUADXX.{1,2}
+//
+//          NA12882, CEPH male
+//          * DATASET=3, PCR-free, 400-base reads from Illumina
+//
+//          NA12892 (mother of NA12878)                           
+//          * DATASET=4, PCR-free                                  H06JHADXX.{1,2}
+//                                                                 H06JUADXX.2
+//          NA12891 (father of NA12878) (also 5.1, 5.2, 5.3)
+//          * DATASET=5, PCR-free                                  H03N7ADXX.{1,2}
+//
+// - hpool1: this is a pool of 'WIBR' Fosmids
+// - hpool2: this is a pool of NA12878 Fosmids
+// - hpool3: this is another pool of NA12878 Fosmids
+// - human.hpool2: this is the same whole-genome NA12878 dataset as for 'human',
+//   but the region argument X is specified relative to hpool2
+// - human.hpool3: similar
+
+====================================================================================
+
+Illumina Platinum data sets for CEPH/UTAH PEDIGREE 1463 (100 base reads, PCR).
+These are aligned to hg19, but the record names start with chr.  You can run
+LongProto on these if you use X=chr... and LOGGING=TREAT_AS_UNKNOWN=True.  For 
+reasons I don't understand, when you load these bam files, you'll get messages 
+about EOF markers absent.
+
+who                sample   DATASET
+maternal grandma   NA12892  P_momsmom
+paternal grandma   NA12890  P_dadsmom
+maternal grandpa   NA12891  P_momsdad
+paternal grandpa   NA12889  P_dadsdad
+mother             NA12878  P_mom
+father             NA12877  P_dad
+daughter           NA12879  P_d1
+daughter           NA12880  P_d2
+daughter           NA12881  P_d3
+daughter           NA12885  P_d4
+daughter           NA12887  P_d5
+son                NA12882  P_s1
+son                NA12883  P_s2
+son                NA12884  P_s3
+son                NA12886  P_s4
+son                NA12888  P_s5
+son                NA12893  P_s6
+
+====================================================================================
+
+CANCER
+                   HCC1954
+
+====================================================================================
+
+Mammals
+
+- rhino
+
+====================================================================================
+
+Microbial (PCR-free, except as noted))
+
+- rhody     = Rhodobacter sphaeroides
+- ecoli11   = E. coli 11-9941 (A42CA)
+- bcereus   = Bacillus cereus (A42CA)
+- tb        = M. tuberculosis (A42CA)
+- plasmo    = P. falciparum 3D7
+              DATASET = 1, PCR (Chesterford)
+              DATASET = 2, PCR-free (A2RD9)
+- entero    = Enterococcus casseliflavus 899205
+- bifi      = Bifidobacterium bifidum NCIMB 41171
+- scardovia = Scardovia wiggsiae F0424
+- tb148     = Mycobacterium tuberculosis W-148
+- ecoli12   = E. coli K12 MG1655
+- ecoli_scs = E. coli SCS110_20131118
+
+====================================================================================
+
+Daniel MacArthur's muscle disease samples 
+
+DATASET = sample
+Coverage below computed on NEB repeat.
+
+who         sample  cov    lanes                                          
+
+F affected  17E_PD 118.1   H09P1ADXX.{1,2} H09PGADXX.{1,2}                 
+mom         16E_MD  60.2   H09NKADXX.2 H09NHADXX.1                       
+dad         15E_DD  66.2   H09PJADXX.1 H09NHADXX.2                        
+
+F affected  23H_LM  70.0   H09PDADXX.2 H09NJADXX.1 H0KTMADXX.1              
+mom         24H_CM  77.6   H09PDADXX.1 H09PJADXX.2 H0KREADXX.1              
+dad         25H_JM  31.1   H09PHADXX.{1,2} H0JG5ADXX.{1,2}               
+
+F affected1 65T_CR 123.7   H09RDADXX.{1,2} H09P8ADXX.2 H0KTMADXX.2          
+F affected2 66T_NG  94.8   H09NKADXX.1 H0A1RADXX.{1,2}                  
+mom         67T_SR  58.5   H09NJADXX.2 H09P8ADXX.1                     
+dad1        68T_DR  57.0   H09H9ADXX.{1,2}
+dad2        69T_GG  70.4   H09HFADXX.{1,2} H0KREADXX.2                      
+
+These datasets can also be access via DATASET= F1, F2 or F3, respectively.

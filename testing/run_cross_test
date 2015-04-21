@@ -1,0 +1,125 @@
+#!/bin/csh
+#
+# Copyright (c) 2004 Broad Institute/Massachusetts Institute of Technology
+
+# This script is for assembling projects on different hardware platforms and
+# diffing the results to make sure that they are identical.  Projects which
+# terminate more-or-less normally with identical results are deleted.  Those left 
+# behind may be interesting!
+#
+# The directory $pre (defined below) needs to be filled with projects from
+# "Testomatic assemble=False" and have directories vec, dtds, e_coli,
+# e_coli_transposons.
+#
+# Then you checkout on the different hardware platforms, "make assembler",
+# and start this script on each of them.  To run on the i686 platform, you need to
+# "bsub -q normal -o rct.out -e rct.err testing/run_cross_test" from lead.
+#
+# Suggestion: start the runs on the fastest machines first.
+#
+# This code checks for a manually-created file NOTES in the project directory and 
+# prints it if present. 
+#
+# KNOWN PROBLEM: Doing all operations on the same filesystem may result in
+# slowness on one of the machines.  In particular, with $pre as below, the
+# mendelevium run will be very slow.
+#
+# KNOWN PROBLEM: If all three projects terminate due to a timeout at the same point,
+# the condition is not detected and treated appropriately (which would be to delete
+# the project).  This would require changes to Arachne.
+
+# VARIABLE DEFINITIONS:
+
+set machine_list = "alpha ia64 i686"
+set pre = "/seq/wgascratch/big_test_set"
+
+# THE SCRIPT:
+
+set this_machine = `uname -m`
+foreach proj ( `/bin/ls -1 $pre | grep L` )
+
+     # Do the assembly.
+
+     Assemble PRE=$pre DATA=$proj RUN=$this_machine SIMPLE=True FORCE_VERSION=True
+
+     # Check for logfiles on all three platforms.  Collisions here and below are
+     # possible but unlikely if one of the platforms is substantially slower than 
+     # the rest.
+
+     set have_logfile = 0
+     foreach machine ($machine_list)
+          set logfile = $pre/$proj/$machine/assembly.log
+          if ( !(-f $logfile) ) set have_logfile = 1;
+     end
+     if ( $have_logfile != 0 ) continue
+     echo ""
+     echo checking $proj
+     if ( -f $pre/$proj/NOTES ) then
+          echo "Notes for this project:"
+          cat $pre/$proj/NOTES
+     endif
+
+     # Check for abnormal termination via the same particular condition on all three
+     # platforms.
+
+     set abnormal1 = 0
+     set abnormal2 = 0
+     set abnormal3 = 0
+     foreach machine ($machine_list)
+          set logfile = $pre/$proj/$machine/assembly.log
+          set msg1 = "Too many reads had a different number of bases than quality"
+          grep "$msg1" $logfile >& /dev/null
+          if ( $status != 0 ) set abnormal1 = 1
+          set msg2 = "There are no contigs."
+          grep "$msg2" $logfile >& /dev/null
+          if ( $status != 0 ) set abnormal2 = 1
+          set msg3 = "The specified configuration file."
+          grep "$msg3" $logfile >& /dev/null
+          if ( $status != 0 ) set abnormal3 = 1
+     end
+     if ( $abnormal1 == 0 || $abnormal2 == 0 || $abnormal3 == 0 ) then
+          echo all runs have same user error 
+          echo killing project
+          /bin/rm -rf $pre/$proj
+          continue
+     endif
+
+     # Check for normal termination on all platforms.
+
+     set normal = 0
+     foreach machine ($machine_list)
+          set logfile = $pre/$proj/$machine/assembly.log
+          grep "terminated normally" $logfile >& /dev/null
+          if ( $status != 0 ) set normal = 1
+     end
+     if ( $normal != 0 ) then
+          echo "Not all runs terminated normally."
+          continue
+     endif
+
+     # Check for identical results on all platforms.
+
+     set bad = 0
+     foreach machine1 ($machine_list)
+          foreach machine2 ($machine_list)
+               if ( `expr $machine1 \< $machine2` != 1 ) continue
+               set dcom1 = "DiffAssemblies PRE=$pre DATA=$proj"
+               set dcom2 = "OLD_RUN=$machine1 NEW_RUN=$machine2 EXTRA_CHECKS=True"
+               $dcom1 $dcom2 >& /dev/null
+               if ( $status != 0 ) then
+                    echo assemblies for $machine1 and $machine2 are DIFFERENT!
+                    echo exhibit differences using
+                    echo $dcom1 $dcom2
+                    set bad = 1
+               endif
+          end
+     end
+     if ( $bad == 1 ) continue
+     echo "Results are identical on all machines."
+
+     # Delete the project
+
+     echo killing project
+     /bin/rm -rf $pre/$proj
+
+end

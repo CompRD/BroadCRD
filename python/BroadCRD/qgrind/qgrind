@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# needed to use use
+eval `/broad/software/dotkit/init -b`
+use -q Python-2.7
+
+# only include other pacakges if going into daemon mode
+# (to avoid making every call (e.g. qgrind -s) slow
+#
+ARGS=$*
+
+while (( $#  > 0 ))
+do
+    case $1 in
+        -d|--daemon)
+        echo "daemon mode -- including standard packages"
+        use -q .samtools-0.1.18
+        use -q .gcc-4.7.2
+        break
+        ;;
+    esac
+    shift
+done
+
+eval `dirname $0`/qgrind.py $ARGS

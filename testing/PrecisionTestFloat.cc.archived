@@ -1,0 +1,41 @@
+// Simple test to compare the behavior of
+// floating point arithmetic on floats.
+//
+// Compile this with various compiler options
+// and run it on various platforms to compare
+// the results.
+
+#include <math.h>
+#include <iostream>
+#include <iomanip>
+
+float mult(float a, float b)
+{
+  //float x = a*b;            // this is a caveat; doing this trick on the x86 and
+  //return x;                 // compiling with g++ -ffloat-store
+                              // gives more "standard" behavior on the x86
+  return a*b;
+}
+ 
+int main( ) 
+{ 
+  using namespace std;
+
+  float x1 = 0.99999f; 
+  float x2 = 1.00001f; 
+   
+  for (int i = 0; i < 10; i++)
+    { 
+      cout << setprecision(12) << x1 << "\t"; 
+      cout << setprecision(12) << x2 << "\t"; 
+      cout << setprecision(12) << mult(x1,x2) << "\t";
+
+      if ( mult(x1,x2) >= 1 ) 
+	cout << "YES\n";
+      else 
+	cout << "NO\n";
+      
+      x1 *= x1; 
+      x2 *= x2; 
+    } 
+} 

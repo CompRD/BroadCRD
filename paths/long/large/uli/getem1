@@ -1,0 +1,29 @@
+#!/bin/csh
+
+# find mutations between two NA12878 datasets (shouldn't be any)
+
+set region = 10:10000000-30000000
+
+# child
+samtools view -b /wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/1/Solexa-125532/H01UJADXX.1.aligned.duplicates_marked.bam $region > x1.bam
+if ( $status != 0 ) exit 1
+samtools view -b /wga/scr4/picard/H01UJADXX/C1-508_2012-11-01_2012-11-04/2/Solexa-125532/H01UJADXX.2.aligned.duplicates_marked.bam $region > x2.bam
+if ( $status != 0 ) exit 1
+
+# child - alt
+samtools view -b /seq/picard/H06HDADXX/C1-508_2013-01-10_2014-04-25/1/Solexa-135852/H06HDADXX.1.aligned.duplicates_marked.bam $region > y1.bam
+if ( $status != 0 ) exit 1
+samtools view -b /seq/picard/H06HDADXX/C1-508_2013-01-10_2014-04-25/2/Solexa-135852/H06HDADXX.2.aligned.duplicates_marked.bam $region > y2.bam
+if ( $status != 0 ) exit 1
+samtools view -b /seq/picard/H06JUADXX/C1-508_2013-01-10_2014-04-25/1/Solexa-135852/H06JUADXX.1.aligned.duplicates_marked.bam $region > y3.bam
+if ( $status != 0 ) exit 1
+
+GapToy READS=x1.bam,x2.bam INSTANCE=50
+if ( $status != 0 ) exit 1
+GapToy READS=y1.bam,y2.bam,y3.bam INSTANCE=51
+if ( $status != 0 ) exit 1
+
+DiscoMerge INSTANCES=50,51 INST_OUT=60 NAMES="X,Y"
+if ( $status != 0 ) exit 1
+
+TTT1

@@ -1,0 +1,66 @@
+#!/bin/csh
+
+# assemble Heliconius samples
+
+# call with one argument, 1 or 2 or 3 or 4 or 5 or 6 or 7
+
+# run on half-terabyte box, although some will run on quart-terabyte
+
+set instance = $1
+
+set dest = helico2
+
+mkdir -p /wga/scr4/jaffe/GapToy/$dest
+
+echo "running on $HOST"
+
+set rev = 52234
+
+# runs are 1,...,18
+
+# running on crd5
+if ( $instance == 1 ) then
+     set samples = "1"
+endif
+
+# running on crd6
+if ( $instance == 2 ) then
+     set samples = "3 4"
+endif
+
+# running on crd9
+if ( $instance == 3 ) then
+     set samples = "5 6 7"
+endif
+
+# running on crd10
+if ( $instance == 4 ) then
+     set samples = "8 9 10"
+endif
+
+# running on crd11
+if ( $instance == 5 ) then
+     set samples = "11 12 13"
+endif
+
+# running on crd14
+if ( $instance == 6 ) then
+     set samples = "14 15"
+endif
+
+# running on crd16
+if ( $instance == 7 ) then
+     set samples = "16 17 18"
+endif
+
+foreach sample ( $samples )
+
+     echo "running sample $sample"
+     mkdir -p /wga/scr4/jaffe/GapToy/$dest/$sample
+
+     echo "start GapToy"
+     GapToy.$rev SAMPLE=helico{$sample} \
+          INSTANCE=$dest/$sample > ~/crd/GapToy.$dest.$sample
+     if ( $status != 0 ) break
+
+end

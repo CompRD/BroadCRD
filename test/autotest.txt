@@ -1,0 +1,14 @@
+BaseVecTests
+BitVecTests
+FastavectorTests
+FeudalStringTests
+FeudalTests
+FieldVecTests
+FlatIteratorTest
+MempoolTests
+MergeMastervecsTest
+OuterVecTests
+PairsManagerTests
+ShuffleTest
+SmallVecTests
+SortUniqueTest

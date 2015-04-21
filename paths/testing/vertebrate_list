@@ -1,0 +1,31 @@
+# List of current vertebrate assemblies
+
+PRE=/wga/scr1/ALLPATHS DATA=N.brichardi/fullbrichardi/fullbrichardi_v1.3 RUN=iainm.05Nov2010 SUBDIR=test
+ 
+PRE=/wga/scr1/ALLPATHS DATA=O.garnettii/fullbaby/fullbaby_v5.1 RUN=iainm.19jun SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=L.calumnae/fullcoelacanth/fullcoelacanth_v2.1 RUN=iainm.4jun2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=M.furo/fullferret/fullferret_v1.2 RUN=iainm.05Oct2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=S.tridecemlineatus/fullsquirrel/fullsquirrel_v1 RUN=iainm.4jun2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=H.sapiens.NA12878/fullhuman/fullhuman_v1.1 RUN=iainm.22jul SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=M.musculus.129/fullmouse/fullmouse_v1 RUN=iainm.9dec2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=P.nyererei/fullnyererei/fullnyererei_v1 RUN=iainm.06Nov2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=S.araneus/fullshrew/fullshrew_v1.3 RUN=iainm.05Nov2010 SUBDIR=test
+
+PRE=/wga/dev/WGAdata DATA=projects/ALLPATHS/G.aculeatus.bearpaw/fullstick/fullstick.iainm.5apr RUN=03.ribeiro.2009-06-10.copy_of_02 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=E.telfairi/fulltenrec/fulltenrec_v1.2 RUN=iainm.25Aug2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=O.niloticus/fulltilapia/fulltilapia_v1.1 RUN=iainm.21apr SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=M.zebra/fullzebra/fullzebra_v1.1 RUN=iainm.24Nov2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=M.musculus/fullmouse/fullmouse_v2.5 RUN=iainm.12aug2010 SUBDIR=test
+
+PRE=/wga/scr1/ALLPATHS DATA=A.burtoni/fullburtoni/fullburtoni_v1.2 RUN=iainm.04Dec2010 SUBDIR=test

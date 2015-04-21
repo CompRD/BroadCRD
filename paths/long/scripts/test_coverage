@@ -1,0 +1,48 @@
+#!/bin/csh
+
+# Test how coverage and density affects assembly results.
+
+# copied from fosgo:
+
+set goods = "`ListFosmids CLASS=goods,oks NH=True`"
+
+cp bin/LongProto LongProto.test
+
+foreach test (1 2 3 4 5 6 7 8 9 10)
+
+     if ( $test == 1 ) set dataset = "1.1"
+     if ( $test == 2 ) set dataset = "1.2"
+     if ( $test == 3 ) set dataset = "1"
+     if ( $test == 4 ) set dataset = "2.1"
+     if ( $test == 5 ) set dataset = "2.2"
+     if ( $test == 6 ) set dataset = "2.3"
+     if ( $test == 7 ) set dataset = "2.1,2.2"
+     if ( $test == 8 ) set dataset = "2.1,2.3"
+     if ( $test == 9 ) set dataset = "2.2,2.3"
+     if ( $test == 10 ) set dataset = "2"
+
+     set total_events = 0
+     set total_gaps = 0
+     
+     foreach id ($goods)
+          LongProto.test SAMPLE=human READS=\#picard TMP=tmp.xxx X= \
+               DATA_SPEC=HUMAN_CONTROLS=$id DATASET="{$dataset}" \
+               LOGGING=SHOW_REFTRACE_EVENTS=True LOGGING=REFTRACE=True > lp.out
+          if ( $status != 0 ) then
+               echo "LongProto failed"
+               echo "test = $test; id = $id"
+               cat lp.out
+               exit 1
+          endif
+          set events = `cat lp.out | grep -c META-EVENT`
+          set total_events = `expr $total_events + $events`
+          set gaps = `cat lp.out | grep "gaps = " | Col 11 | tr -d ','`
+          set total_gaps = `expr $total_gaps + $gaps`
+     end
+     
+     echo "\ntest = $test"
+     echo "dataset = $dataset"
+     echo "error events = $total_events"
+     echo "gaps = $total_gaps"
+
+end

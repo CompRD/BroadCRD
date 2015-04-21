@@ -1,0 +1,213 @@
+A Brief Overview of the Assembly Hierarchy
+==========================================
+
+
+Motivation
+----------
+
+The Assembly class and its appurtenances evolved from a desire for a
+simple, efficient, object-oriented means of managing the information
+associated with an assembly.  
+
+
+Architecture
+------------
+
+There are three main entities in an assembly, which is an entity in
+its own right (class Assembly): supercontigs (class Super), contigs
+(class Contig), and reads (class Read).  
+
+There are also entities in an assembly that capture relationship
+information: the pairings of reads (class ReadPair), the locations of
+reads in contigs (class ReadLocation), and the locations of contigs in
+supercontigs (class ContigLocation).  
+
+These last two entities may be concatenated under specific conditions
+(i.e. the Contig in the ReadLocation is the same as the Contig in the
+ContigLocation) into the locations of reads in supercontigs (class
+ReadLocationInSuper).
+
+These, in turn, may be combined with read pairings to produce
+evaluations of the links between placed reads (class Link).
+
+
+Implementation
+--------------
+
+Reads, Contigs, and Supers can be uniquely identified by their numeric 
+id and the assembly to which they belong.  This leads to a lightweight 
+representation of these entities where they are composed of their
+numeric id and a pointer to a class (an instatiation of which is owned 
+by the assembly to which they belong) which manages their data (class
+ReadDataManager, class ContigDataManager, and class SuperDataManager).
+
+For example, an Assembly contains a ReadDataManager.  When asked for a
+read with a given id, it returns (pending bounds-checking of the id) a
+Read object containing solely the asked-for id and a pointer to the
+ReadDataManager.  The Read so created simply delegates any questions
+about itself to the ReadDataManager, passing along its id.
+
+(This, by the way, leads to some interesting behavior.  If, for
+example, two Read objects are equal (i.e. they refer to the same read
+id in the same assembly), they function as if the were references to
+the same object: changing one will change the other.)
+
+This separation allows us to centralize the management of the data
+associated with all the entities of a given type for each assembly,
+making the implementation of strategies like lazy initialization of
+data much simpler and more efficient, and makes strategies like
+prefetching data possible at all.
+
+Each DataManager (one for Supers, one for Contigs, and one for Reads)
+in turn delegates much of its work to subsidiary classes (like
+specializations of VecDataManagers and FeudalDataManagers) to manage
+each type of data.  This allows further granularity for our lazy
+initialization: not only can we delay loading in the data for a given
+read until it's asked for, we only have to load in the specific kind
+of the data for the specific read that was requested.
+
+Tokens
+------
+
+With all the cross-referencing inherent to an architecture like this,
+we have to tackle a chicken-and-egg problem.  For example, a
+ReadLocation needs to know about Reads to be meaningful, and Reads
+need to know about ReadLocations in order to provide their locations.
+In otherwords, how do you define of these methods:
+
+class ReadLocation {
+  Read  GetRead();
+};
+
+class Read {
+  ReadLocation  GetLocation();
+};
+
+The dependency is mutual:
+
+  Read <==> ReadLocation
+
+One way to alleviate these circular dependencies is to have a separate
+object around to answer questions about where Reads are located.  You
+hand it a Read, and it hands back a set of ReadLocations.
+
+class Read {
+};
+
+class ReadLocation {
+  Read  GetRead();
+};
+
+class ReadLocationManager {
+  ReadLocation  GetLocationOf( Read& );
+};
+
+Now the dependencies are one-way:
+
+   ReadLocationManager
+      |      |
+      V      V
+    Read  ReadLocation
+
+Unfortunately, we've introduced a new problem.  Now you have to drag
+around a pointer or reference to this centralized object in addition
+to the Reads you're interested in.  You'd also have to either create a
+new object for each relationship or pile all the relationship
+management into a single class, neither of which is a particularly
+attractive alternative.
+
+Another option is to add the concept of Tokens.  A Token is a
+lightweight object that contains sufficient information to identify a
+specific entity, but which has no entity-specific methods.
+
+For example, a ReadToken contains the id of a Read and a pointer to
+the ReadDataManager for that read.  It does not, however, have any
+methods other than GetId() and GetMgrPtr().  Since, unlike the Read
+class, it does not have any methods that return ReadLocations, a
+ReadLocation can have the full definition of a ReadToken and a Read,
+in turn, can have the full definition of ReadLocation without causing
+any circular dependencies:
+
+class ReadToken {
+};
+
+class ReadLocation {
+  ReadToken   GetRead();
+}
+
+class Read {
+  Read( ReadToken& );
+  Read&  operator=( ReadToken& );
+  ReadLocation  GetLocation();
+}
+
+Now we have one-way dependencies:
+
+       Read
+         |
+         V
+    ReadLocation
+         |
+         V
+     ReadToken
+	
+Unlike the other solution, we can also ask a Read directly for its
+locations and a ReadLocation directly for its ReadToken, which can
+implicitly or explicitly be converted to a Read.
+
+Prefetching
+-----------
+
+For efficiency's sake, a simple prefetching strategy has been
+implemented for reads: when a given kind of information has been
+requested for a given read and it has not yet been loaded, the given
+kind of information is loaded in for all reads in the given read's
+contig and all of their partners.  This seems to perform well in
+most situations, but could easily be swapped out for another (even on
+the fly!).  Take a look at ReadSequenceManager.* and
+PrefetchStrategy.* for examples of how this works.
+
+Value Entities
+--------------
+
+Unlike the other entities, ReadPairs, ReadLocations,
+ReadLocationInSupers, ContigLocations, and Links are value entities,
+i.e. they cannot be changed once created and their is no guarantee of
+uniqueness.  Authoritative copies of the ReadPairs, ReadLocations, and
+ContigLocations for a given Assembly are managed by Manager entities
+(class ReadPairManager, class ReadLocationManager, and class
+ContigLocationManager) contained within that Assembly.  The
+ReadDataManager, ContigDataManager, and SuperDataManager classes have
+access to these Pair and Location managers so that, for example, not
+only can a Contig tell you the ReadLocations it contains, but a Read
+can also inform you of all of its ReadLocations.
+
+Future Development
+------------------
+
+I'd like to separate the read data source (i.e. the stuff gotten from
+the work and orig directories) into a separate class that is handed to
+the Assembly class, which would just manage the stuff from the subdir.
+That would simplify the writing out of Assemblies, which would then
+only write out the subdir, while the read data source would stay
+constant.  It would also make copying Contigs and Supers between
+Assemblies much more efficient, as the two Assembies could share a
+read data source, so the read data wouldn't need to be copied.  I
+think this would need to be implemented before renumbering and a
+number of other useful things could be implemented.
+
+For example, you could make an empty assembly with the same read
+source as the assembly you're working on, copy a Super into it (a
+relative low cost operation), mess about with it, and only copy it
+back if you like the result.
+
+We should probably implement some variety of integrity verification,
+e.g. that all (most?) bases in each contig are covered by reads and
+that all supercontigs are well-connected.
+
+Some sort of undo or checkpoint mechanism might also be nice.
+
+We should probably implement some iterator classes for walking through
+read locations, contig locations, and maybe even links.  Building up
+entire vectors of these things will get expensive, and it's the sort
+of thing we do all the time.

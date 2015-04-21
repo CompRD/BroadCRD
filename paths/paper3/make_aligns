@@ -1,0 +1,40 @@
+#!/bin/csh
+
+# Run AlignScaffolds for the paper.
+
+# Careful running this.  You may want to turn off the FORCE_ALIGNS=True option.
+
+cd crd; make AlignScaffolds
+
+cd /wga/scr1/ALLPATHS/H.sapiens.NA12878/fullhuman/fullhuman_v1/iainm.22jul
+cd ASSEMBLIES/test
+
+AlignScaffolds IN_HEAD=linear_scaffolds0.patched \
+     OUT_HEAD=linear_scaffolds0.patched.genome \
+     REF_HEAD=/wga/scr1/ALLPATHS/H.sapiens.NA12878/genome FORCE_ALIGNS=True \
+     >& linear_scaffolds0.patched.genome.AlignScaffolds.out
+
+AlignScaffolds IN_HEAD=linear_scaffolds0.patched \
+     OUT_HEAD=linear_scaffolds0.patched.maternal \
+     REF_HEAD=/wga/scr1/ALLPATHS/H.sapiens.NA12878/maternal FORCE_ALIGNS=True \
+     >& linear_scaffolds0.patched.maternal.AlignScaffolds.out
+
+AlignScaffolds IN_HEAD=linear_scaffolds0.patched \
+     OUT_HEAD=linear_scaffolds0.patched.paternal \
+     REF_HEAD=/wga/scr1/ALLPATHS/H.sapiens.NA12878/paternal FORCE_ALIGNS=True \
+     >& linear_scaffolds0.patched.paternal.AlignScaffolds.out
+
+cd /wga/scr1/ALLPATHS/M.musculus/ABI3730
+
+AlignScaffolds IN_HEAD=mergedcontigs OUT_HEAD=mergedcontigs \
+     REF_HEAD=../genome FORCE_ALIGNS=True \
+     ANNOT_FILE=/wga/scr1/ALLPATHS/M.musculus/annotation/annotations \
+     >& mergedcontigs.AlignScaffolds.out
+
+cd /wga/scr1/ALLPATHS/M.musculus/fullmouse/fullmouse_v1/iainm.2jun2010
+cd ASSEMBLIES/test
+
+AlignScaffolds IN_HEAD=linear_scaffolds0.patched OUT_HEAD=linear_scaffolds0.patched \
+     REF_HEAD=/wga/scr1/ALLPATHS/M.musculus/genome FORCE_ALIGNS=True \
+     ANNOT_FILE=/wga/scr1/ALLPATHS/M.musculus/annotation/annotations \
+     >& linear_scaffolds0.patched.AlignScaffolds.out

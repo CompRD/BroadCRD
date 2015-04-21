@@ -1,0 +1,23 @@
+Directory for stuff on the NEB (nebulin) gene.
+
+hg19 coordinates = chr2:152,433,184-152,468,843
+
+transcript we're looking at: NM_001164508 = CCDS54407.1 = NEB-204
+
+command to get exons:
+GetExons GENE=NEB NH=True FLANK=0 TRANSCRIPT=NEB-204 \
+     START=152433183 STOP=152468843 > ~/crd/gene.fasta
+
+NEB.NA12878.1.{fasta,support,png} = results from
+r45619: LongProto SAMPLE=human READS=#picard TMP=tmp.xxx X=2:152433184-152468843
+with layout=neato added to dot file.
+
+NEB.NA12878.2.{fasta,support,png} = results from
+r45619: LongProto SAMPLE=human READS=#picard TMP=tmp.xxx X=2:152433184-152468843
+     DATASET=2
+with layout=neato added to dot file.
+
+NEB.NA12882.{fasta,support,png} = results from
+r45619: LongProto SAMPLE=human READS=#picard TMP=tmp.xxx X=2:152433184-152468843
+     DATASET=3
+with layout=neato added to dot file.

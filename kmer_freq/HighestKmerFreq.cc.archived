@@ -1,0 +1,43 @@
+// Copyright (c) 2004 Broad Institute of MIT and Harvard
+//
+// HighestKmerFreq.cc
+
+#include "kmer_freq/HighestKmerFreq.h"
+#include <map>
+
+
+// Given a basevector and a kmer size, returns the frequency of
+// the most frequent kmer of that size in the basevector.
+int
+HighestKmerFreq(const basevector & seq,
+		const int kmer_size)
+{
+  const int seqlength = seq.size();
+
+  basevector kmer(kmer_size);
+  map< basevector, int > freqmap;
+
+  // compute frequencies of all kmers in  seq
+  for (int startBaseIndex = 0;
+       startBaseIndex < seqlength - kmer_size;
+       startBaseIndex++)
+    {
+      kmer.SetToSubOf( seq,
+		startBaseIndex,
+		kmer_size );
+
+      ++freqmap[kmer];
+    }
+
+  // find the maximum value of all the frequencies thus obtained
+  int answer = 0;
+  for (map< basevector, int >::iterator map_iter = freqmap.begin();
+       map_iter != freqmap.end();
+       map_iter++)
+    {
+      if (map_iter->second > answer)
+	answer = map_iter->second;
+    }
+
+  return answer;
+}

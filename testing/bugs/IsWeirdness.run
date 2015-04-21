@@ -1,0 +1,21 @@
+#!/bin/csh
+
+set bin=bin_ia64
+
+#set bin=.
+
+# IRREGULAR BEHAVIOR ON IA64 UNDER GCC3.3.3.
+
+# Something seems to be wrong with -frename-registers.
+
+# N.B. "-O3" == "-O2 -finline-functions -frename-registers"
+
+g++ -W -Wall -O3 \
+  ./testing/IsWeirdness.cc -o $bin/IsWeirdness
+$bin/IsWeirdness
+# This will print "-528"
+
+g++ -W -Wall -O2 -finline-functions \
+    ./testing/IsWeirdness.cc -o $bin/IsWeirdness
+$bin/IsWeirdness
+# This will print "-764"

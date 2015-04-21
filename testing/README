@@ -1,0 +1,7 @@
+Test codes and illustrations of bugs in hardware/software platforms.
+
+This directory contains files which are either test codes for other pieces
+of code we own, or else illustrate bugs in the hardware/software platforms
+that we use.  (Note: in some cases test codes might be more appropriately 
+placed in the same directory is the code they are testing, but putting them
+here reduces clutter.)

@@ -1,0 +1,201 @@
+#!/bin/bash
+GLOBAL_OPTS="FRAG_TRIM=120"             # passed to build_micro
+PACBIO_OPTS="PACBIO_RUNS=19900,19892,19891,19899 PACBIO_BAM"  # when pacbio specified
+TARGET_COV=50                           # target fragment coverage
+BUILD_MICRO=build_micro                 # BM to do
+LONGPROTO=LongProto
+
+# temp files
+regiontable=/tmp/regions.$$
+helpfile=/tmp/help.$$
+
+# cleanup temp files on exit
+trap "rm $regiontable $helpfile 2>/dev/null" EXIT HUP TERM
+
+# table of regions: should be a human19/fosmid and then the fragment coverage
+# Note that table is 1-based for both the reference contig and the
+# region.  This is because it originally came from SAM.
+/bin/cat >$regiontable <<EOF
+1:24845810-24885271 1446
+1:34656934-34694706 770
+1:37070186-37107503 492
+1:54770670-54815411 788
+1:78024911-78062383 369
+1:78462034-78498652 337
+1:94072958-94106069 334
+1:164908084-164944895 876
+2:10103942-10143509 228
+2:50311560-50354930 232
+2:74222042-74267795 298
+2:75064785-75104070 693
+2:106774642-106814764 307
+2:239359093-239395808 751
+3:11057743-11093927 451
+3:13611972-13655278 2348
+3:15352791-15385798 1098
+3:40870624-40911936 426
+3:56210308-56255370 1335
+3:61537367-61574663 718
+4:6070815-6107356 491
+4:57791025-57826429 625
+5:111033215-111071978 960
+5:132691201-132724327 1964
+5:177690357-177733000 2554
+5:179300245-179343809 154
+6:19607919-19643418 950
+6:92591201-92636005 936
+7:3890149-3929070 769
+7:39598388-39637922 290
+8:23203272-23242450 945
+8:30787158-30824040 522
+8:72792723-72837874 351
+8:128773527-128809810 588
+10:30893106-30932760 989
+10:117634049-117679646 856
+11:47933464-47973743 3843
+11:62264700-62299666 1720
+11:67764306-67794829 917
+11:75490845-75535053 692
+12:7028081-7066476 886
+14:104039144-104081797 463
+15:74962938-74996913 705
+15:101709971-101744872 405
+16:24292282-24331293 649
+16:61335904-61375774 349
+17:11024347-11062645 1049
+17:48615666-48632229 2673
+17:72428494-72449829 2715
+19:50070897-50109939 512
+20:52417809-52454388 981
+22:50330078-50364756 649
+22:50806847-50840080 644
+EOF
+
+
+# fancy output parsing
+if [[ "$PAGER" == "" ]]
+then
+    PAGER=/bin/more
+fi
+
+# check for build_micro and LongProto
+command -v $BUILD_MICRO >/dev/null 2>&1 || { 
+    echo >&2 "I require $BUILD_MICRO but it's not in the path."; exit 1; }
+
+command -v $LONGPROTO >/dev/null 2>&1 || { 
+    echo >&2 "I require $LONGPROTO but it's not in the path."; exit 1; }
+
+# help message shows the regions and the usage: message in the PAGER
+# and then just the help message once you exit the pager.
+if (( $# != 2 && $# != 3 ))
+then
+    cat >$helpfile <<END_OF_HELP
+usage: $0 region_number output-directory ["pacbio"]
+
+- Specify a region number from the list below (starting with 1).  
+- If pacbio is specified (lowercase), then the pb reads with be used.
+- Specify an output directory.
+END_OF_HELP
+
+    ( 
+    cat $helpfile
+    let id=1
+    while read line 
+    do
+        set $line
+        echo "$id) $1"
+        let id=$id+1
+    done
+    ) <$regiontable | $PAGER
+    cat $helpfile
+    exit 1
+fi
+
+region=$1
+outputdir=$2
+if (( $# == 3 ))
+then
+    if [[ "$3" != "pacbio" ]]
+    then
+        echo 2>&1 "3rd argument must be missing or equal to 'pacbio' (no quotes)"
+        exit 1
+    fi
+    pacbio=$3
+fi
+
+# how many regions
+nlines=`cat $regiontable | wc -l`
+
+# check that user specified a valid number of regions
+if (( $region < 1 || $region > $nlines ))
+then
+    echo 2>&1 "region must be between 1 and $nlines" 
+    exit 1
+fi
+
+if [[ ! -d "$outputdir" ]]
+then
+    if !( mkdir $outputdir )
+    then
+        echo 2>&1 "error making output directory $outputdir"
+        exit 1
+    fi
+fi
+
+
+# pull out the region and coverage from the table
+regionline=`head -${region} $regiontable  | tail -1`
+set $regionline
+regionid=$1
+frag_cov=$2
+frag_cov_frac=`echo "4k $TARGET_COV $frag_cov  / p" | dc` 
+
+# pacbio yes/no
+if [[ "$pacbio" != "" ]]
+then
+  pb_opts="$PACBIO_OPTS"
+fi
+
+# little debugging output
+echo "regionid (1-based)=$regionid frag_cov=$frag_cov frag_cov_frac=$frag_cov_frac"
+
+pushd $outputdir 1>/dev/null
+
+# build_micro uses the chromosome number (i.e. 1-based), but zero-based
+# regions.
+#
+# LongProto uses zero-based regions.
+#
+# The table is one-based for both.  Life is complicated.
+set `echo $regionid | sed 's/[-:]/ /g'`
+reg_chr1=$1; reg_start1=$2; reg_end1=$3
+let reg_start0=$reg_start1-1
+let reg_end0=$reg_end1-1
+
+# these used to be different
+regionid_longproto="${reg_chr1}:${reg_start0}-${reg_end0}"
+regionid_buildmicro="${reg_chr1}:${reg_start0}-${reg_end0}"
+
+echo "regionid (longproto)=$regionid_longproto, (build_micro)=$regionid_buildmicro"
+
+# run build micro
+$BUILD_MICRO human19 fosmid `pwd`/build_micro $regionid_buildmicro \
+    $GLOBAL_OPTS FRAG_COV=$frag_cov $pb_opts 2>&1 | tee build_micro.log
+
+aplg_assembly="`pwd`/build_micro/data/run/ASSEMBLIES/test/final.contigs.fastb"
+
+[[ -e "$aplg_assembly" ]] || {
+    echo 1>&2 "build_micro seems to have failed -- no $aplg_assembly"
+    exit 1
+}
+
+# run long proto
+[[ -d longproto ]] || mkdir longproto || {
+    echo 1>&2 "failed to make longproto run directory in `pwd`"
+    exit 1
+}
+cd longproto
+$LONGPROTO SAMPLE=human READS=#picard X=$regionid_longproto \
+    TMP=./tmp IN_GENOME=$aplg_assembly OUT_HEAD=final 2>&1 | tee ../longproto.log
+
+popd 1>/dev/null

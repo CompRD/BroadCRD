@@ -1,0 +1,81 @@
+<html>
+<head>
+<title>Edges, lines and scaffolds</title>
+</head>
+
+<body><BODY TEXT="#000000" LINK="#DD7755" VLINK="#DD7755"
+ALINK="#993300" bgcolor=white>
+
+<font face=arial>
+
+<h1>
+<center>
+Edges, lines and scaffolds
+</center>
+</h1>
+
+A DISCOVAR <i>de novo</i> assembly is a graph whose <u>edges</u> represent DNA 
+sequences.  Within any assembly one can find regions that are essentially linear.  
+We call these <u>lines</u>.  Here is an example:
+
+<br>
+<br> <img src="line0.svg" />
+
+<br>
+<br> This line has four <u>cells</u>.  In this case, for each cell, there
+are two <u>paths</u> across the cell, except for the third cell, which has three.
+
+<br><br> Any line can be completely linearized by replacing each cell by parallel
+edges (representing the paths across it), like this:
+
+<br>
+<br><img src="line.svg" />
+
+<br>
+<br>Multiple paths within a cell may reflect biological differences, such as
+heterozygous sites, or somatic mutations.  Similarly a line could represent
+multiple, highly similar loci (which would be reflected in the observed copy 
+number).  Partial phasing will sometimes lead to more than two paths.
+However multiple paths can also represent non-biological differences,
+such as those arising at loci that are very hard to sequence, and for which
+consequently the assembly is unable to determine the exact sequence, instead
+providing alternatives.
+
+<br><br>We allow cells having no paths across, representing captured gaps, and
+displayed in files below using 100 Ns.
+
+<br><br>DISCOVAR <i>de novo</i> assemblies are symmetric: for each edge, there is 
+a reverse complement edge, and for each line, there is a reverse complement line.  
+
+<br><br>DISCOVAR <i>de novo</i> provides several output forms from which you
+can select:
+<br><ul>
+
+<li>a.fasta = fasta file of edges</li>
+
+<br>
+<li>a.lines = binary file of lines, mathematically a
+vec&ltvec&ltvec&ltvec&ltint&gt&gt&gt&gt, in which the ints are edge ids</li>
+
+<br>
+<li>a.lines.efasta* = standard scaffold efasta file, which shows {s1,...,sn}
+for the ALTERNATIVES associated to a given cell</li>
+
+<br>
+<li>a.lines.fasta* = standard scaffold fasta file, obtained by taking the FIRST 
+path through each cell; LOSES INFORMATION</li>
+
+<br>
+<li>a.lines.src = human-readable form of a.lines, represented using nested 
+brackets {...}</li>
+
+</ul>
+
+<br>* 'Duplicate' reverse complement lines have been removed from these files.
+Also for circular chromosomes or episomes, the header line is labeled
+'circular' and the ends of the sequence overlap by exactly K-1 bases (K = 200).
+
+<br><br>We invite requests for alternative forms.
+
+</body>
+</html>

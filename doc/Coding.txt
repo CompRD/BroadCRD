@@ -1,0 +1,116 @@
+File: Coding/softeng issues
+
+Topic: Coding issues
+
+Here is a description of any coding conventions or other software
+engineering issues for Arachne/ALLPATHS.
+
+Section: Regression testing
+
+Here are some ways to do regression testing, to make sure your changes
+didn't break anything.
+
+Nightly test:
+
+run testing/Nightcrawler.pl
+
+More specifically:
+
+testing/Nightcrawler.pl PRE=/wga/scr12/Human/HumanProjects/Projects OUTDIR=/wga/scr11/ilya/regtests ARACHNE=/wga/dev/ilya/exp/Arachne/bin_ia64_suse N_TESTS=1
+
+Assembling the mouse example:
+
+> Assemblez DATA=projects/mouse_example RUN=ilya5new
+
+*NOTE* this must be run not from the Arachne/ directory
+but by cd'ing to bin_bin_ia64_suse/ or bin_x86_64_suse/
+(depending on the platform) and running ./Assemblez ... 
+from there.
+
+Also, note that some programs on which Assemblez depends
+are not specified by "Makedepend: dependency ..." statements;
+so it's best to do a "gmake all" before running Assemblez,
+to make sure it has all the programs it needs.
+
+So: to do a regression test,
+run this with your new code and with the pristine checkout, with
+different run names, and zdiff the <assembly.bases.gz> files and 
+the <assembly.quals.gz> files in the two directories; they should be
+identical.  Be sure to use zdiff and not diff to compare the gzipped files.
+Run each of the commands (with old and new code) under the unix "time"
+command, and make sure the runtimes are similar.
+
+The runtime for the mouse assembly should be under five minutes.
+
+Other examples:
+
+BACs for the human genome project:
+
+> /wga/dev/WGAdata/projects/L30011/
+
+Ask <Evan> about his "nightly assemblez report", and <Sante> about
+examples other than the mouse genome which are good cases for
+regression testing.
+
+
+Section: Command logs
+
+You can find command logs in the <command log directory>.  
+These can be useful for learning about the system.
+
+
+Section: Compilation speed
+
+If things compile too slowly, try the following tips:
+
+   - only build for the <kmer shapes> that you use; edit
+     <SupportedKmerShapes.h> to include only the shapes you use (but
+     don't check in your version of this file!)
+   - only build the programs you use (gmake MyProg)
+   - compile several files in parallel, as in "nice gmake -j4 MyProg"
+     The -j parameter can be greater than the number of processors
+     on the machine (e.g. -j12 on wga9) since during compilation
+     much time is spent waiting for I/O, and so not all compilation
+     threads need processor time at any given moment.
+     On the other hand, setting -j too high may cause too much
+     context switching overhead between the compiler threads.
+   - check the load on the machine on which you're compiling (run
+     'top')
+   - look into parallel-build tools such as distcc and ccache, as well
+   as commercial build accelerators.
+
+   
+Section: File I/O
+
+Sometimes the filesystem is flakey -- you run your program once and it
+fails to open a file for reading that clearly exists.  Just wait some
+time and try running again; this doesn't necessarily mean your code
+is wrong.  *NOTE*: This may also indicate that two people are running
+their code on the same files in the same directory!
+
+Binary file I/O:
+
+Use <BinaryWrite3> to write vectors of simple items in a portable
+binary format.
+
+Section: Potential pitfalls
+
+Check for compiler warnings, *especially* assembler warnings.
+Sometimes there are optimizer bugs that cause unsafe code, but
+they might be reported by the assembler as warnings.
+
+Section: Programs getting stuck
+
+Sometimes programs get stuck for unknown reason.
+
+Running Happening sometimes kicks the program into continuing.
+Sometimes it's a filesystem issue.
+
+
+
+
+
+
+
+
+   

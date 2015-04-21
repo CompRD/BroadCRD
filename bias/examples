@@ -1,0 +1,48 @@
+# This file contains examples of commands one can use to evaluate the bias in 
+# various read sets.
+
+# Phage T7, by 454.  The first and last 160 bases of the T7 genome are identical.
+# I suspect that owing to the way the organism forms concatemers of its genome,
+# it may leave behind copies of the repeated region, which then get sequenced.
+# As this would contribute unfairly to bias estimates, we exclude the repeat.
+
+cd /wga/scr2/454work/T7
+Bias_454 HEAD=612660060915.2 REF=/wga/454a/xfer/refseq/T7_reference.fasta \
+         LEFT_TRIM=160 RIGHT_TRIM=160
+
+# Two human BACs, by 454.
+
+cd /wga/scr2/454work/bacs_6_human_overlapping/Bac2AB_for_david
+
+Bias454 HEAD=bac2a MIDFIX= REF=bac2a.ref
+Bias454 HEAD=bac2b MIDFIX= REF=bac2b.ref
+
+# A human BAC, by Solexa.
+
+cd /seq/solexa/pipelineOutput/060928_1476/passingdir
+Bias_Solexa HEAD=1476.1.2.3.5.6.7
+
+# A bunch of organisms, by ABI.
+
+Bias_ABI DATA=projects/Coprinus_cinereus RUN=jbutler_2003jun25/work SUBDIR=  \
+
+Bias_ABI DATA=projects/Fungi/Magnaporthe RUN=sante_2003mar17/work            \
+         SUBDIR=rebuilt7 MIN_SUPER=4000000
+
+Bias_ABI DATA=projects/Ustilago RUN=jbutler_2003may28/work SUBDIR=regapped   \
+         MIN_SUPER=1000000
+
+Bias_ABI DATA=projects/Burkholderia_thailandensis RUN=jbutler_2004jul14/work \
+         SUBDIR=final6 MIN_SUPER=2000000
+
+Bias_ABI DATA=projects/Fungi/Batrachochytrium_dendrobatidis RUN=run/work     \
+         SUBDIR=init.distrib.1/ForDistribution_v1 MIN_SUPER=4000000
+
+Bias_ABI DATA=projects/Coccidioides_immitis RUN=jbutler_2004mar11/work       \
+         SUBDIR=merged MIN_SUPER=3000000
+
+Bias_ABI DATA=projects/Saccharomyces_cerevisiae RUN=manfred/work             \
+         SUBDIR=burp6 MIN_SUPER=1000000
+
+Bias_ABI DATA=projects/Chaetomium_globosum RUN=assemblez/work SUBDIR=post6   \
+         MIN_SUPER=4000000

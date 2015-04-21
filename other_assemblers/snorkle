@@ -1,0 +1,189 @@
+#!/bin/csh
+
+# snorkle
+#
+# This is a specialized script to do side-by-side assemblies using LongProto and 
+# fermi.  It generates perfect ~1000 base reads from a random 1 Mb mouse region.  
+# For both assemblers, error correction is elided.  Then we compare results.
+#
+# Note the line "set path = ...".  It is set up as if you are running inside 
+# BroadCRD, so it can find the other_assemblers subdirectory.  It may have to
+# be modified if you are running elsewhere.
+#
+# The script creates directories crdi.j and files test.crdi.j.
+#
+# There are the following modes:
+#
+# snorkle go dir yes/no       -- snorkle once in dir as rerun (yes) or not (no)
+# snorkle run n yes/no        -- snorkle n times as rerun (yes) or not (no)
+# snorkle runx mach n yes/no  -- same but as if on machine mach
+# snorkle sum                 -- summarize results of snorkle runs.
+
+set mode = $1
+
+set path = (other_assemblers $path)
+
+# GO MODE
+
+if ( $mode == go ) then
+
+     set dir = $2
+     set rerun = $3
+
+     # Define region.
+
+     set region = "random(1000000)"
+     if ($rerun == "yes") then
+          if ( -f $dir/region ) then
+               set region = `cat $dir/region`
+          else
+               set region = `cat test.$dir | grep using | tr ' ' '\n' | \
+                    grep X | tr -d "X="`
+          endif
+     endif
+     if ( !(-d $dir) ) mkdir $dir
+     cd $dir
+     /bin/rm -f ../test.$dir
+     if ( $rerun == "yes" ) echo "using X=$region" > ../test.$dir
+
+     # Run LongProto.
+
+     LongProto SAMPLE=mouse X="$region" LEN=1000 PERF=True CORRECT=False \
+          K2frac=0.5 CHUNK_EDGES=True WORDIFY=True GULP=True \
+          OUT_SIM_READS=sneeze.fastb OUT_GENOME=genome.fastb >> ../test.$dir
+     if ( $status != 0 ) exit 1
+
+     # Save region.
+
+     if ( $rerun == "no" ) then
+          set region = `cat ../test.$dir | grep using | tr ' ' '\n' | \
+               grep X | tr -d "X="`
+          echo $region > region
+     endif
+
+     # Package reads for fermi.
+
+     FakeQualb FASTB=sneeze.fastb NH=True >> ../test.$dir
+     FastbQualbToFastq HEAD_IN=sneeze HEAD_OUT=sneeze PAIRED=false \
+          PHRED_OFFSET=64 > /dev/null
+
+     # Set up to run fermi.  The -C option turns off error correction.
+
+     /wga/scr3/assemblers/fermi/run-fermi.pl -e /wga/scr3/assemblers/fermi/fermi \
+          -t 32 -C sneeze.fastq > fermi.mk
+
+     # Run fermi makefile.
+
+     make -f fermi.mk >> ../test.dir
+
+     zcat fmdef.p2.mag.gz | Fastq2Fasta > fmdef.p2.fasta
+
+     MakeLookupTable SOURCE=genome.fastb OUT_HEAD=genome LO=True > /dev/null
+
+     QueryLookupTable K=12 MM=12 MC=0.15 SEQS=fmdef.p2.fasta L=genome.lookup \
+          NH=True QUIET=True KB=1 | grep -v "\.\.\." | tr -s '\n' | \
+          Substitute FROM="(of 1000000)" TO="" NH=True >> ../test.$dir
+
+     zcat fmdef.p2.mag.gz | grep @ >> ../test.$dir
+
+     SummarizeFermi IN_DIR=. >> ../test.$dir
+     exit
+endif
+
+# RUN MODE
+
+if ( $mode == run ) then
+     set max_count = $2
+     set rerun = $3
+     set count = 1
+     while(1)
+          echo $count
+          snorkle go $HOST.$count $rerun
+          if ( $status != 0 ) exit 1
+          set count = `expr $count + 1`
+          if ( $count > $max_count ) break
+     end
+     exit
+endif
+
+# RUNX MODE
+
+if ( $mode == runx ) then
+     set max_count = $3
+     set rerun = $4
+     set head = $2
+     set count = 1
+     while(1)
+          echo $count
+          snorkle go $head.$count $rerun
+          if ( $status != 0 ) exit 1
+          set count = `expr $count + 1`
+          if ( $count > $max_count ) break
+     end
+     exit
+endif
+
+# SUM MODE
+
+if ( $mode != sum ) then
+     echo "Illegal mode."
+     exit 1
+endif
+echo "\n   test \t  longproto\t  fermi\t  longproto\t  fermi\t  notes\n"
+foreach mach (crd5 crd7 crd8 crd9 crd10 crd11)
+     foreach n (1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
+          set dir = $mach.$n
+          set test = test.$dir
+
+          # Collect assembly results.
+
+          set errors = `cat $test | grep errors | Col 1`
+          set gaps = `cat $test | grep "excess gaps" | Col 1`
+          set gap_bases = `cat $test | grep "gap bases" | Col 1`
+          set l_edges = `cat $test | grep visible | Col 3 | tr -d '('`
+          if ( $errors == "0.00%%%" && ( $gaps == "0.00" || $gaps =~ "-*" ) \
+               && $gap_bases <= 1000 ) then
+               set l_state = perf
+          else
+               set l_state = imperf
+          endif
+          set f_state = imperf
+          cat $test | grep "fermi is perfect" > /dev/null
+          if ( $status == 0 ) set f_state = perf
+          set f_edges = `cat $test | grep "fermi edges" | Col 1`
+
+          # Decide if one assembly is better than the other.
+
+          set l_better = no
+          set f_better = no
+          if ( $l_edges != "" && $l_state == perf && $f_state == imperf ) then
+               set l_better = yes
+          else if ( $l_state == imperf && $f_state == perf ) then
+               set f_better = yes
+          else if ( $l_state == perf && $f_state == perf && $l_edges != "" \
+               && $l_edges < $f_edges ) then
+               set l_better = yes
+          else if ( $l_state == perf && $f_state == perf && $l_edges != "" \
+               && $l_edges > $f_edges ) then
+               set f_better = yes
+          endif
+
+          # Don't print the trivial cases.
+
+          if ( $l_state == perf && $f_state == perf \
+               && $l_edges == $f_edges ) continue
+
+          # Print results.
+          
+          echo -n "   $dir\t  $l_state($l_edges)\t  $f_state($f_edges)\t  "
+          if ( $l_better == yes ) echo -n x
+          echo -n "\t  "
+          if ( $f_better == yes ) echo -n x
+          if ( $l_edges == "" ) then
+               echo -n "\t  FAILED"
+          else if ( $l_state == imperf ) then
+               echo -n "\t  BAD"
+          endif
+          echo
+     end
+end
