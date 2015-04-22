@@ -12,29 +12,29 @@
 
 # a list of perl scripts to install
 SCRIPTS	= \
- reporting/ParseMemMonitorOutput.pl\
- reporting/CompileAssemblyReport.pl\
- reporting/PlotPairedReadSeps.sh \
- util/HelpMe.pl \
- solexa/ExtractFromBAM.pl\
- paths/long/scripts/ExtractPacbioFromBAM.pl\
- allpaths_cache/PrepareAllPathsInputs.pl\
- allpaths_cache/PicardToCache.pl\
- allpaths_cache/CacheToAllPathsInputs.pl\
- allpaths_cache/CacheLibs.pl\
- allpaths_cache/CacheGroups.pl\
- allpaths_cache/CacheToReads.pl\
- allpaths_cache/ConvertToFastbQualb.pl\
- allpaths_cache/NaifDB.pm\
- allpaths_cache/AllPathsCache.pm\
- util/QualbStatsPlot.pl\
- kmers/KmerSpectrumPlot.pl\
- paths/ErrorCorrectReads.pl\
- paths/simulation/LongProto_extended_regions.sh\
- paths/long/distributed/combine_region_vcfs.py\
- PerlRunTime.pm\
- PerlUtils.pm\
- ArachneArgs.pm\
+ src/reporting/ParseMemMonitorOutput.pl\
+ src/reporting/CompileAssemblyReport.pl\
+ src/reporting/PlotPairedReadSeps.sh \
+ src/util/HelpMe.pl \
+ src/solexa/ExtractFromBAM.pl\
+ src/paths/long/scripts/ExtractPacbioFromBAM.pl\
+ src/allpaths_cache/PrepareAllPathsInputs.pl\
+ src/allpaths_cache/PicardToCache.pl\
+ src/allpaths_cache/CacheToAllPathsInputs.pl\
+ src/allpaths_cache/CacheLibs.pl\
+ src/allpaths_cache/CacheGroups.pl\
+ src/allpaths_cache/CacheToReads.pl\
+ src/allpaths_cache/ConvertToFastbQualb.pl\
+ src/allpaths_cache/NaifDB.pm\
+ src/allpaths_cache/AllPathsCache.pm\
+ src/util/QualbStatsPlot.pl\
+ src/kmers/KmerSpectrumPlot.pl\
+ src/paths/ErrorCorrectReads.pl\
+ src/paths/simulation/LongProto_extended_regions.sh\
+ src/paths/long/distributed/combine_region_vcfs.py\
+ src/PerlRunTime.pm\
+ src/PerlUtils.pm\
+ src/ArachneArgs.pm\
  crdMake\
 
 

@@ -119,8 +119,10 @@ public:
     string const& getPath() const { return mPath; }
     string getDir() const { return mDirLen ? mPath.substr(0,mDirLen-1) : "."; }
     string asExecutable() const { return mPath.substr(mDirLen,mNameLen); }
+    string getSourceRoot() const { return "src/"; }
     string asObjectFile() const
-    { return mPath.substr(0,mDirLen+mNameLen) + ".o"; }
+    { auto offset = getSourceRoot().length();
+        return mPath.substr(offset,mDirLen+mNameLen-offset) + ".o"; }
 
     SourceFile const* getAssociatedCC( SourceMap const& ) const;
 
@@ -359,7 +361,7 @@ DepsSet const& SourceFile::getCompilerDependents( SourceMap const& map ) const
                 StrSet::const_iterator inclItr(includes.begin());
                 for ( ; inclItr != inclEnd; ++inclItr )
                 {
-                    SourceFile const* pDep = map.lookup(*inclItr);
+                    SourceFile const* pDep = map.lookup(getSourceRoot()+*inclItr);
                     if ( !pDep )
                         cerr << "MakeDepend warning: can't find included file "
                              << *inclItr << endl;
@@ -763,8 +765,10 @@ void generateMakefile( ostream& os, SourceMap const& db )
 
     os << "\nLIBOBJECTS :=";
     DepsSet::iterator oEnd(libObjects.end());
-    for ( DepsSet::iterator oItr(libObjects.begin()); oItr != oEnd; ++oItr )
+    for ( DepsSet::iterator oItr(libObjects.begin()); oItr != oEnd; ++oItr ) {
+        cout << *oItr << endl;
         os << " $(OBJ)/" << (*oItr)->asObjectFile();
+    }
 
     os << "\n$(LIBNAM):\n\t$(ARCHIVE)\n";
 

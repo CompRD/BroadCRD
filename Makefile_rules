@@ -4,7 +4,7 @@ OBJ := obj
 
 # Pieces of how to build things.
 CC := g++
-CFLAGS := -std=c++11 -Wextra -Wall -Wsign-promo -Woverloaded-virtual -Wendif-labels
+CFLAGS := -std=c++11 -Wextra -Wall -Wsign-promo -Woverloaded-virtual -Wendif-labels -Isrc/
 
 # STRICT=yes removes all exceptions from the warnings.
 ifneq ($(STRICT),yes)
