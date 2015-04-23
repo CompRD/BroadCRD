@@ -62,7 +62,7 @@ void parsed_args::PrintTheCommandPretty( ostream& out, const String& prefix )
   // Write the first line of the command header.
   out << prefix << "\n" << prefix << bar << "\n" << prefix
       << Date( ) << " run on " << hostname << ", pid=" << pid_str
-      << " [" << LINK_TIMESTAMP << " R" << SVN_REVISION << " ]\n";
+      << " [" << LINK_TIMESTAMP << " " << SVN_REVISION << "]\n";
   
   if ( orig_command_ != "" ) {
     String oc;

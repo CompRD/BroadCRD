@@ -19,7 +19,7 @@ bin/MakeDepend: src/system/MakeDepend.cc
 updateTimestamp:
 	mkdir -p $(BIN)
 	mkdir -p $(OBJ)
-	$(CC) $(CFLAGS) -DUNAME_RELEASE=`uname -r` -DSVN_VERSION=`svnversion` -c -o $(OBJ)/LinkTimestamp.o src/LinkTimestamp.cc
+	$(CC) $(CFLAGS) -DUNAME_RELEASE=`uname -r` -DSVN_VERSION=`git show -s --pretty=format:%h` -c -o $(OBJ)/LinkTimestamp.o src/LinkTimestamp.cc
 
 test/%.cc: test/%.h
 	@perl test/cxxtest/bin/cxxtestgen.pl -o $@ --error-printer $<
