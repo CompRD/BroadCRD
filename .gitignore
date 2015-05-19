@@ -1,3 +1,7 @@
 .cproject
 .project
 .settings
+Makefile_deps
+bin
+dependencies.db
+obj
