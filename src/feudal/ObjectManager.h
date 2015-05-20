@@ -6,10 +6,20 @@
 //   Institute is not responsible for its use, misuse, or functionality.     //
 ///////////////////////////////////////////////////////////////////////////////
 /*
- * FeudalObjectManager.h
+ * ObjectManager.h
  *
  *  Created on: Sep 16, 2014
  *      Author: tsharpe
+ *
+ * ObjectManager pairs an object with an on-disk representation and manages
+ *     Feudal versus plain binary stream storage.
+ *
+ * load()   - returns a pointer to the desired object, loading off disk if necessary
+ * unload() - frees the in-memory representation, it will be reloaded from disk at
+ *            the next load()
+ * store()  - push data out to disk
+ * create() - use to allocate an object when no on-disk representation exists (yet)
+ *
  */
 #ifndef FEUDAL_OBJECTMANAGER_H_
 #define FEUDAL_OBJECTMANAGER_H_
