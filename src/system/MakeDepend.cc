@@ -745,12 +745,12 @@ void generateMakefile( ostream& os, SourceMap const& db )
                 libObjects.insert(deps.begin(),deps.end());
             } else {
             	// WARNING!!!!
-            	// this here hack is so that EVERYTHING that's not an executable
-            	// gets tossed into the libCRD.a
+            	// EVERYTHING that's not an executable, unless marked private, NOW gets tossed
+            	// into the libCRD.a
             	//
             	// that's to facilitate the inclusion of code that will ONLY
             	// be used externally -- a big change from previous behavior
-            	libObjects.insert(&file);
+            	if (!file.isPrivate()) libObjects.insert(&file);
             }
         }
     }

@@ -5,6 +5,8 @@
 //   without any warranty or guaranteed support whatsoever. The Broad        //
 //   Institute is not responsible for its use, misuse, or functionality.     //
 ///////////////////////////////////////////////////////////////////////////////
+//
+// MakeDepend: private
 
 #define STRINGIZE(X) #X
 #define STRINGIZER(X) STRINGIZE(X)
