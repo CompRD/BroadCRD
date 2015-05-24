@@ -64,6 +64,10 @@ public:
     { if ( !mpObj ) { mpObj=new T; this->loadImpl(mFile,mpObj); }
       return *mpObj; }
 
+    T & load_mutable()
+    { if ( !mpObj ) { mpObj=new T; this->loadImpl(mFile,mpObj); }
+      return *mpObj; }
+
     void unload() { delete mpObj; mpObj = nullptr; }
     void store() { ForceAssert(mpObj); this->storeImpl(mFile,*mpObj); }
     bool onDisk() { return mFile.exists(true); }
