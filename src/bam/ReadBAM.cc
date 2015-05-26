@@ -599,6 +599,8 @@ template <class T> void movePairs( size_t nReads, vecbasevector& reads_b,
      bool uniquifyNames, vecbvec* pVBV, VecPQVec* pVPQV, vecString* pReadNames )
 {
      size_t nPairs = (nReads + 1)/2;
+
+     // populate pReadNames
      if (pReadNames)
      {    pReadNames->reserve(pReadNames->size() + nReads);
           auto prev = readIndices.begin();
@@ -621,6 +623,8 @@ template <class T> void movePairs( size_t nReads, vecbasevector& reads_b,
                              }    }
                ++prev;
                if ( ++itr == end || !--nPairs ) break;    }    }
+
+     // pull out ids of valid (based on names) pairs
      vec<T> ids;
      {    auto prev = readIndices.begin();
           auto end = readIndices.end();
@@ -633,11 +637,15 @@ template <class T> void movePairs( size_t nReads, vecbasevector& reads_b,
                     ++prev;
                     if ( ++itr == end || !--nPairs ) break;    }    }    }
      Destroy(reads_n);
+
+     // move reads
      pVBV->reserve(pVBV->size() + nReads);
      for ( int64_t i = 0; i < ids.jsize( ); i++ )
      {    pVBV->push_back( reads_b[ readIndices[ ids[i] ] ] );
           pVBV->push_back( reads_b[ readIndices[ ids[i] + 1 ] ] );    }
      Destroy(reads_b);
+
+     // move quals
      pVPQV->reserve(pVPQV->size() + nReads);
      for ( int64_t i = 0; i < ids.jsize( ); i++ )
      {    pVPQV->push_back( reads_q[ readIndices[ ids[i] ] ] );
@@ -666,6 +674,7 @@ void BAMReader::readBAM( String const& bamFile,
          readAligns(is, bamFile, alloc, mPFOnly, reads_b, reads_q, reads_n);    }
     delete pBB;
 
+    // mSelectFrac and mReadsToUse determine nReads
     size_t nReads = std::min(size_t(mSelectFrac*reads_b.size()),mReadsToUse);
     int64_t length_sum = 0;
     for ( int64_t i = 0; i < (int64_t) reads_b.size( ); i++ )
@@ -680,7 +689,10 @@ void BAMReader::readBAM( String const& bamFile,
     nReads = (nReads + 1ul) & ~1ul;
     if ( !nReads ) return;
     if ( (int64_t) reads_b.size( ) < UINT32_MAX )
-    {    vec<uint32_t> readIndices(rangeItr(0ul),rangeItr(reads_b.size()));
+    {
+    	 // readIndices are numeric from 0..reads.size()
+    	 vec<uint32_t> readIndices(rangeItr(0ul),rangeItr(reads_b.size()));
+    	 // sort readIndices by read name
          ParallelSort( readIndices, [&reads_n]( size_t idx1, size_t idx2 )
               { return reads_n[idx1] < reads_n[idx2]; } );
          cout << Date( ) << ": reads sorted" << endl;
