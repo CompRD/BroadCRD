@@ -146,7 +146,7 @@ private:
 typedef MapReduceEngine<Kmerizer,Entry,Kmer::Hasher> KMRE;
 
 Dict* createDict( vecbvec const& reads, ObjectManager<VecPQVec>& quals,
-                        unsigned minQual, unsigned minFreq )
+                        unsigned minQual, unsigned minFreq, float const mean_mem_frac = 0.9 )
 {
     // figure out how much of the read to kmerize by examining quals
     //std::cout << Date() << ": processing quals." << std::endl;
@@ -167,7 +167,8 @@ Dict* createDict( vecbvec const& reads, ObjectManager<VecPQVec>& quals,
         std::atomic_size_t nUniqKmers(0);
         Kmerizer impl(reads,goodLens,minFreq,nullptr,&nUniqKmers);
         KMRE mre(impl);
-        if ( !mre.run(nKmers,0ul,reads.size(),KMRE::VERBOSITY::QUIET,.9) )
+        if ( !mre.run(nKmers,0ul,reads.size(),
+				KMRE::VERBOSITY::QUIET, mean_mem_frac) )
             FatalErr("Failed to count unique kmers.  Out of buffer space.  ");
         dictSize = nUniqKmers;
     }
@@ -176,7 +177,8 @@ Dict* createDict( vecbvec const& reads, ObjectManager<VecPQVec>& quals,
     Dict* pDict = new Dict(dictSize);
     Kmerizer impl(reads,goodLens,minFreq,pDict,nullptr);
     KMRE mre(impl);
-    if ( !mre.run(nKmers,0ul,reads.size(),KMRE::VERBOSITY::QUIET,.9) )
+    if ( !mre.run(nKmers,0ul,reads.size(),
+			    KMRE::VERBOSITY::QUIET, mean_mem_frac) )
         FatalErr("Failed to kmerize.  Out of buffer space.  ");
 
     // some kmers were discarded because they didn't occur often enough to
@@ -1304,11 +1306,12 @@ void buildReadQGraph40( vecbvec const& reads, ObjectManager<VecPQVec>& quals,
                         String const& refFasta,
          		bool useNewAligner, bool repathUnpathed,
                         HyperBasevector* pHBV, ReadPathVec* pPaths,
+						float const meanMemFrac,
                         bool const VERBOSE )
 {
     //std::cout << Date() << ": loading reads." << std::endl;
 
-    Dict* pDict = createDict(reads,quals,minQual,minFreq);
+    Dict* pDict = createDict(reads,quals,minQual,minFreq,meanMemFrac);
 
     // figure out the complete base sequence of each edge
     //std::cout << Date() << ": finding edge sequences." << std::endl;

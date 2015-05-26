@@ -28,6 +28,7 @@ void buildReadQGraph40( vecbvec const& reads, ObjectManager<VecPQVec>& quals,
                         String const& refFasta,
        		        bool useNewAligner, bool repathUnpathed,
                         HyperBasevector* pHBV, ReadPathVec* pPaths,
+						float const meanMemFrac = 0.9,
                         bool const VERBOSE = False );
 
 #endif /* PATHS_LONG_BUILDREADQGRAPH_40_H_ */

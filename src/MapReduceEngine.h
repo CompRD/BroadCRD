@@ -390,6 +390,9 @@ public:
     bool run( size_t nKs, Itr beg, Itr end,
                 VERBOSITY verbose=VERBOSITY::SILENT, double meanUsage=.8 )
     {
+	ForceAssertLe( meanUsage, 1.0 );
+	ForceAssertGt( meanUsage, 0.0 );
+
         if ( inParallelSection() )
         {
             runSingleThreaded(nKs,beg,end);
