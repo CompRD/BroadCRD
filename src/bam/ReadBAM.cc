@@ -423,10 +423,12 @@ void skipToAligns( std::istream& is, String const& bamFile )
 
 void readAligns( std::istream& is, const String& bamFile, 
         MempoolAllocator<char> const& alloc, bool pfOnly, 
-        vecbasevector& reads_b, VecPQVec& reads_q, vecString& reads_n )
+        vecbasevector& reads_b, VecPQVec& reads_q, vecString& reads_n,
+	   std::set<String>* tag_select,	// null == grab all tags
+	   vecString* reads_tp 			// tags here if not nullptr
+	   )
 {    
      // Buffer for quality score compression in batches.
-
      // VecPQVec qualsbuf_c;
      const int qbmax = 10000000;
      vec<qvec> qualsbuf;
@@ -450,6 +452,7 @@ void readAligns( std::istream& is, const String& bamFile,
 
           reads_b.push_back( basevector(alloc) );
           reads_n.push_back( String(alloc) );
+		if ( reads_tp ) reads_tp->push_back( String(alloc) );
 
           basevector& seq = reads_b.back();
           String& readName = reads_n.back();
@@ -530,27 +533,51 @@ void readAligns( std::istream& is, const String& bamFile,
             else if ( tag[0] == 'O' && tag[1] == 'Q' )
             {
                 if ( tag[2] != 'Z' )
-                    BAMERR(bamFile," contains OM tag with non-Z data type "
+                    BAMERR(bamFile," contains OQ tag with non-Z data type "
                                     "for alignment " << alnNo);
                 if ( !is.read(qBuf,alnHd.mSeqLen) )
-                    BAMERR(bamFile," is truncated in OM tag"
+                    BAMERR(bamFile," is truncated in OQ tag"
                                     " data for alignment " << alnNo);
                 for ( unsigned char& val : quals )
                     val -= 33;
                 char byte;
                 if ( !is.get(byte) || byte )
-                    BAMERR(bamFile," contains OM tag with the wrong length "
+                    BAMERR(bamFile," contains OQ tag with the wrong length "
                                     "for alignment " << alnNo);
                 auxLen -= alnHd.mSeqLen + 1;
             }
             else // has to be H or Z tag type
             {    char byte;
-                 do
-                 {    if ( !is.get(byte) )
-                           BAMERR(bamFile," is truncated in null-delimited tag"
+
+			  String stag(2);
+			  stag.push_back(tag[0]);
+			  stag.push_back(tag[1]);
+
+			  if ( reads_tp && 
+					  ( !tag_select || 
+					    tag_select->find( stag ) != tag_select->end() 
+					    ) ) {
+				  auto& readtag = reads_tp->back();
+				  readtag.push_back(tag[0]);
+				  readtag.push_back(tag[1]);
+				  readtag.push_back(':');
+				  do
+				  {    if ( !is.get(byte) )
+						  BAMERR(bamFile," is truncated in null-delimited tag"
                                         " data for alignment " << alnNo);
-                      auxLen -= 1;    }
-                 while ( byte );    }
+					  auxLen -= 1;    
+					  readtag.push_back(byte);
+				  } while ( byte );    
+			  } else {
+
+				  do
+				  {    if ( !is.get(byte) )
+						  BAMERR(bamFile," is truncated in null-delimited tag"
+                                        " data for alignment " << alnNo);
+					  auxLen -= 1;    
+				  } while ( byte );    
+			  }
+		  }
         }
 
      if ( auxLen < 0 )
@@ -595,8 +622,9 @@ private:
 };
 
 template <class T> void movePairs( size_t nReads, vecbasevector& reads_b, 
-     VecPQVec& reads_q, vecString& reads_n, vec<T> const& readIndices, 
-     bool uniquifyNames, vecbvec* pVBV, VecPQVec* pVPQV, vecString* pReadNames )
+     VecPQVec& reads_q, vecString& reads_n, vecString& reads_t,
+	vec<T> const& readIndices, bool uniquifyNames, 
+	vecbvec* pVBV, VecPQVec* pVPQV, vecString* pReadNames, vecString* pReadTags )
 {
      size_t nPairs = (nReads + 1)/2;
 
@@ -650,13 +678,26 @@ template <class T> void movePairs( size_t nReads, vecbasevector& reads_b,
      for ( int64_t i = 0; i < ids.jsize( ); i++ )
      {    pVPQV->push_back( reads_q[ readIndices[ ids[i] ] ] );
           pVPQV->push_back( reads_q[ readIndices[ ids[i] + 1 ] ] );    }
-     Destroy(reads_q);    }
+     Destroy(reads_q);    
+
+	// optionally move tags
+	if ( pReadTags ) {
+		ForceAssertGt( reads_t.size(), 0u );
+		pReadTags->reserve(pReadTags->size() + nReads);
+		for ( int64_t i = 0; i < ids.jsize( ); i++ )
+		{    pReadTags->push_back( reads_t[ readIndices[ ids[i] ] ] );
+			pReadTags->push_back( reads_t[ readIndices[ ids[i] + 1 ] ] );    }
+		Destroy(reads_q);    
+	}
+}
 
 } // end of anonymous namespace
 
 
 void BAMReader::readBAM( String const& bamFile,
-                         vecbvec* pVBV, VecPQVec* pVPQV, vecString* pReadNames )
+                         vecbvec* pVBV, VecPQVec* pVPQV, vecString* pReadNames,
+				     std::set<String>* pTagsSelect,
+	   				vecString* pReadTags )
 {
     cout << Date( ) << ": processing " << bamFile << '.' << endl;
     cout << Date( ) << ": memory in use = " << MemUsageGBString( ) 
@@ -664,6 +705,7 @@ void BAMReader::readBAM( String const& bamFile,
     vecbasevector reads_b;
     VecPQVec reads_q;
     vecString reads_n;
+    vecString reads_t;	// tags
     BAMbuf* pBB = new BAMbuf(bamFile);
     {    std::istream is(pBB);
          skipToAligns(is,bamFile);
@@ -671,7 +713,15 @@ void BAMReader::readBAM( String const& bamFile,
          reads_b.reserve(100000000);
          reads_q.reserve(100000000);
          reads_n.reserve(100000000);
-         readAligns(is, bamFile, alloc, mPFOnly, reads_b, reads_q, reads_n);    }
+	    vecString* reads_tp = &reads_t;
+	    if ( pReadTags ) reads_t.reserve(100000000);
+	    else reads_tp = nullptr;
+         readAligns(is, bamFile, alloc, mPFOnly, reads_b, reads_q, reads_n,
+			    pTagsSelect, reads_tp);    
+	    cout << "tag dump" << endl;
+	    for ( auto itr = reads_tp->begin(); itr != reads_tp->end(); ++itr )
+		    if (itr->size()) cout << "tags: " << *itr << endl;
+    }
     delete pBB;
 
     // mSelectFrac and mReadsToUse determine nReads
@@ -698,8 +748,8 @@ void BAMReader::readBAM( String const& bamFile,
          cout << Date( ) << ": reads sorted" << endl;
          cout << Date( ) << ": memory in use = " << MemUsageGBString( ) 
                << ", peak = " << PeakMemUsageGBString( ) << endl;
-         movePairs( nReads, reads_b, reads_q, reads_n, readIndices, 
-              mUniquifyNames, pVBV, pVPQV, pReadNames );    }
+         movePairs( nReads, reads_b, reads_q, reads_n, reads_t, readIndices, 
+              mUniquifyNames, pVBV, pVPQV, pReadNames, pReadTags );    }
     else
     {    vec<uint64_t> readIndices(rangeItr(0ul),rangeItr(reads_b.size()));
          ParallelSort( readIndices, [&reads_n]( size_t idx1, size_t idx2 )
@@ -707,8 +757,8 @@ void BAMReader::readBAM( String const& bamFile,
          cout << Date( ) << ": reads sorted" << endl;
          cout << Date( ) << ": memory in use = " << MemUsageGBString( ) 
                << ", peak = " << PeakMemUsageGBString( ) << endl;
-         movePairs( nReads, reads_b, reads_q, reads_n, readIndices, 
-              mUniquifyNames, pVBV, pVPQV, pReadNames );    }
+         movePairs( nReads, reads_b, reads_q, reads_n, reads_t, readIndices, 
+              mUniquifyNames, pVBV, pVPQV, pReadNames, pReadTags );    }
     cout << Date( ) << ": data stashed in output structures" << std::endl;
     cout << Date( ) << ": memory in use = " << MemUsageGBString( ) 
           << ", peak = " << PeakMemUsageGBString( ) << endl;

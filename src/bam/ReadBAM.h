@@ -33,7 +33,9 @@ public:
     // in the given BAM to the given vecvecs.
     void readBAM( String const& bamFile,
                     vecbvec* pVBV, VecPQVec* pVPQV,
-                    vecString* pReadNames=nullptr );
+                    vecString* pReadNames=nullptr,
+				set<String>* pTagsSelect=nullptr,
+	   			vecString* pReadTags=nullptr );
 
 private:
     bool mPFOnly;
