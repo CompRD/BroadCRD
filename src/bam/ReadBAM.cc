@@ -718,9 +718,13 @@ void BAMReader::readBAM( String const& bamFile,
 	    else reads_tp = nullptr;
          readAligns(is, bamFile, alloc, mPFOnly, reads_b, reads_q, reads_n,
 			    pTagsSelect, reads_tp);    
-	    cout << "tag dump" << endl;
-	    for ( auto itr = reads_tp->begin(); itr != reads_tp->end(); ++itr )
-		    if (itr->size()) cout << "tags: " << *itr << endl;
+#if 0
+	    if ( reads_tp ) {
+		    cout << "tag dump" << endl;
+		    for ( auto itr = reads_tp->begin(); itr != reads_tp->end(); ++itr )
+			    if (itr->size()) cout << "tags: " << *itr << endl;
+	    }
+#endif
     }
     delete pBB;
 
