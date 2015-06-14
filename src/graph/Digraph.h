@@ -292,6 +292,12 @@ class digraph
 
      void TransferEdges( int v, int w, const Bool enter_only = False );
 
+     // Find simple lines in a graph: these are the unbranched paths in it,
+     // returned here as sequences of vertices.  The starting point of a circle is
+     // somewhat accidental.  For circles the first vertex equals the last vertex.
+
+     void FindSimpleLines( vec<vec<int>>& lines );
+
      // ============================================================================
      // ======================= PRINTERS AND WRITERS ===============================
      // ============================================================================

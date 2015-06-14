@@ -17,6 +17,34 @@
 #include "graph/Digraph.h"
 #include "math/Functions.h"
 
+void digraph::FindSimpleLines( vec<vec<int>>& lines )
+{    lines.clear( );
+     vec<Bool> used( N( ), False );
+     for ( int v = 0; v < N( ); v++ )
+     {    vec<int> x = {v};
+          if ( used[v] ) continue;
+          used[v] = True;
+
+          // Extend, first to the right, then to the left.
+
+          int w = v;
+          Bool circle = False;
+          while ( From(w).size( ) == 1 )
+          {    w = From(w)[0];
+               if ( To(w).size( ) != 1 ) break;
+               circle = Member( x, w );
+               x.push_back(w);
+               if (circle) break;
+               used[w] = True;    }
+          if ( !circle )
+          {    w = v;
+               while ( To(w).size( ) == 1 )
+               {    w = To(w)[0];
+                    if ( From(w).size( ) != 1 ) break;
+                    x.push_front(w);
+                    used[w] = True;    }    }
+          lines.push_back(x);    }    }
+
 void digraph::TransferEdges( int v, int w, const Bool enter_only )
 {    ForceAssert( v != w );
 
