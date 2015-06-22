@@ -33,6 +33,9 @@ void naif_build_repeat_mask( const String& REF, const String& dest, const size_t
     if ( REF.EndsWith(".fastb") ) X.ReadAll( REF );	// secret shortcut -- we can have a .fastb file
     else FetchReads( X, 0, REF );
 
+    // KernelKmerMasker has 16 bits allocated for contig id
+    ForceAssertLt(X.size(), 1u<<16 );
+
     cout << Date() << ": kmerizing..." << endl;
 
     typedef Kmer124 Kmer_t;

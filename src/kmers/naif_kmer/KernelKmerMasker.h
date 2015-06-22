@@ -18,8 +18,10 @@
 // like a BV loc, but meant to be a genome location
 class GVLoc
 {
-  uint64_t _ibv : 10;    // up to 2^10 = 1024 contigs
-  uint64_t _ib  : 36;    // up to 2^36 base positions 68G bases
+  // this used to be a more sensible packed structure and then we hit a wall with a genome 
+  // that contained many contigs. 
+  uint64_t _ibv : 16;    // up to 2^16 = 65536 contigs
+  uint64_t _ib  : 38;    // up to 2^38 base positions 274G bases
   uint64_t _dir :  2;    // 0:invalid  1:fw  2:rc  3:palindrome
 
 public:
