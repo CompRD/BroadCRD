@@ -203,6 +203,20 @@ int main(int argc, char *argv[])
      UniqueSort(all);
      cout << "all edges: " << printSeq(all) << endl;
      cout << "all non-solo edges: " << printSeq(all2) << endl;
+     vecbasevector edges;
+     edges.Read( DIR + "/a.fastb", all2 );
+     int K;
+     {    Ifstream( in, DIR + "/a.k" );
+          in >> K;    }
+     vec<int> lens;
+     for ( int i = 0; i < all2.isize( ); i++ )
+          lens.push_back( edges[i].isize( ) - K + 1 );
+     ReverseSortSync( lens, all2 );
+     cout << "all non-solo edges by size: ";
+     for ( int i = 0; i < all2.isize( ); i++ )
+     {    if ( i > 0 ) cout << ",";
+          cout << all2[i] << "[" << lens[i] << "]";    }
+     cout << "\n";
      
      // Dump reads.
 
