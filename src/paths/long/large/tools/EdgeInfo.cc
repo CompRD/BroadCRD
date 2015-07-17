@@ -192,7 +192,19 @@ int main(int argc, char *argv[])
           i = j - 1;    }
      vec<String> row = { "[" + ToString( stuff.size( ) ) + "]", "TOTAL" };
      rows.push_back(row);
-     PrintTabular( cout, rows, 2 );
+
+     // PrintTabular.  But it's a bad idea because fields can be 
+     // crazy long.  So undo it.
+     // PrintTabular( cout, rows, 2 );
+
+     ostringstream wout;
+     PrintTabular( wout, rows, 2 );
+     String s = wout.str( ), t;
+     for ( int i = 0; i < s.isize( ); i++ )
+     {    if ( i <= 1 || s[i] != ' ' || s[i] != s[i-1] || s[i] != s[i-2] ) 
+               t.push_back( s[i] );    }
+     cout << t;
+
      cout << "\n";
      Sort(all);
      vec<int> all2;
