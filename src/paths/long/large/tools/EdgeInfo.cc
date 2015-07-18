@@ -30,7 +30,8 @@ int main(int argc, char *argv[])
      CommandArgument_Int_OrDefault_Doc(R, -1, "look up this read id");
      CommandArgument_Int_OrDefault_Doc(P, -1, "look up this pair id");
      CommandArgument_Bool_OrDefault_Doc(PIDS, False, "show pids");
-     CommandArgument_Bool_OrDefault_Doc(WRITE_READ_IDS, False, "write read ids");
+     CommandArgument_Bool_OrDefault_Doc(WRITE_READ_IDS, False, 
+          "write read ids to file a.read_ids");
      CommandArgument_Bool_OrDefault_Doc(SCRUT, False, 
           "scrutinize placements of reads on the given edges; rudimentary at best");
      CommandArgument_String_OrDefault_Doc(OUT_READ_HEAD, "", 
