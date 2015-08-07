@@ -693,7 +693,7 @@ void SetLimits()
         }
         args.push_back(0);
 
-        cout << "Performing re-exec to adjust stack size." << endl;
+        // cout << "Performing re-exec to adjust stack size." << endl;
         execv("/proc/self/exe",&args[0]);
         FatalErr("Re-exec to adjust stack size failed.");
     }
