@@ -1580,6 +1580,7 @@ void QueryLookupTableCore( int argc, char *argv[] )
           {    int n = SEQS_TO_PROCESS.After( "random:" ).Int( );
                ForceAssert( SEQS.Contains( ".fastb", -1 ) || SEQS_IS_FASTB );
                int N = MastervecFileObjectCount(SEQS);
+               if ( PAIRS_TO_PROCESS != "undefString" ) N /= 2;
                vec<Bool> keep( N, False );
                int nkeep = 0;
                while( nkeep < n )
