@@ -1306,7 +1306,7 @@ void QueryLookupTableCore( int argc, char *argv[] )
      CommandArgument_Bool_OrDefault(PRINT_MEMORY_USAGE, False);
      CommandArgument_String_Abbr_OrDefault(SEQS_TO_PROCESS, STP, "undefString");
      CommandArgument_String_Abbr_OrDefault(PAIRS_TO_PROCESS, PTP, "undefString");
-     CommandArgument_String_OrDefault(TARGETS_TO_PROCESS, "undefString");
+     CommandArgument_String_Abbr_OrDefault(TARGETS_TO_PROCESS, TTP, "undefString");
      CommandArgument_String_OrDefault(SEQS_TARGETS_TO_PROCESS, "undefString");
      CommandArgument_String_OrDefault(SEQS_TO_EXCLUDE, "undefString");
      CommandArgument_String_OrDefault(TMP_DIR, ".");
