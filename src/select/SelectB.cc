@@ -42,8 +42,11 @@ int main( int argc, char *argv[] )
      if ( PIDS != "" )
      {    vec<int> pids;
           ParseIntSet( PIDS, pids );
+          vec<int> ids;
+          for ( int i = 0; i < pids.isize( ); i++ )
+               ids.push_back( 2*pids[i], 2*pids[i]+1 );
           ostringstream out;
-          out << printSeq(pids);
+          out << printSeq(ids);
           IDS = "{" + out.str( ) + "}";    }
 
      vec<int> ids, ids_unsorted;
