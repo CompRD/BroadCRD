@@ -24,7 +24,9 @@ int main( int argc, char *argv[] )
      CommandArgument_String(PRE);
      CommandArgument_String(IN_HEAD);
      CommandArgument_String(OUT_HEAD);
-     CommandArgument_String(IDS);
+     CommandArgument_String_OrDefault(IDS, "");
+     // overrides IDS:
+     CommandArgument_String_OrDefault(PIDS, "");
      CommandArgument_Bool_OrDefault( RC, False );
      CommandArgument_Bool_OrDefault( PRE_OUT, False );
      CommandArgument_Bool_OrDefault( USE_QUAL, True );
@@ -35,6 +37,14 @@ int main( int argc, char *argv[] )
 
      String input = PRE + "/" + IN_HEAD, output = OUT_HEAD;
      if (PRE_OUT) output = PRE + "/" + OUT_HEAD;
+
+     ForceAssert( IDS != "" || PIDS != "" );
+     if ( PIDS != "" )
+     {    vec<int> pids;
+          ParseIntSet( PIDS, pids );
+          ostringstream out;
+          out << printSeq(pids);
+          IDS = "{" + out.str( ) + "}";    }
 
      vec<int> ids, ids_unsorted;
 
