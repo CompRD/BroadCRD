@@ -39,6 +39,8 @@ int main(int argc, char *argv[])
      CommandArgument_Bool_OrDefault_Doc(OUT_ORIENT, False, 
           "if OUT_READ_HEAD specified, swap order of reads within a pair as needed "
           "to make the first read forward, if possible");
+     CommandArgument_Bool_OrDefault_Doc(ALL, False, 
+          "show lists of all edges");
      EndCommandArguments;
          
      // Parse E.
@@ -206,30 +208,31 @@ int main(int argc, char *argv[])
                t.push_back( s[i] );    }
      cout << t;
 
-     cout << "\n";
-     Sort(all);
-     vec<int> all2;
-     for ( int i = 0; i < all.isize( ); i++ )
-     {    int j = all.NextDiff(i);
-          if ( j - i >= 2 ) all2.push_back( all[i] );
-          i = j - 1;    }
-     UniqueSort(all);
-     cout << "all edges: " << printSeq(all) << endl;
-     cout << "all non-solo edges: " << printSeq(all2) << endl;
-     vecbasevector edges;
-     edges.Read( DIR + "/a.fastb", all2 );
-     int K;
-     {    Ifstream( in, DIR + "/a.k" );
-          in >> K;    }
-     vec<int> lens;
-     for ( int i = 0; i < all2.isize( ); i++ )
-          lens.push_back( edges[i].isize( ) - K + 1 );
-     ReverseSortSync( lens, all2 );
-     cout << "all non-solo edges by size: ";
-     for ( int i = 0; i < all2.isize( ); i++ )
-     {    if ( i > 0 ) cout << ",";
-          cout << all2[i] << "[" << lens[i] << "]";    }
-     cout << "\n";
+     if (ALL)
+     {    cout << "\n";
+          Sort(all);
+          vec<int> all2;
+          for ( int i = 0; i < all.isize( ); i++ )
+          {    int j = all.NextDiff(i);
+               if ( j - i >= 2 ) all2.push_back( all[i] );
+               i = j - 1;    }
+          UniqueSort(all);
+          cout << "all edges: " << printSeq(all) << endl;
+          cout << "all non-solo edges: " << printSeq(all2) << endl;
+          vecbasevector edges;
+          edges.Read( DIR + "/a.fastb", all2 );
+          int K;
+          {    Ifstream( in, DIR + "/a.k" );
+               in >> K;    }
+          vec<int> lens;
+          for ( int i = 0; i < all2.isize( ); i++ )
+               lens.push_back( edges[i].isize( ) - K + 1 );
+          ReverseSortSync( lens, all2 );
+          cout << "all non-solo edges by size: ";
+          for ( int i = 0; i < all2.isize( ); i++ )
+          {    if ( i > 0 ) cout << ",";
+               cout << all2[i] << "[" << lens[i] << "]";    }
+          cout << "\n";    }
      
      // Dump reads.
 
