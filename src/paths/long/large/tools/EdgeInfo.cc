@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
      CommandArgument_Bool_OrDefault_Doc(OUT_ORIENT, False, 
           "if OUT_READ_HEAD specified, swap order of reads within a pair as needed "
           "to make the first read forward, if possible");
-     CommandArgument_Bool_OrDefault_Doc(ALL, False, 
-          "show lists of all edges");
+     CommandArgument_Bool_OrDefault_Doc(ALL, False, "show lists of all edges");
+     CommandArgument_Bool_OrDefault_Doc(LEN, False, "show edge lengths");
      EndCommandArguments;
          
      // Parse E.
@@ -59,10 +59,11 @@ int main(int argc, char *argv[])
           {    cout << "Illegal value for E." << endl;
                Scram(1);    }    }
 
-     // Load inversion.
+     // Load inversion.  Also sometimes load kmers, could avoid.
 
-     vec<int> inv;
+     vec<int> inv, kmers;
      BinaryReader::readFile( DIR + "/a.inv", &inv );
+     if (LEN) BinaryReader::readFile( DIR + "/a.kmers", &kmers );
 
      // Look up edges.
 
@@ -177,7 +178,20 @@ int main(int argc, char *argv[])
                {    break;    }    }
           ostringstream out1, out2, out3;
           out1 << "[" << j-i << "]";
-          out2 << printSeq( stuff[i].first ) << ".." << printSeq( stuff[i].second );
+
+          const vec<int> &p = stuff[i].first, &q = stuff[i].second;
+          if ( !LEN ) out2 << printSeq(p);
+          else
+          {    for ( int i = 0; i < p.isize( ); i++ )
+               {    if ( i > 0 ) out2 << ",";
+                    out2 << p[i] << "(" << kmers[p[i]] << ")";    }    }
+          out2 << "..";
+          if ( !LEN ) out2 << printSeq(q);
+          else
+          {    for ( int i = 0; i < q.isize( ); i++ )
+               {    if ( i > 0 ) out2 << ",";
+                    out2 << q[i] << "(" << kmers[q[i]] << ")";    }    }
+
           for ( int k = i; k < j; k++ )
           {    all.append( stuff[i].first );
                all.append( stuff[i].second );    }
