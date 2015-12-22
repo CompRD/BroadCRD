@@ -1592,7 +1592,8 @@ void QueryLookupTableCore( int argc, char *argv[] )
                     if ( keep[i] ) seqs_to_process.push_back(i);    }
           else
           {    int status;
-               ParseLongLongSet( SEQS_TO_PROCESS, seqs_to_process, status );
+               ParseLongLongSet( SEQS_TO_PROCESS, seqs_to_process, status,
+                    False, false );
                if ( status != 0 )
                     ABORT( "Problem with SEQS_TO_PROCESS argument." );    }
           if ( PAIRS_TO_PROCESS != "undefString" )
