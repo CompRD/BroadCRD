@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
 	       "Extract LEN bases starting at START (0-based) from CONTIG");
      CommandArgument_Bool_OrDefault_Doc(UPCASE, False,
 	       "Optionally set bases to upper case.");
+     CommandArgument_Int_OrDefault_Doc(W, 80, "width = number of bases per line");
      EndCommandArguments;
 
      ForceAssert( STOP >= 0 ^ LEN >= 0);
@@ -148,7 +149,7 @@ int main(int argc, char *argv[]) {
 
 			 if (base_count == (int) STOP)
 			      break; // DONE! quit the loop and (later) the program!
-			 if ((base_count + 1 - START) % 80 == 0)
+			 if ((base_count + 1 - START) % W == 0)
 			      os << "\n";
 		    }
 		    ++base_count;
