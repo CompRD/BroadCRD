@@ -66,7 +66,7 @@ int main( int argc, char *argv[] )
      EndCommandArguments;
 
      vecbasevector B(F);
-     if ( SUBK == 0 ) Search( B, S, COUNT_ONLY, FW_ONLY, START0, QUIET );
+     if ( SUBK == 0 ) Search( B, S, COUNT_ONLY, FW_ONLY, START0, QUIET, W );
      else
      {    for ( int p = 0; p <= S.isize( ) - SUBK; p++ )
           {    Search( B, S.substr( p, SUBK ), 
