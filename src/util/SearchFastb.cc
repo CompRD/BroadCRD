@@ -16,7 +16,7 @@
 #include "MainTools.h"
 
 void Search( const vecbasevector& B, String S, const Bool COUNT_ONLY,
-     const Bool FW_ONLY, const Bool START0, const Bool QUIET )
+     const Bool FW_ONLY, const Bool START0, const Bool QUIET, const int W )
 {    for ( size_t i = 0; i < S.size( ); i++ )
           S[i] = toupper( S[i] );
      String Src;
@@ -46,7 +46,7 @@ void Search( const vecbasevector& B, String S, const Bool COUNT_ONLY,
                {    basevector b;
                     b.ReverseComplement( B[i] );
                     #pragma omp critical
-                    {    b.Print( cout, "seq_" + ToString(i) + "_rc" );
+                    {    b.PrintCol( cout, "seq_" + ToString(i) + "_rc", W );
                          ++count;    }    }    }    }
      cout << S << ": found " << count << " instances" << endl;    }
 
@@ -62,6 +62,7 @@ int main( int argc, char *argv[] )
      CommandArgument_Bool_OrDefault(START0, False);
      CommandArgument_Int_OrDefault(SUBK, 0);
      CommandArgument_Bool_OrDefault(QUIET, False);
+     CommandArgument_Int_OrDefault_Doc(W, 80, "number of bases to print per line");
      EndCommandArguments;
 
      vecbasevector B(F);
@@ -69,4 +70,4 @@ int main( int argc, char *argv[] )
      else
      {    for ( int p = 0; p <= S.isize( ) - SUBK; p++ )
           {    Search( B, S.substr( p, SUBK ), 
-                    COUNT_ONLY, FW_ONLY, START0, QUIET );    }    }    }
+                    COUNT_ONLY, FW_ONLY, START0, QUIET, W );    }    }    }
