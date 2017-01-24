@@ -34,7 +34,7 @@ void Search( const vecbasevector& B, String S, const Bool COUNT_ONLY,
           {    
                #pragma omp critical
                {    if ( !COUNT_ONLY ) 
-                         B[i].Print( cout, "seq_" + ToString(i) + "_fw" );
+                         B[i].PrintCol( cout, "seq_" + ToString(i) + "_fw", W );
                ++count;    }    }
           if (FW_ONLY) continue;
           if ( ( START0 && s.Contains(Src,0) ) || ( !START0 && s.Contains(Src) ) )
