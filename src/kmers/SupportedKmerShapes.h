@@ -55,7 +55,6 @@
    M(KmerShapeDefaultType(8), arg); \
    M(KmerShapeDefaultType(12), arg); \
    M(KmerShapeDefaultType(16), arg); \
-   M(KmerShapeDefaultType(19), arg); \
    M(KmerShapeDefaultType(20), arg); \
    M(KmerShapeDefaultType(21), arg); \
    M(KmerShapeDefaultType(24), arg); \
@@ -63,7 +62,6 @@
 
 #define FOR_ALL_KSHAPES_B(M, arg) \
    M(KmerShapeDefaultType(28), arg); \
-   M(KmerShapeDefaultType(29), arg); \
    M(KmerShapeDefaultType(32), arg); \
    M(KmerShapeDefaultType(36), arg); \
    M(KmerShapeDefaultType(40), arg); \
@@ -84,24 +82,13 @@
    M(KmerShapeDefaultType(100), arg); \
    M(KmerShapeDefaultType(128), arg); \
    M(KmerShapeDefaultType(144), arg); \
-   M(KmerShapeDefaultType(192), arg); \
    M(KmerShapeDefaultType(200), arg)\
 
 #define FOR_ALL_KSHAPES_D(M, arg ) \
    M(KmerShapeDefaultType(320), arg); \
-   M(KmerShapeDefaultType(368), arg); \
    M(KmerShapeDefaultType(400), arg); \
    M(KmerShapeDefaultType(440), arg); \
-   M(KmerShapeDefaultType(460), arg); \
-   M(KmerShapeDefaultType(500), arg); \
-   M(KmerShapeDefaultType(544), arg); \
-   M(KmerShapeDefaultType(640), arg); \
-   M(KmerShapeDefaultType(720), arg); \
    M(KmerShapeDefaultType(1000), arg); \
-   M(KmerShapeDefaultType(1200), arg); \
-   M(KmerShapeDefaultType(1600), arg); \
-   M(KmerShapeDefaultType(2000), arg); \
-   M(KmerShapeDefaultType(4000), arg); \
    M(KmerShapeDefaultType(10000), arg)
 
 /* Curently have no use for gapped kmers:
@@ -116,7 +103,6 @@
    M(KmerShapeMidGapType(24, 1), arg); \
    M(KmerShapeMidGapType(26, 1), arg); \
    M(KmerShapeMidGapType(28, 1), arg); \
-   M(KmerShapeMidGapType(29, 1), arg); \
    M(KmerShapeMidGapType(32, 1), arg); \
    M(KmerShapeMidGapType(36, 1), arg)
 
@@ -131,7 +117,6 @@
 #define FOR_ALL_KSHAPES_I(M, arg) \
    M(KmerShapeMidGapType(24, 4), arg); \
    M(KmerShapeMidGapType(28, 4), arg); \
-   M(KmerShapeMidGapType(29, 4), arg)
 */
 
 /**
@@ -144,18 +129,15 @@
    M(8, arg); \
    M(12, arg); \
    M(16, arg); \
-   M(19, arg); \
    M(20, arg); \
    M(21, arg); \
    M(24, arg); \
    M(26, arg); \
    M(28, arg); \
-   M(29, arg); \
    M(32, arg); \
    M(36, arg); \
    M(40, arg); \
    M(48, arg); \
-   M(49, arg); \
    M(52, arg); \
    M(60, arg); \
    M(64, arg); \
@@ -169,22 +151,11 @@
    M(100, arg); \
    M(128, arg); \
    M(144, arg); \
-   M(192, arg); \
    M(200, arg); \
    M(320, arg); \
-   M(368, arg); \
    M(400, arg); \
    M(440, arg); \
-   M(460, arg); \
-   M(500, arg); \
-   M(544, arg); \
-   M(640, arg); \
-   M(720, arg); \
    M(1000, arg); \
-   M(1200, arg); \
-   M(1600, arg); \
-   M(2000, arg); \
-   M(4000, arg); \
    M(10000, arg)
 
 /**
@@ -195,8 +166,6 @@
 #define FOR_ALL_K_PLUS_1(M, arg) \
    M(20, arg); \
    M(21, arg); \
-   M(29, arg); \
-   M(49, arg); \
    M(65, arg)
 
 /**
@@ -206,7 +175,6 @@
    kmer+1 length too.
 */
 #define FOR_ALL_K_WITH_K_PLUS_1(M, arg) \
-   M(19, arg); \
    M(20, arg); \
    M(28, arg); \
    M(48, arg); \
