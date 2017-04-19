@@ -316,7 +316,8 @@ String RenderGraphics( const String& OUT,
      const vec< vec<graphics_primitive> >& stack,
      const vec<double>& heights, const double SCALE = 1.0, 
      const double XTRANS = 200, const double YTRANS = 50, const Bool SHOW = True,
-     const double POSTSCALE = 1.0, const Bool allow_fail = False );
+     const double POSTSCALE = 1.0, const Bool allow_fail = False,
+     const Bool pipefail = True );
 
 void CheckValidGraphicsSuffix( const String& OUT, const Bool SHOW = True );
 

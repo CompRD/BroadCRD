@@ -361,7 +361,7 @@ String RenderGraphics( const String& OUT,
      const vec< vec<graphics_primitive> >& stack,
      const vec<double>& heights, const double SCALE, const double XTRANS, 
      const double YTRANS, const Bool SHOW, const double POSTSCALE,
-     const Bool allow_fail )
+     const Bool allow_fail, const Bool pipefail )
 {    Bool to_png = OUT.Contains( ".png", -1 );
      Bool to_ps = OUT.Contains( ".ps", -1 );
      Bool to_pdf = OUT.Contains( ".pdf", -1 );
@@ -382,7 +382,9 @@ String RenderGraphics( const String& OUT,
           Remove( outhead + ".ps" );    }
      if (to_png)
      {    String command1 = "ps2epsi " + outhead + ".ps " + outhead + ".eps";
-          String command2 = "set -o pipefail; "
+          String command2;
+          if (pipefail) command2 = "set -o pipefail; ";
+          command2 +=
                "( pstopnm -portrait -xmax 8000 -ymax 8000 -stdout "
                + outhead + ".eps | pnmcrop | "
                + "pnmpad -white -left=25 -right=25 -top=25 -bottom=25 | ";

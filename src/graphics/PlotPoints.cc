@@ -73,6 +73,7 @@ int main( int argc, char *argv[] )
      CommandArgument_String_OrDefault(SEGMENT_FILE, "");
      CommandArgument_Int_OrDefault(YHEIGHT, 200);
      CommandArgument_Bool_OrDefault(Y_MINOR_TICS, True);
+     CommandArgument_Bool_OrDefault(PIPEFAIL, True);
      EndCommandArguments;
 
      CheckValidGraphicsSuffix( OUT, SHOW );
@@ -210,4 +211,4 @@ int main( int argc, char *argv[] )
           stack.push_back(title);
           heights.push_back(20);    }
      RenderGraphics( OUT, stack, heights, SCALE, XTRANS, YTRANS, SHOW,
-          POSTSCALE );    }
+          POSTSCALE, False, PIPEFAIL );    }
