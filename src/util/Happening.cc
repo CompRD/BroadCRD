@@ -101,7 +101,14 @@ int main( int argc, char *argv[] )
           int signal = ( DUMP ? SIGUSR2 : SIGUSR1 );
           kill_status = kill( pid, signal );
           if ( kill_status != 0 ) break;
-          while( !IsRegularFile(tracefile) ) usleep(10000);
+
+          // Wait briefly for tracefile. 
+
+          for ( int j = 0; j < 100; j++ )
+          {    if ( !IsRegularFile(tracefile) ) usleep(10000);
+               else break;    }
+          if ( !IsRegularFile(tracefile) ) continue; // or should we break?
+
           String traceback, line;
           {    fast_ifstream in(tracefile);
                while(1)
