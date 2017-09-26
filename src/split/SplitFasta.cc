@@ -6,6 +6,8 @@
 #include "MainTools.h"
 #include "FastIfstream.h"
 
+#include "random/Random.h"
+
 int main( int argc, char *argv[] )
 {
      RunTime( );
@@ -13,6 +15,8 @@ int main( int argc, char *argv[] )
      BeginCommandArguments;
      CommandArgument_String(IN);
      CommandArgument_UnsignedInt(n);
+     CommandArgument_Int_OrDefault_Doc(RDIV, 1, 
+          "randomly keep only 1/RDIV records");
      EndCommandArguments;
 
      String line, header;
@@ -35,9 +39,10 @@ int main( int argc, char *argv[] )
           int chunk = 1;
           for ( int u = 0; u < bases.isize( ); u += n )
           {    if ( u + (int) n > bases.isize( ) ) break;
-               cout << header << "." << chunk++ << "\n";
-               for ( int j = 0; j < (int) n; j++ )
-               {    if ( j > 0 && j % 80 == 0 ) cout << "\n";
-                    cout << bases[u+j];    }
-               cout << "\n";    }
+               if ( RDIV == 1 || randomx( ) % RDIV == 0 )
+               {    cout << header << "." << chunk++ << "\n";
+                    for ( int j = 0; j < (int) n; j++ )
+                    {    if ( j > 0 && j % 80 == 0 ) cout << "\n";
+                         cout << bases[u+j];    }
+                    cout << "\n";    }    }
           if ( in.fail( ) ) break;    }    }
