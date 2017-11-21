@@ -39,7 +39,7 @@ int main( int argc, char *argv[] )
 
      vecbasevector genome( GENOME );
      vecKmerPath paths, paths_rc, unipaths;
-     vec<tagged_rpint> pathsdb, unipathsdb;
+     vec<big_tagged_rpint> pathsdb, unipathsdb;
 
      if ( FW_ONLY ) {
 	  ReadsToPathsCoreY( genome, K, paths );
@@ -56,7 +56,7 @@ int main( int argc, char *argv[] )
      HyperKmerPath h;
      BuildUnipathAdjacencyHyperKmerPath( K, A, unipaths, h );
 
-     KmerBaseBroker kbb(K, paths, paths_rc, pathsdb, genome);
+     KmerBaseBrokerBig kbb(K, paths, paths_rc, pathsdb, genome);
 
      cout << Date() << ": Writing HBV to " << HBV << endl;
      BinaryWriter writer( HBV );
