@@ -25,7 +25,7 @@ int main( int argc, char *argv[] )
 
      BeginCommandArguments;
      CommandArgument_String_Doc(GENOME, "program looks for GENOME");
-     CommandArgument_String_Doc(HBV, "outputs HBV");
+     CommandArgument_String_Doc(HB, "outputs HyperBasevector");
      CommandArgument_Bool_OrDefault_Doc(FW_ONLY, false, "only output the FW strand");
      CommandArgument_String_OrDefault_Doc(DOT,"","outputs DOT");
      CommandArgument_String_OrDefault_Doc(FASTB,"","outputs FASTB");
@@ -58,10 +58,13 @@ int main( int argc, char *argv[] )
 
      KmerBaseBrokerBig kbb(K, paths, paths_rc, pathsdb, genome);
 
-     cout << Date() << ": Writing HBV to " << HBV << endl;
-     BinaryWriter writer( HBV );
+     cout << Date( ) << ": constructing hbv" << endl;
      HyperBasevector hbv( h, kbb );
-     hbv.writeBinary(writer);
+     cout << Date( ) << ": constructing hb" << endl;
+     HyperBasevectorX hb;
+     hb = HyperBasevectorX(hbv);
+     cout << Date() << ": Writing HBX to " << HB << endl;
+     BinaryWriter::writeFile( HB, hb );
 
      if ( DOT != "" ) {
 	  cout << Date() << ": Writing DOT to " << DOT << endl;
@@ -93,4 +96,5 @@ int main( int argc, char *argv[] )
      }
      
      cout << Date( ) << ": Done!" << endl;
+     Scram(0);
 }
