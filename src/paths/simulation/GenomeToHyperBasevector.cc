@@ -31,69 +31,64 @@ int main( int argc, char *argv[] )
      CommandArgument_String_OrDefault_Doc(FASTB,"","outputs FASTB");
      CommandArgument_String_OrDefault_Doc(FASTA,"","outputs FASTA");
      CommandArgument_Int(K);
-
-//     CommandArgument_Bool_OrDefault(FW_ONLY, False);
+     CommandArgument_Bool_OrDefault(BIG, True);
      EndCommandArguments;
 
      // Generate unipaths.
 
      vecbasevector genome( GENOME );
      vecKmerPath paths, paths_rc, unipaths;
-     vec<big_tagged_rpint> pathsdb, unipathsdb;
-
-     if ( FW_ONLY ) {
-	  ReadsToPathsCoreY( genome, K, paths );
-	  CreateDatabase( paths, paths_rc, pathsdb );
-     } else {
-	  ReadsToPathsCoreY( genome, K, paths, paths_rc, pathsdb );
-     }
-     Unipath( paths, paths_rc, pathsdb, unipaths, unipathsdb );
-
-
-     digraph A;
-     BuildUnipathAdjacencyGraph( paths, paths_rc, pathsdb, unipaths,
-          unipathsdb, A );
-     HyperKmerPath h;
-     BuildUnipathAdjacencyHyperKmerPath( K, A, unipaths, h );
-
-     KmerBaseBrokerBig kbb(K, paths, paths_rc, pathsdb, genome);
-
-     cout << Date( ) << ": constructing hbv" << endl;
-     HyperBasevector hbv( h, kbb );
-     cout << Date( ) << ": constructing hb" << endl;
+     HyperBasevector hbv;
      HyperBasevectorX hb;
+     digraph A;
+     HyperKmerPath h;
+
+     if (BIG)
+     {    vec<big_tagged_rpint> pathsdb, unipathsdb;
+          ReadsToPathsCoreY( genome, K, paths, paths_rc, pathsdb );
+          Unipath( paths, paths_rc, pathsdb, unipaths, unipathsdb );
+          BuildUnipathAdjacencyGraph( 
+               paths, paths_rc, pathsdb, unipaths, unipathsdb, A );
+          BuildUnipathAdjacencyHyperKmerPath( K, A, unipaths, h );
+          KmerBaseBrokerBig kbb(K, paths, paths_rc, pathsdb, genome);
+          cout << Date( ) << ": constructing hbv" << endl;
+          hbv = HyperBasevector( h, kbb );    }
+     else
+     {    vec<tagged_rpint> pathsdb, unipathsdb;
+          ReadsToPathsCoreY( genome, K, paths, paths_rc, pathsdb );
+          Unipath( paths, paths_rc, pathsdb, unipaths, unipathsdb );
+          BuildUnipathAdjacencyGraph( 
+               paths, paths_rc, pathsdb, unipaths, unipathsdb, A );
+          BuildUnipathAdjacencyHyperKmerPath( K, A, unipaths, h );
+          KmerBaseBroker kbb(K, paths, paths_rc, pathsdb, genome);
+          cout << Date( ) << ": constructing hbv" << endl;
+          hbv = HyperBasevector( h, kbb );    }
+
+     cout << Date( ) << ": constructing hb" << endl;
      hb = HyperBasevectorX(hbv);
      cout << Date() << ": Writing HBX to " << HB << endl;
      BinaryWriter::writeFile( HB, hb );
 
-     if ( DOT != "" ) {
-	  cout << Date() << ": Writing DOT to " << DOT << endl;
-
+     if ( DOT != "" ) 
+     {    cout << Date() << ": Writing DOT to " << DOT << endl;
 	  vec<vec<String> > edge_labels;
-	  for ( int v = 0; v < h.N(); v++ ) {
-	       edge_labels.push_back(vec<String>() );
+	  for ( int v = 0; v < h.N(); v++ ) 
+          {    edge_labels.push_back(vec<String>() );
 	       for ( size_t j = 0; j < hbv.From(v).size(); j++ ) {
 		    int e = hbv.EdgeObjectIndexByIndexFrom(v, j);
 		    std::ostringstream s;
 		    s << BaseAlpha(e) << " (" << hbv.EdgeObject( e ).size() <<")";
-		    edge_labels.back().push_back( s.str() );
-	       }
-	  }
-
+		    edge_labels.back().push_back( s.str() );    }    }
 	  ofstream dot(DOT);
 	  hbv.DOT(dot, edge_labels);
-	  dot.close();
-     }
+	  dot.close( );    }
+     if ( FASTB != "" ) 
+     {    cout << Date() << ": Writing FASTB to " << FASTB << endl;
+	  hbv.DumpFastb(FASTB);    }
 
-     if ( FASTB != "" ) {
-	  cout << Date() << ": Writing FASTB to " << FASTB << endl;
-	  hbv.DumpFastb(FASTB);
-     }
-
-     if ( FASTA != "" ) {
-	  cout << Date() << ": Writing FASTA to " << FASTA << endl;
-	  hbv.DumpFasta(FASTA);
-     }
+     if ( FASTA != "" ) 
+     {    cout << Date() << ": Writing FASTA to " << FASTA << endl;
+	  hbv.DumpFasta(FASTA);    }
      
      cout << Date( ) << ": Done!" << endl;
      Scram(0);
