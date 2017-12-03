@@ -17,6 +17,7 @@
 #include "paths/HyperKmerPath.h"
 #include "paths/ReadsToPathsCoreX.h"
 #include "paths/Unipath.h"
+#include "paths/long/LongReadsToPaths.h"
 #include <map>
 
 int main( int argc, char *argv[] )
@@ -31,7 +32,7 @@ int main( int argc, char *argv[] )
      CommandArgument_String_OrDefault_Doc(FASTB,"","outputs FASTB");
      CommandArgument_String_OrDefault_Doc(FASTA,"","outputs FASTA");
      CommandArgument_Int(K);
-     CommandArgument_Bool_OrDefault(BIG, True);
+     // CommandArgument_Bool_OrDefault(BIG, True);
      EndCommandArguments;
 
      // Generate unipaths.
@@ -43,6 +44,12 @@ int main( int argc, char *argv[] )
      digraph A;
      HyperKmerPath h;
 
+     unsigned const COVERAGE = 5u;
+     uint loglevel = 1;
+     LongReadsToPaths( genome, K, COVERAGE, loglevel, false,
+           &hbv, &h, &paths, &paths_rc );
+
+     /*
      if (BIG)
      {    vec<big_tagged_rpint> pathsdb, unipathsdb;
           ReadsToPathsCoreY( genome, K, paths, paths_rc, pathsdb );
@@ -63,6 +70,7 @@ int main( int argc, char *argv[] )
           KmerBaseBroker kbb(K, paths, paths_rc, pathsdb, genome);
           cout << Date( ) << ": constructing hbv" << endl;
           hbv = HyperBasevector( h, kbb );    }
+     */
 
      cout << Date( ) << ": constructing hb" << endl;
      hb = HyperBasevectorX(hbv);
