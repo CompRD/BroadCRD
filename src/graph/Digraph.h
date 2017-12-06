@@ -1348,6 +1348,8 @@ template<class F> class digraphEX : public digraphX {
      vec<int>& to_left() { return to_left_; }
      vec<int>& to_right() { return to_right_; }
 
+     const MasterVec<F>& Edges( ) const { return edges_; }
+
      class edge_label_info {
           public:
           enum ConstructorBehavior { DEFAULT, EXPLICIT, DIRECT };
