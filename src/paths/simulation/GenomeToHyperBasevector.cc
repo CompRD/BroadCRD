@@ -16,6 +16,7 @@
 #include "math/Functions.h"
 #include "paths/HyperKmerPath.h"
 #include "paths/ReadsToPathsCoreX.h"
+#include "paths/UnibaseUtils.h"
 #include "paths/Unipath.h"
 #include "paths/long/LongReadsToPaths.h"
 #include <map>
@@ -25,9 +26,8 @@ int main( int argc, char *argv[] )
      RunTime( );
 
      BeginCommandArguments;
-     CommandArgument_String_Doc(GENOME, "program looks for GENOME");
-     CommandArgument_String_Doc(HB, "outputs HyperBasevector");
-     CommandArgument_Bool_OrDefault_Doc(FW_ONLY, false, "only output the FW strand");
+     CommandArgument_String_Doc(GENOME, 
+          "program reads GENOME.fastb, writes GENOME.{hbx,inv}");
      CommandArgument_String_OrDefault_Doc(DOT,"","outputs DOT");
      CommandArgument_String_OrDefault_Doc(FASTB,"","outputs FASTB");
      CommandArgument_String_OrDefault_Doc(FASTA,"","outputs FASTA");
@@ -36,7 +36,7 @@ int main( int argc, char *argv[] )
 
      // Generate unipaths.
 
-     vecbasevector genome( GENOME );
+     vecbasevector genome( GENOME + ".fastb" );
      vecKmerPath paths, paths_rc;
      HyperBasevector hbv;
      HyperBasevectorX hb;
@@ -48,8 +48,16 @@ int main( int argc, char *argv[] )
            &hbv, &h, &paths, &paths_rc );
      cout << Date( ) << ": constructing hb" << endl;
      hb = HyperBasevectorX(hbv);
-     cout << Date() << ": Writing HBX to " << HB << endl;
-     BinaryWriter::writeFile( HB, hb );
+     cout << Date() << ": writing " << GENOME << ".hbx" << endl;
+     BinaryWriter::writeFile( GENOME + ".hbx", hb );
+
+     // Compute involution.
+
+     vec<int> inv;
+     UnibaseInvolution( hb.Edges( ), inv );
+     BinaryWriter::writeFile( GENOME + ".inv", inv );
+
+     // Make dot file, fastb, fasta.
 
      if ( DOT != "" ) 
      {    cout << Date() << ": Writing DOT to " << DOT << endl;
@@ -67,10 +75,11 @@ int main( int argc, char *argv[] )
      if ( FASTB != "" ) 
      {    cout << Date() << ": Writing FASTB to " << FASTB << endl;
 	  hbv.DumpFastb(FASTB);    }
-
      if ( FASTA != "" ) 
      {    cout << Date() << ": Writing FASTA to " << FASTA << endl;
 	  hbv.DumpFasta(FASTA);    }
+
+     // Done.
      
      cout << Date( ) << ": Done!" << endl;
      Scram(0);
