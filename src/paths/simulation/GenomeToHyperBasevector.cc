@@ -32,46 +32,20 @@ int main( int argc, char *argv[] )
      CommandArgument_String_OrDefault_Doc(FASTB,"","outputs FASTB");
      CommandArgument_String_OrDefault_Doc(FASTA,"","outputs FASTA");
      CommandArgument_Int(K);
-     // CommandArgument_Bool_OrDefault(BIG, True);
      EndCommandArguments;
 
      // Generate unipaths.
 
      vecbasevector genome( GENOME );
-     vecKmerPath paths, paths_rc, unipaths;
+     vecKmerPath paths, paths_rc;
      HyperBasevector hbv;
      HyperBasevectorX hb;
      digraph A;
      HyperKmerPath h;
-
      unsigned const COVERAGE = 5u;
      uint loglevel = 1;
      LongReadsToPaths( genome, K, COVERAGE, loglevel, false,
            &hbv, &h, &paths, &paths_rc );
-
-     /*
-     if (BIG)
-     {    vec<big_tagged_rpint> pathsdb, unipathsdb;
-          ReadsToPathsCoreY( genome, K, paths, paths_rc, pathsdb );
-          Unipath( paths, paths_rc, pathsdb, unipaths, unipathsdb );
-          BuildUnipathAdjacencyGraph( 
-               paths, paths_rc, pathsdb, unipaths, unipathsdb, A );
-          BuildUnipathAdjacencyHyperKmerPath( K, A, unipaths, h );
-          KmerBaseBrokerBig kbb(K, paths, paths_rc, pathsdb, genome);
-          cout << Date( ) << ": constructing hbv" << endl;
-          hbv = HyperBasevector( h, kbb );    }
-     else
-     {    vec<tagged_rpint> pathsdb, unipathsdb;
-          ReadsToPathsCoreY( genome, K, paths, paths_rc, pathsdb );
-          Unipath( paths, paths_rc, pathsdb, unipaths, unipathsdb );
-          BuildUnipathAdjacencyGraph( 
-               paths, paths_rc, pathsdb, unipaths, unipathsdb, A );
-          BuildUnipathAdjacencyHyperKmerPath( K, A, unipaths, h );
-          KmerBaseBroker kbb(K, paths, paths_rc, pathsdb, genome);
-          cout << Date( ) << ": constructing hbv" << endl;
-          hbv = HyperBasevector( h, kbb );    }
-     */
-
      cout << Date( ) << ": constructing hb" << endl;
      hb = HyperBasevectorX(hbv);
      cout << Date() << ": Writing HBX to " << HB << endl;
