@@ -69,6 +69,8 @@ int main(int argc, char *argv[])
         "of the two alignments");
     CommandArgument_Bool_OrDefault_Doc(BEST_ONLY, False, "Report only the "
         "F2 pairing for each read in F1");
+    CommandArgument_Bool_OrDefault_Doc(FULL2, False, 
+        "Report that alignment extends to both ends of second sequence.");
     EndCommandArguments;
 
     ForceAssert(ALIGNER == "LOCAL" || ALIGNER == "SWFREE"
@@ -179,6 +181,10 @@ int main(int argc, char *argv[])
                     {
                         FatalErr(ALIGNER + " is an unknown aligner.");
                     }
+
+                    if ( FULL2 
+                        && ( al.pos2( ) > 0 || al.Pos2( ) < b2[i2].isize( ) ) )
+                        continue;
         
                     if (FW_OR_RC)
                     {    
